@@ -10,33 +10,111 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as FavoritesRouteImport } from './routes/favorites'
+import { Route as HomeRouteImport } from './routes/home'
+import { Route as ProvidersRouteImport } from './routes/providers'
+import { Route as ScheduleRouteImport } from './routes/schedule'
+import { Route as ProvidersIndexRouteImport } from './routes/providers.index'
+import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$providerId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FavoritesRoute = FavoritesRouteImport.update({
+  id: '/favorites',
+  path: '/favorites',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProvidersRoute = ProvidersRouteImport.update({
+  id: '/providers',
+  path: '/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScheduleRoute = ScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProvidersIndexRoute = ProvidersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ProvidersRoute,
+} as any)
+const ProvidersProviderIdRoute = ProvidersProviderIdRouteImport.update({
+  id: '/$providerId',
+  path: '/$providerId',
+  getParentRoute: () => ProvidersRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/favorites': typeof FavoritesRoute
+  '/home': typeof HomeRoute
+  '/providers': typeof ProvidersRouteWithChildren
+  '/schedule': typeof ScheduleRoute
+  '/providers/$providerId': typeof ProvidersProviderIdRoute
+  '/providers/': typeof ProvidersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/favorites': typeof FavoritesRoute
+  '/home': typeof HomeRoute
+  '/schedule': typeof ScheduleRoute
+  '/providers/$providerId': typeof ProvidersProviderIdRoute
+  '/providers': typeof ProvidersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/favorites': typeof FavoritesRoute
+  '/home': typeof HomeRoute
+  '/providers': typeof ProvidersRouteWithChildren
+  '/schedule': typeof ScheduleRoute
+  '/providers/$providerId': typeof ProvidersProviderIdRoute
+  '/providers/': typeof ProvidersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/favorites'
+    | '/home'
+    | '/providers'
+    | '/schedule'
+    | '/providers/$providerId'
+    | '/providers/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/favorites'
+    | '/home'
+    | '/schedule'
+    | '/providers/$providerId'
+    | '/providers'
+  id:
+    | '__root__'
+    | '/'
+    | '/favorites'
+    | '/home'
+    | '/providers'
+    | '/schedule'
+    | '/providers/$providerId'
+    | '/providers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  FavoritesRoute: typeof FavoritesRoute
+  HomeRoute: typeof HomeRoute
+  ProvidersRoute: typeof ProvidersRouteWithChildren
+  ScheduleRoute: typeof ScheduleRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +126,71 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/favorites': {
+      id: '/favorites'
+      path: '/favorites'
+      fullPath: '/favorites'
+      preLoaderRoute: typeof FavoritesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/providers': {
+      id: '/providers'
+      path: '/providers'
+      fullPath: '/providers'
+      preLoaderRoute: typeof ProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schedule': {
+      id: '/schedule'
+      path: '/schedule'
+      fullPath: '/schedule'
+      preLoaderRoute: typeof ScheduleRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/providers/': {
+      id: '/providers/'
+      path: '/'
+      fullPath: '/providers/'
+      preLoaderRoute: typeof ProvidersIndexRouteImport
+      parentRoute: typeof ProvidersRoute
+    }
+    '/providers/$providerId': {
+      id: '/providers/$providerId'
+      path: '/$providerId'
+      fullPath: '/providers/$providerId'
+      preLoaderRoute: typeof ProvidersProviderIdRouteImport
+      parentRoute: typeof ProvidersRoute
+    }
   }
 }
 
+interface ProvidersRouteChildren {
+  ProvidersProviderIdRoute: typeof ProvidersProviderIdRoute
+  ProvidersIndexRoute: typeof ProvidersIndexRoute
+}
+
+const ProvidersRouteChildren: ProvidersRouteChildren = {
+  ProvidersProviderIdRoute: ProvidersProviderIdRoute,
+  ProvidersIndexRoute: ProvidersIndexRoute,
+}
+
+const ProvidersRouteWithChildren = ProvidersRoute._addFileChildren(
+  ProvidersRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  FavoritesRoute: FavoritesRoute,
+  HomeRoute: HomeRoute,
+  ProvidersRoute: ProvidersRouteWithChildren,
+  ScheduleRoute: ScheduleRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
