@@ -13,11 +13,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as BoardIndexRouteImport } from './routes/board.index'
 import { Route as BoardPostIdRouteImport } from './routes/board.$postId'
+import { Route as ParentsParentIdRouteImport } from './routes/parents.$parentId'
 import { Route as ProvidersIndexRouteImport } from './routes/providers.index'
 import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$providerId'
 
@@ -39,6 +41,11 @@ const FavoritesRoute = FavoritesRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProvidersRoute = ProvidersRouteImport.update({
@@ -66,6 +73,11 @@ const BoardPostIdRoute = BoardPostIdRouteImport.update({
   path: '/$postId',
   getParentRoute: () => BoardRoute,
 } as any)
+const ParentsParentIdRoute = ParentsParentIdRouteImport.update({
+  id: '/parents/$parentId',
+  path: '/parents/$parentId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProvidersIndexRoute = ProvidersIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -82,10 +94,12 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRouteWithChildren
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
   '/board/$postId': typeof BoardPostIdRoute
+  '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/board/': typeof BoardIndexRoute
   '/providers/': typeof ProvidersIndexRoute
@@ -94,9 +108,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
   '/board/$postId': typeof BoardPostIdRoute
+  '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/board': typeof BoardIndexRoute
   '/providers': typeof ProvidersIndexRoute
@@ -107,10 +123,12 @@ export interface FileRoutesById {
   '/board': typeof BoardRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
+  '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRouteWithChildren
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
   '/board/$postId': typeof BoardPostIdRoute
+  '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/board/': typeof BoardIndexRoute
   '/providers/': typeof ProvidersIndexRoute
@@ -122,10 +140,12 @@ export interface FileRouteTypes {
     | '/board'
     | '/favorites'
     | '/home'
+    | '/profile'
     | '/providers'
     | '/schedule'
     | '/search'
     | '/board/$postId'
+    | '/parents/$parentId'
     | '/providers/$providerId'
     | '/board/'
     | '/providers/'
@@ -134,9 +154,11 @@ export interface FileRouteTypes {
     | '/'
     | '/favorites'
     | '/home'
+    | '/profile'
     | '/schedule'
     | '/search'
     | '/board/$postId'
+    | '/parents/$parentId'
     | '/providers/$providerId'
     | '/board'
     | '/providers'
@@ -146,10 +168,12 @@ export interface FileRouteTypes {
     | '/board'
     | '/favorites'
     | '/home'
+    | '/profile'
     | '/providers'
     | '/schedule'
     | '/search'
     | '/board/$postId'
+    | '/parents/$parentId'
     | '/providers/$providerId'
     | '/board/'
     | '/providers/'
@@ -160,9 +184,11 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRouteWithChildren
   FavoritesRoute: typeof FavoritesRoute
   HomeRoute: typeof HomeRoute
+  ProfileRoute: typeof ProfileRoute
   ProvidersRoute: typeof ProvidersRouteWithChildren
   ScheduleRoute: typeof ScheduleRoute
   SearchRoute: typeof SearchRoute
+  ParentsParentIdRoute: typeof ParentsParentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -193,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/providers': {
@@ -229,6 +262,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/board/$postId'
       preLoaderRoute: typeof BoardPostIdRouteImport
       parentRoute: typeof BoardRoute
+    }
+    '/parents/$parentId': {
+      id: '/parents/$parentId'
+      path: '/parents/$parentId'
+      fullPath: '/parents/$parentId'
+      preLoaderRoute: typeof ParentsParentIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/providers/': {
       id: '/providers/'
@@ -278,9 +318,11 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRouteWithChildren,
   FavoritesRoute: FavoritesRoute,
   HomeRoute: HomeRoute,
+  ProfileRoute: ProfileRoute,
   ProvidersRoute: ProvidersRouteWithChildren,
   ScheduleRoute: ScheduleRoute,
   SearchRoute: SearchRoute,
+  ParentsParentIdRoute: ParentsParentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
