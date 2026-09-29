@@ -28,7 +28,9 @@ function SchedulePage() {
   const { schedule, toggleBlock, favorites } = useApp();
   const [overlay, setOverlay] = useState<string[]>(favorites.slice(0, 2));
 
-  const overlaid = overlay.map(providerById).filter((p) => p !== undefined && p.schedule !== null);
+  const overlaid = overlay
+    .map(providerById)
+    .filter((p): p is NonNullable<typeof p> => p !== undefined && p.schedule !== null);
 
   function coverage(day: number, block: number) {
     const need = schedule[day][block];
