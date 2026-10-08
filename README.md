@@ -9,9 +9,36 @@ Parents struggle to find child care that fits their family's specific needs beca
 
 ## ERD
 
-![CareConnect entity relationship diagram](docs/erd.png)
+Our database has 19 tables. To keep it readable, the ERD is split into five diagrams by feature. Together they show every table, every attribute, and every labeled relationship. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
 
-The diagram shows the 19 tables in our Supabase (Postgres) database, the attributes of each, and labeled one-to-many relationships. The core entities are **PARENTS**, **PROVIDERS**, **REVIEWS**, and **POSTS**. Join tables handle many-to-many relationships (favorites, languages, mentions, past families), and schedules are stored as one row per day and time block so schedule overlap is a simple join. Diagram source: [`docs/erd.mmd`](docs/erd.mmd). The SQL that builds it is in [`supabase/setup.sql`](supabase/setup.sql).
+**Key:** `PK` primary key · `FK` foreign key · `UK` unique · `||--o{` one-to-many (one on the bar side, zero-or-many on the crow's-foot side)
+
+### 1. Parents and families
+Parent profiles, their children, languages, the weekly hours they need care, and parent-to-parent connections.
+
+<a href="docs/erd-1-parents.png"><img src="docs/erd-1-parents.png" alt="ERD: parents, children, languages, parent availability, parent connections" width="100%"></a>
+
+### 2. Providers
+Provider listings with price, schedule, languages, photos, licenses, and the user who owns the listing.
+
+<a href="docs/erd-2-providers.png"><img src="docs/erd-2-providers.png" alt="ERD: providers and their pricing notes, photos, credentials, availability and languages" width="100%"></a>
+
+### 3. Trust and saving
+Reviews with four detailed scores, families who have used a provider, and saved favorites.
+
+<a href="docs/erd-3-trust.png"><img src="docs/erd-3-trust.png" alt="ERD: reviews, provider past families, favorites" width="70%"></a>
+
+### 4. Message board
+Posts and replies written by parents.
+
+<a href="docs/erd-4-board.png"><img src="docs/erd-4-board.png" alt="ERD: parents, posts, post replies" width="45%"></a>
+
+### 5. Provider tags on the message board
+Providers tagged in posts and replies.
+
+<a href="docs/erd-5-mentions.png"><img src="docs/erd-5-mentions.png" alt="ERD: post mentions and reply mentions" width="85%"></a>
+
+**Full diagram:** all 19 tables on one page are in [docs/erd.png](docs/erd.png) (zoom in to read). Diagram sources are the `docs/*.mmd` Mermaid files, and the SQL that builds the database is in [`supabase/setup.sql`](supabase/setup.sql).
 
 ## Tech Stack
 

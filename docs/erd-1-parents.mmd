@@ -1,0 +1,41 @@
+erDiagram
+  direction LR
+  LANGUAGES ||--o{ PARENT_LANGUAGES : "used in"
+  PARENTS ||--o{ PARENT_LANGUAGES : "speaks"
+  PARENTS ||--o{ CHILDREN : "has"
+  PARENTS ||--o{ PARENT_AVAILABILITY : "needs care"
+  PARENTS ||--o{ PARENT_CONNECTIONS : "connects"
+  PARENTS ||--o{ PARENT_CONNECTIONS : "connected to"
+  PARENTS {
+    text id PK
+    uuid auth_user_id UK
+    text name
+    text email UK "hidden from public"
+    text neighborhood
+    text blurb
+    timestamptz created_at
+  }
+  CHILDREN {
+    bigint id PK
+    text parent_id FK
+    text name
+    smallint age
+  }
+  PARENT_AVAILABILITY {
+    text parent_id PK,FK
+    smallint day_of_week PK
+    time_block block PK
+  }
+  PARENT_LANGUAGES {
+    text parent_id PK,FK
+    smallint language_id PK,FK
+  }
+  LANGUAGES {
+    smallint id PK
+    text name UK
+  }
+  PARENT_CONNECTIONS {
+    text parent_id PK,FK
+    text connected_parent_id PK,FK
+    timestamptz created_at
+  }

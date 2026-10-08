@@ -1,0 +1,61 @@
+erDiagram
+  direction LR
+  PROVIDERS ||--o{ PROVIDER_PRICING_NOTES : "has"
+  PROVIDERS ||--o{ PROVIDER_PHOTOS : "has"
+  PROVIDERS ||--o{ PROVIDER_CREDENTIALS : "holds"
+  PROVIDERS ||--o{ PROVIDER_AVAILABILITY : "available"
+  PROVIDERS ||--o{ PROVIDER_LANGUAGES : "speaks"
+  LANGUAGES ||--o{ PROVIDER_LANGUAGES : "used in"
+  PARENTS ||--o{ PROVIDERS : "owns listing"
+  PROVIDERS {
+    text id PK
+    uuid owner_id FK "auth user"
+    text name
+    care_type care_type
+    text blurb
+    text bio
+    numeric daily_rate "null = unavailable"
+    numeric daily_rate_max
+    text neighborhood
+    numeric distance_miles
+    numeric latitude
+    numeric longitude
+    boolean verified
+    boolean schedule_available
+    text schedule_summary
+    text photo_key
+    timestamptz created_at
+  }
+  PROVIDER_PRICING_NOTES {
+    bigint id PK
+    text provider_id FK
+    text note
+    smallint sort_order
+  }
+  PROVIDER_PHOTOS {
+    bigint id PK
+    text provider_id FK
+    text photo_key
+    smallint sort_order
+  }
+  PROVIDER_CREDENTIALS {
+    bigint id PK
+    text provider_id FK
+    text name
+    boolean verified
+  }
+  PROVIDER_AVAILABILITY {
+    text provider_id PK,FK
+    smallint day_of_week PK "0=Mon"
+    time_block block PK
+  }
+  PROVIDER_LANGUAGES {
+    text provider_id PK,FK
+    smallint language_id PK,FK
+  }
+  LANGUAGES {
+    smallint id PK
+  }
+  PARENTS {
+    text id PK
+  }

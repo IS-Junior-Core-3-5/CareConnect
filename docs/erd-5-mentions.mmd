@@ -1,0 +1,22 @@
+erDiagram
+  POSTS ||--o{ POST_MENTIONS : "tags"
+  PROVIDERS ||--o{ POST_MENTIONS : "tagged in"
+  PROVIDERS ||--o{ REPLY_MENTIONS : "tagged in"
+  POST_REPLIES ||--o{ REPLY_MENTIONS : "tags"
+  POSTS {
+    text id PK
+  }
+  PROVIDERS {
+    text id PK
+  }
+  POST_REPLIES {
+    bigint id PK
+  }
+  POST_MENTIONS {
+    text post_id PK,FK
+    text provider_id PK,FK
+  }
+  REPLY_MENTIONS {
+    bigint reply_id PK,FK
+    text provider_id PK,FK
+  }

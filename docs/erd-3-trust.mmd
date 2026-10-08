@@ -1,0 +1,34 @@
+erDiagram
+  direction LR
+  PARENTS ||--o{ REVIEWS : "writes"
+  PROVIDERS ||--o{ REVIEWS : "receives"
+  PARENTS ||--o{ PROVIDER_PAST_FAMILIES : "used"
+  PROVIDERS ||--o{ PROVIDER_PAST_FAMILIES : "served"
+  PARENTS ||--o{ FAVORITES : "saves"
+  PROVIDERS ||--o{ FAVORITES : "saved in"
+  REVIEWS {
+    bigint id PK
+    text provider_id FK
+    text parent_id FK
+    text body
+    smallint score_experience
+    smallint score_values
+    smallint score_communication
+    smallint score_safety
+    date reviewed_on
+  }
+  FAVORITES {
+    text parent_id PK,FK
+    text provider_id PK,FK
+    timestamptz created_at
+  }
+  PROVIDER_PAST_FAMILIES {
+    text provider_id PK,FK
+    text parent_id PK,FK
+  }
+  PARENTS {
+    text id PK
+  }
+  PROVIDERS {
+    text id PK
+  }

@@ -1,0 +1,22 @@
+erDiagram
+  PARENTS ||--o{ POSTS : "writes"
+  POSTS ||--o{ POST_REPLIES : "has"
+  PARENTS ||--o{ POST_REPLIES : "writes"
+  PARENTS {
+    text id PK
+  }
+  POSTS {
+    text id PK
+    text author_id FK
+    text category
+    text title
+    text body
+    timestamptz created_at
+  }
+  POST_REPLIES {
+    bigint id PK
+    text post_id FK
+    text author_id FK
+    text body
+    timestamptz created_at
+  }
