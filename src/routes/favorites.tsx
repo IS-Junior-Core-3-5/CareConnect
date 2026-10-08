@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
-import { overlapCount, priceLabel, providerById } from "@/data/mock";
+import { overlapCount, priceLabel } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/favorites")({
   head: () => ({
@@ -29,8 +30,10 @@ function FavoritesPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [comparing, setComparing] = useState(false);
 
-  const saved = favorites.map(providerById).filter((p) => p !== undefined);
-  const chosen = selected.map(providerById).filter((p) => p !== undefined);
+  const providers = useProviders();
+  const byId = (id: string) => providers.find((p) => p.id === id);
+  const saved = favorites.map(byId).filter((p) => p !== undefined);
+  const chosen = selected.map(byId).filter((p) => p !== undefined);
 
   function toggleSelect(id: string) {
     setSelected((prev) =>

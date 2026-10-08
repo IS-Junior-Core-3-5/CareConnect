@@ -2,8 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ScheduleGrid } from "@/components/ScheduleGrid";
-import { BLOCKS, DAYS, providerById, providers, type Schedule } from "@/data/mock";
+import { BLOCKS, DAYS, type Schedule } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/schedule")({
   head: () => ({
@@ -26,10 +27,11 @@ export const Route = createFileRoute("/schedule")({
 
 function SchedulePage() {
   const { schedule, toggleBlock, favorites } = useApp();
+  const providers = useProviders();
   const [overlay, setOverlay] = useState<string[]>(favorites.slice(0, 2));
 
   const overlaid = overlay
-    .map(providerById)
+    .map((id) => providers.find((p) => p.id === id))
     .filter((p): p is NonNullable<typeof p> => p !== undefined && p.schedule !== null);
 
   function coverage(day: number, block: number) {

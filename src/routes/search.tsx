@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
-import { parents, posts, providers } from "@/data/mock";
+import { useParents, usePosts, useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -27,6 +27,9 @@ export const Route = createFileRoute("/search")({
 
 function SearchPage() {
   const { q } = Route.useSearch();
+  const providers = useProviders();
+  const parents = useParents();
+  const posts = usePosts();
   const term = q.trim().toLowerCase();
 
   const matchedProviders = term

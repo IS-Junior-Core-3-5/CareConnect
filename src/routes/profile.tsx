@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
-import { parentById, parents } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useParents } from "@/lib/data";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { parentName, language, setLanguage, favorites, connections, toggleConnection } = useApp();
-  const me = parents[0];
+  const parents = useParents();
+  const me = parents[0]!;
   return (
     <AppShell>
       <section className="py-10">
@@ -66,7 +67,7 @@ function ProfilePage() {
             {connections.length === 0 ? <p className="mt-3 text-sm text-ink-soft">No connections yet.</p> : null}
             <ul className="mt-3 space-y-2">
               {connections.map((id) => {
-                const p = parentById(id);
+                const p = parents.find((x) => x.id === id);
                 if (!p) return null;
                 return (
                   <li key={id} className="flex items-center justify-between rounded-2xl bg-background px-4 py-3 text-sm">

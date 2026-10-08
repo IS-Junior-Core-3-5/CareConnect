@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
-import { parentById, posts } from "@/data/mock";
+import { useParents, usePosts } from "@/lib/data";
 
 export const Route = createFileRoute("/board/")({
   head: () => ({
@@ -26,6 +26,8 @@ const categories = ["All", "Schedules", "Pricing", "Recommendations"];
 
 function BoardPage() {
   const [cat, setCat] = useState("All");
+  const posts = usePosts();
+  const parents = useParents();
   const shown = cat === "All" ? posts : posts.filter((p) => p.category === cat);
 
   return (
@@ -52,7 +54,7 @@ function BoardPage() {
 
         <div className="mt-6 space-y-4">
           {shown.map((post) => {
-            const author = parentById(post.authorId);
+            const author = parents.find((a) => a.id === post.authorId);
             return (
               <article key={post.id} className="card-lift rounded-3xl bg-surface p-5 ring-1 ring-line">
                 <div className="flex flex-wrap items-center gap-2">

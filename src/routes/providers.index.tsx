@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
-import { overlapCount, providers, type CareType } from "@/data/mock";
+import { overlapCount, type CareType } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/providers/")({
   head: () => ({
@@ -28,6 +29,7 @@ const CARE_TYPES: CareType[] = ["Daycare", "Preschool", "Sitter", "Family Friend
 
 function ProvidersPage() {
   const { schedule } = useApp();
+  const providers = useProviders();
   const [types, setTypes] = useState<CareType[]>([]);
   const [distance, setDistance] = useState(99);
   const [maxPrice, setMaxPrice] = useState(250);
@@ -61,7 +63,7 @@ function ProvidersPage() {
           (a.schedule ? overlapCount(schedule, a.schedule) : -1),
       );
     return sorted;
-  }, [types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
+  }, [providers, types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
 
   const empty = results.length === 0;
 
