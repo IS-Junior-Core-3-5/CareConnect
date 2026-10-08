@@ -29,6 +29,7 @@ const CARE_TYPES: CareType[] = ["Daycare", "Preschool", "Sitter", "Family Friend
 
 function ProvidersPage() {
   const { schedule } = useApp();
+  const providers = useProviders();
   const [types, setTypes] = useState<CareType[]>([]);
   const [distance, setDistance] = useState(99);
   const [maxPrice, setMaxPrice] = useState(250);
@@ -62,7 +63,7 @@ function ProvidersPage() {
           (a.schedule ? overlapCount(schedule, a.schedule) : -1),
       );
     return sorted;
-  }, [types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
+  }, [providers, types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
 
   const empty = results.length === 0;
 

@@ -35,6 +35,7 @@ const tiles = [
 function HomePage() {
   const navigate = useNavigate();
   const { parentName, schedule, favorites } = useApp();
+  const providers = useProviders();
   const [q, setQ] = useState("");
 
   const best = providers
@@ -149,7 +150,7 @@ function HomePage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           {favorites.slice(0, 3).map((id) => {
-            const p = providerById(id);
+            const p = providers.find((x) => x.id === id);
             if (!p) return null;
             return (
               <Link
