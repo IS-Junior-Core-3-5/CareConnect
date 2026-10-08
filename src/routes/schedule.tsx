@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ScheduleGrid } from "@/components/ScheduleGrid";
-import { BLOCKS, DAYS, type Schedule } from "@/data/mock";
+import { BLOCKS, DAYS, type Schedule } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
@@ -29,6 +29,13 @@ function SchedulePage() {
   const { schedule, toggleBlock, favorites } = useApp();
   const providers = useProviders();
   const [overlay, setOverlay] = useState<string[]>(favorites.slice(0, 2));
+  const [seeded, setSeeded] = useState(favorites.length > 0);
+  useEffect(() => {
+    if (!seeded && favorites.length) {
+      setOverlay(favorites.slice(0, 2));
+      setSeeded(true);
+    }
+  }, [favorites, seeded]);
 
   const overlaid = overlay
     .map((id) => providers.find((p) => p.id === id))
@@ -45,8 +52,8 @@ function SchedulePage() {
       <section className="py-8">
         <h1 className="font-display text-4xl font-bold tracking-tight">My weekly schedule</h1>
         <p className="mt-1 max-w-[60ch] text-sm text-ink-soft">
-          Tap any block to add or remove the hours you need covered. Overlay providers below to see where
-          your week is covered and where it gaps.
+          Tap any block to add or remove the hours you need covered — changes save automatically. Overlay
+          providers below to see where your week is covered and where it gaps.
         </p>
 
         <div className="mt-6 rounded-[28px] bg-surface p-6 ring-1 ring-line">

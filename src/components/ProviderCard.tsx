@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { photoFor } from "@/components/photos";
-import { priceLabel, type Provider } from "@/data/mock";
+import { distanceLabel, priceLabel, type Provider } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 
 export function VerifiedBadge({ verified }: { verified: boolean }) {
@@ -77,15 +77,23 @@ export function ProviderCard({ provider }: { provider: Provider }) {
                 priceLabel(provider)
               )}
             </p>
-            <p className="mt-1 text-xs text-ink-faint">{provider.distance} mi away</p>
+            <p className="mt-1 text-xs text-ink-faint">{distanceLabel(provider.distance)}</p>
           </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          <span className="inline-flex items-center gap-1 font-semibold text-ink">
-            <span className="text-sun">★</span> {provider.rating.toFixed(1)}
-          </span>
-          <span className="text-ink-faint">{provider.reviewCount} reviews</span>
+          {provider.reviewCount ? (
+            <>
+              <span className="inline-flex items-center gap-1 font-semibold text-ink">
+                <span className="text-sun">★</span> {provider.rating.toFixed(1)}
+              </span>
+              <span className="text-ink-faint">
+                {provider.reviewCount} {provider.reviewCount === 1 ? "review" : "reviews"}
+              </span>
+            </>
+          ) : (
+            <span className="text-ink-faint">No reviews yet</span>
+          )}
           <span className="text-ink-faint">·</span>
           <span className="text-ink-soft">{provider.neighborhood}</span>
         </div>

@@ -2,9 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
-import { overlapCount, type CareType } from "@/data/mock";
+import { CARE_TYPES, overlapCount, type CareType } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
-import { useProviders } from "@/lib/data";
+import { useProvidersQuery } from "@/lib/data";
+import { ErrorState, LoadingState } from "@/components/NavBar";
 
 export const Route = createFileRoute("/providers/")({
   head: () => ({
@@ -25,11 +26,11 @@ export const Route = createFileRoute("/providers/")({
   component: ProvidersPage,
 });
 
-const CARE_TYPES: CareType[] = ["Daycare", "Preschool", "Sitter", "Family Friend"];
 
 function ProvidersPage() {
   const { schedule } = useApp();
-  const providers = useProviders();
+  const providersQuery = useProvidersQuery();
+  const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
   const [types, setTypes] = useState<CareType[]>([]);
   const [distance, setDistance] = useState(99);
   const [maxPrice, setMaxPrice] = useState(250);
@@ -41,8 +42,8 @@ function ProvidersPage() {
   const results = useMemo(() => {
     const filtered = providers.filter((p) => {
       if (types.length && !types.includes(p.careType)) return false;
-      if (p.distance > distance) return false;
-      if (p.dailyRate !== null && p.dailyRate > maxPrice) return false;
+      if (distance < 99 && (p.distance === null || p.distance > distance)) return false;
+      if (p.dailyRate !== null && maxPrice < 250 && p.dailyRate > maxPrice) return false;
       if (p.rating < minRating) return false;
       if (verifiedOnly && !p.verified) return false;
       if (matchesSchedule) {
@@ -52,7 +53,7 @@ function ProvidersPage() {
       return true;
     });
     const sorted = [...filtered];
-    if (sort === "distance") sorted.sort((a, b) => a.distance - b.distance);
+    if (sort === "distance") sorted.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
     else if (sort === "rating") sorted.sort((a, b) => b.rating - a.rating);
     else if (sort === "price")
       sorted.sort((a, b) => (a.dailyRate ?? Infinity) - (b.dailyRate ?? Infinity));
@@ -164,7 +165,7 @@ function ProvidersPage() {
                     onChange={(e) => setMaxPrice(Number(e.target.value))}
                     className="w-full accent-[oklch(0.672_0.152_41.5)]"
                   />
-                  <span className="font-mono text-sm text-ink-soft">${maxPrice}</span>
+                  <span className="font-mono text-sm text-ink-soft">{maxPrice >= 250 ? "Any" : `$${maxPrice}`}</span>
                 </div>
                 <p className="mt-1 text-[11px] text-ink-faint">
                   Providers without pricing are always shown.
@@ -233,7 +234,9 @@ function ProvidersPage() {
           </aside>
 
           <div className="space-y-4 lg:col-span-9">
-            {empty ? (
+            {providersQuery.isLoading ? <LoadingState label="Loading providers…" /> : null}
+            {providersQuery.error ? <ErrorState error={providersQuery.error} /> : null}
+            {empty && providers.length ? (
               <div className="rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
                 No providers match the selected criteria. Showing the default provider list below.
               </div>

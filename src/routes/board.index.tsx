@@ -1,7 +1,13 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { AppShell } from "@/components/NavBar";
-import { useParents, usePosts } from "@/lib/data";
+import { toast } from "sonner";
+import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
+import { MentionPicker } from "@/components/MentionPicker";
+import { supabase } from "@/integrations/supabase/client";
+import { useApp } from "@/lib/app-state";
+import { QK, useParents, usePostsQuery } from "@/lib/data";
+import { POST_CATEGORIES, slugify } from "@/lib/model";
 
 export const Route = createFileRoute("/board/")({
   head: () => ({
@@ -22,21 +28,37 @@ export const Route = createFileRoute("/board/")({
   component: BoardPage,
 });
 
-const categories = ["All", "Schedules", "Pricing", "Recommendations"];
+const categories = ["All", ...POST_CATEGORIES];
 
 function BoardPage() {
   const [cat, setCat] = useState("All");
-  const posts = usePosts();
+  const postsQuery = usePostsQuery();
+  const posts = postsQuery.data ?? [];
+  const [composing, setComposing] = useState(false);
   const parents = useParents();
   const shown = cat === "All" ? posts : posts.filter((p) => p.category === cat);
 
   return (
     <AppShell>
       <section className="py-8">
-        <h1 className="font-display text-4xl font-bold tracking-tight">Message board</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Conversations between parents. Provider and parent names link to their profiles.
-        </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="font-display text-4xl font-bold tracking-tight">Message board</h1>
+            <p className="mt-1 text-sm text-ink-soft">
+              Conversations between parents. Provider and parent names link to their profiles.
+            </p>
+          </div>
+          {!composing ? (
+            <button
+              onClick={() => setComposing(true)}
+              className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-soft hover:bg-primary-ink"
+            >
+              New post
+            </button>
+          ) : null}
+        </div>
+
+        {composing ? <NewPostForm onClose={() => setComposing(false)} /> : null}
 
         <div className="mt-5 flex flex-wrap gap-1.5">
           {categories.map((c) => (
@@ -53,6 +75,13 @@ function BoardPage() {
         </div>
 
         <div className="mt-6 space-y-4">
+          {postsQuery.isLoading ? <LoadingState label="Loading posts…" /> : null}
+          {postsQuery.error ? <ErrorState error={postsQuery.error} /> : null}
+          {!postsQuery.isLoading && shown.length === 0 ? (
+            <p className="rounded-3xl bg-surface p-6 text-sm text-ink-soft ring-1 ring-line">
+              No posts here yet. Start the conversation.
+            </p>
+          ) : null}
           {shown.map((post) => {
             const author = parents.find((a) => a.id === post.authorId);
             return (
@@ -96,5 +125,77 @@ function BoardPage() {
         </div>
       </section>
     </AppShell>
+  );
+}
+
+function NewPostForm({ onClose }: { onClose: () => void }) {
+  const { parentId } = useApp();
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [category, setCategory] = useState<string>(POST_CATEGORIES[0]);
+  const [title, setTitle] = useState("");
+  const [body, setBody] = useState("");
+  const [mentions, setMentions] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!parentId) return;
+    setBusy(true);
+    const id = slugify(title);
+    const { error } = await supabase
+      .from("posts")
+      .insert({ id, author_id: parentId, category, title: title.trim(), body: body.trim() });
+    if (!error && mentions.length) {
+      const m = await supabase.from("post_mentions").insert(mentions.map((provider_id) => ({ post_id: id, provider_id })));
+      if (m.error) toast.error(m.error.message);
+    }
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Posted");
+    await qc.invalidateQueries({ queryKey: QK.posts });
+    onClose();
+    navigate({ to: "/board/$postId", params: { postId: id } });
+  }
+
+  const field =
+    "w-full rounded-2xl bg-background px-4 py-3 text-sm outline-none ring-1 ring-line focus:ring-2 focus:ring-primary";
+
+  return (
+    <form onSubmit={submit} className="mt-6 space-y-4 rounded-3xl bg-surface p-5 ring-1 ring-line">
+      <div className="grid gap-3 sm:grid-cols-[180px_1fr]">
+        <select value={category} onChange={(e) => setCategory(e.target.value)} className={field} aria-label="Category">
+          {POST_CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
+        </select>
+        <input
+          required
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className={field}
+          placeholder="Title"
+          aria-label="Title"
+        />
+      </div>
+      <textarea
+        required
+        rows={4}
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        className={field}
+        placeholder="What do you want to ask or share?"
+        aria-label="Post"
+      />
+      <MentionPicker value={mentions} onChange={setMentions} />
+      <div className="flex gap-2">
+        <button disabled={busy} className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-soft disabled:opacity-50">
+          {busy ? "Posting…" : "Post"}
+        </button>
+        <button type="button" onClick={onClose} className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft">
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

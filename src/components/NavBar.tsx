@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useApp } from "@/lib/app-state";
 
 const links = [
@@ -8,12 +8,13 @@ const links = [
   { to: "/providers", label: "Trusted Providers" },
   { to: "/board", label: "Message Board" },
   { to: "/favorites", label: "Favorites" },
+  { to: "/listing", label: "My listing" },
   { to: "/profile", label: "Profile" },
 ] as const;
 
 export function NavBar() {
   const navigate = useNavigate();
-  const { favorites } = useApp();
+  const { favorites, signOut } = useApp();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -61,12 +62,15 @@ export function NavBar() {
           </div>
         </form>
 
-        <Link
-          to="/"
+        <button
+          onClick={async () => {
+            await signOut();
+            navigate({ to: "/" });
+          }}
           className="ml-auto rounded-full px-3 py-2 text-sm font-medium text-ink-soft hover:text-ink md:ml-2"
         >
           Sign out
-        </Link>
+        </button>
 
         <button
           onClick={() => setOpen((v) => !v)}
@@ -111,18 +115,54 @@ export function PageFooter() {
     <footer className="border-t border-line">
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-8 text-sm text-ink-soft sm:flex-row">
         <span className="font-display text-lg font-bold text-ink">CareConnect</span>
-        <span>Trusted care, matched to your week. Demo data only.</span>
+        <span>Trusted care, matched to your week.</span>
       </div>
     </footer>
   );
 }
 
+/** Every page inside the app requires a logged-in user. */
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const { authLoading, session, meLoading, me } = useApp();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !session) navigate({ to: "/" });
+  }, [authLoading, session, navigate]);
+
+  let body: React.ReactNode = children;
+  if (authLoading || !session || meLoading) body = <LoadingState label="Loading your account…" />;
+  else if (!me)
+    body = (
+      <p className="py-16 text-center text-ink-soft">
+        We couldn't find your parent profile. Try signing out and back in.
+      </p>
+    );
+
   return (
     <div className="flex min-h-screen flex-col bg-background text-ink">
       <NavBar />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-12">{children}</main>
+      <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-12">{body}</main>
       <PageFooter />
+    </div>
+  );
+}
+
+export function LoadingState({ label = "Loading…" }: { label?: string }) {
+  return (
+    <div className="grid place-items-center py-24">
+      <div className="flex items-center gap-3 text-sm font-medium text-ink-soft">
+        <span className="size-4 animate-spin rounded-full border-2 border-line border-t-primary" />
+        {label}
+      </div>
+    </div>
+  );
+}
+
+export function ErrorState({ error }: { error: unknown }) {
+  return (
+    <div className="my-10 rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
+      Couldn't load data from the database. {error instanceof Error ? error.message : ""}
     </div>
   );
 }

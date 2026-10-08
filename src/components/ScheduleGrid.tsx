@@ -1,4 +1,4 @@
-import { BLOCKS, BLOCK_HOURS, DAYS, type Schedule } from "@/data/mock";
+import { BLOCKS, BLOCK_HOURS, DAYS, type Schedule } from "@/lib/model";
 
 export function ScheduleGrid({
   schedule,

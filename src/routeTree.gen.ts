@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BoardRouteImport } from './routes/board'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as HomeRouteImport } from './routes/home'
+import { Route as ListingRouteImport } from './routes/listing'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as ScheduleRouteImport } from './routes/schedule'
@@ -41,6 +42,11 @@ const FavoritesRoute = FavoritesRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ListingRoute = ListingRouteImport.update({
+  id: '/listing',
+  path: '/listing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -94,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/board': typeof BoardRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
+  '/listing': typeof ListingRoute
   '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRouteWithChildren
   '/schedule': typeof ScheduleRoute
@@ -108,6 +115,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
+  '/listing': typeof ListingRoute
   '/profile': typeof ProfileRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/board': typeof BoardRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
+  '/listing': typeof ListingRoute
   '/profile': typeof ProfileRoute
   '/providers': typeof ProvidersRouteWithChildren
   '/schedule': typeof ScheduleRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/favorites'
     | '/home'
+    | '/listing'
     | '/profile'
     | '/providers'
     | '/schedule'
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/'
     | '/favorites'
     | '/home'
+    | '/listing'
     | '/profile'
     | '/schedule'
     | '/search'
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/board'
     | '/favorites'
     | '/home'
+    | '/listing'
     | '/profile'
     | '/providers'
     | '/schedule'
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   BoardRoute: typeof BoardRouteWithChildren
   FavoritesRoute: typeof FavoritesRoute
   HomeRoute: typeof HomeRoute
+  ListingRoute: typeof ListingRoute
   ProfileRoute: typeof ProfileRoute
   ProvidersRoute: typeof ProvidersRouteWithChildren
   ScheduleRoute: typeof ScheduleRoute
@@ -219,6 +232,13 @@ declare module '@tanstack/react-router' {
       path: '/home'
       fullPath: '/home'
       preLoaderRoute: typeof HomeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/listing': {
+      id: '/listing'
+      path: '/listing'
+      fullPath: '/listing'
+      preLoaderRoute: typeof ListingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -318,6 +338,7 @@ const rootRouteChildren: RootRouteChildren = {
   BoardRoute: BoardRouteWithChildren,
   FavoritesRoute: FavoritesRoute,
   HomeRoute: HomeRoute,
+  ListingRoute: ListingRoute,
   ProfileRoute: ProfileRoute,
   ProvidersRoute: ProvidersRouteWithChildren,
   ScheduleRoute: ScheduleRoute,

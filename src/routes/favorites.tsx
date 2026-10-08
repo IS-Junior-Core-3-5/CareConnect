@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
-import { overlapCount, priceLabel } from "@/data/mock";
+import { distanceLabel, overlapCount, priceLabel } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
@@ -165,11 +165,11 @@ function FavoritesPage() {
                         (p: (typeof chosen)[number]) =>
                           p.schedule ? `${overlapCount(schedule, p.schedule)} blocks` : "Schedule unavailable",
                       ],
-                      ["Rating", (p: (typeof chosen)[number]) => `★ ${p.rating.toFixed(1)} (${p.reviewCount})`],
+                      ["Rating", (p: (typeof chosen)[number]) => (p.reviewCount ? `★ ${p.rating.toFixed(1)} (${p.reviewCount})` : "No reviews yet")],
                       ["Verified", (p: (typeof chosen)[number]) => (p.verified ? "Yes" : "No")],
                       [
                         "Location",
-                        (p: (typeof chosen)[number]) => `${p.neighborhood} · ${p.distance} mi`,
+                        (p: (typeof chosen)[number]) => `${p.neighborhood} · ${distanceLabel(p.distance)}`,
                       ],
                     ] as const
                   ).map(([label, fn]) => (
