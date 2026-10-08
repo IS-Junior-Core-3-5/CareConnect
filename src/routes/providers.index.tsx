@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
-import { overlapCount, providers, type CareType } from "@/data/mock";
+import { overlapCount, type CareType } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/providers/")({
   head: () => ({
