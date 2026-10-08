@@ -37,8 +37,8 @@ The diagram shows the 19 tables in our Supabase (Postgres) database, the attribu
 You need [Node.js](https://nodejs.org) 20+ and npm.
 
 ```sh
-git clone https://github.com/IS-Junior-Core-3-5/pixel-perfect-magic-622.git
-cd pixel-perfect-magic-622
+git clone https://github.com/IS-Junior-Core-3-5/CareConnect.git
+cd CareConnect
 npm install
 npm run dev
 ```
