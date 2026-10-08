@@ -80,4 +80,4 @@ The vertical slice is the **Add to favorites** button: UI → Supabase `favorite
 Other actions that also save and survive a refresh: editing your schedule (**Schedule** page), posting on the **Message Board**, writing a review on a provider's profile, and creating a provider listing on **My listing**.
 
 ## Vertical Stack Demo
-[CareConnect Vertical Stack Demo](youtube.com/watch?v=2-67DQt3WOw)
+[CareConnect Vertical Stack Demo](https://youtube.com/watch?v=2-67DQt3WOw)
