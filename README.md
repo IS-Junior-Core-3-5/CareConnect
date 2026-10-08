@@ -78,3 +78,6 @@ The vertical slice is the **Add to favorites** button: UI → Supabase `favorite
 7. Click the heart again to remove it, then refresh. The heart stays empty and the row is gone from the table.
 
 Other actions that also save and survive a refresh: editing your schedule (**Schedule** page), posting on the **Message Board**, writing a review on a provider's profile, and creating a provider listing on **My listing**.
+
+## Vertical Stack Demo
+[![CareConnect Vertical Stack Demo]([https://img.youtube.com/vi/VIDEO_ID/0.jpg)](https://www.youtube.com/watch?v=VIDEO_ID](https://youtu.be/2-67DQt3WOw))
