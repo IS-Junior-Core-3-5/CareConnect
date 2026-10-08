@@ -1,0 +1,150 @@
+erDiagram
+  PROVIDERS ||--o{ PROVIDER_PRICING_NOTES : "has"
+  PROVIDERS ||--o{ PROVIDER_PHOTOS : "has"
+  PROVIDERS ||--o{ PROVIDER_CREDENTIALS : "holds"
+  PROVIDERS ||--o{ PROVIDER_AVAILABILITY : "available"
+  PROVIDERS ||--o{ PROVIDER_LANGUAGES : "speaks"
+  LANGUAGES ||--o{ PROVIDER_LANGUAGES : "used in"
+  LANGUAGES ||--o{ PARENT_LANGUAGES : "used in"
+  PARENTS ||--o{ PARENT_LANGUAGES : "speaks"
+  PARENTS ||--o{ CHILDREN : "has"
+  PARENTS ||--o{ PARENT_AVAILABILITY : "needs care"
+  PARENTS ||--o{ REVIEWS : "writes"
+  PROVIDERS ||--o{ REVIEWS : "receives"
+  PARENTS ||--o{ PROVIDER_PAST_FAMILIES : "used"
+  PROVIDERS ||--o{ PROVIDER_PAST_FAMILIES : "served"
+  PARENTS ||--o{ FAVORITES : "saves"
+  PROVIDERS ||--o{ FAVORITES : "saved in"
+  PARENTS ||--o{ PARENT_CONNECTIONS : "connects"
+  PARENTS ||--o{ PARENT_CONNECTIONS : "connected to"
+  PARENTS ||--o{ PROVIDERS : "owns listing"
+  PARENTS ||--o{ POSTS : "writes"
+  POSTS ||--o{ POST_REPLIES : "has"
+  PARENTS ||--o{ POST_REPLIES : "writes"
+  POSTS ||--o{ POST_MENTIONS : "tags"
+  PROVIDERS ||--o{ POST_MENTIONS : "tagged in"
+  POST_REPLIES ||--o{ REPLY_MENTIONS : "tags"
+  PROVIDERS ||--o{ REPLY_MENTIONS : "tagged in"
+
+  PROVIDERS {
+    text id PK
+    uuid owner_id FK "auth user"
+    text name
+    care_type care_type
+    text blurb
+    text bio
+    numeric daily_rate "null = unavailable"
+    numeric daily_rate_max
+    text neighborhood
+    numeric distance_miles
+    numeric latitude
+    numeric longitude
+    boolean verified
+    boolean schedule_available
+    text schedule_summary
+    text photo_key
+    timestamptz created_at
+  }
+  PARENTS {
+    text id PK
+    uuid auth_user_id UK
+    text name
+    text email UK "hidden from public"
+    text neighborhood
+    text blurb
+    timestamptz created_at
+  }
+  CHILDREN {
+    bigint id PK
+    text parent_id FK
+    text name
+    smallint age
+  }
+  PROVIDER_PRICING_NOTES {
+    bigint id PK
+    text provider_id FK
+    text note
+    smallint sort_order
+  }
+  PROVIDER_PHOTOS {
+    bigint id PK
+    text provider_id FK
+    text photo_key
+    smallint sort_order
+  }
+  PROVIDER_CREDENTIALS {
+    bigint id PK
+    text provider_id FK
+    text name
+    boolean verified
+  }
+  LANGUAGES {
+    smallint id PK
+    text name UK
+  }
+  PROVIDER_LANGUAGES {
+    text provider_id PK,FK
+    smallint language_id PK,FK
+  }
+  PARENT_LANGUAGES {
+    text parent_id PK,FK
+    smallint language_id PK,FK
+  }
+  PROVIDER_AVAILABILITY {
+    text provider_id PK,FK
+    smallint day_of_week PK "0=Mon"
+    time_block block PK
+  }
+  PARENT_AVAILABILITY {
+    text parent_id PK,FK
+    smallint day_of_week PK
+    time_block block PK
+  }
+  REVIEWS {
+    bigint id PK
+    text provider_id FK
+    text parent_id FK
+    text body
+    smallint score_experience
+    smallint score_values
+    smallint score_communication
+    smallint score_safety
+    date reviewed_on
+  }
+  PROVIDER_PAST_FAMILIES {
+    text provider_id PK,FK
+    text parent_id PK,FK
+  }
+  FAVORITES {
+    text parent_id PK,FK
+    text provider_id PK,FK
+    timestamptz created_at
+  }
+  PARENT_CONNECTIONS {
+    text parent_id PK,FK
+    text connected_parent_id PK,FK
+    timestamptz created_at
+  }
+  POSTS {
+    text id PK
+    text author_id FK
+    text category
+    text title
+    text body
+    timestamptz created_at
+  }
+  POST_REPLIES {
+    bigint id PK
+    text post_id FK
+    text author_id FK
+    text body
+    timestamptz created_at
+  }
+  POST_MENTIONS {
+    text post_id PK,FK
+    text provider_id PK,FK
+  }
+  REPLY_MENTIONS {
+    bigint reply_id PK,FK
+    text provider_id PK,FK
+  }
