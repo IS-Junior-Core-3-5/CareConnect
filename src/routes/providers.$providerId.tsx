@@ -2,14 +2,9 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
-import {
-  gapCount,
-  overlapCount,
-  parentById,
-  priceLabel,
-  providerById,
-} from "@/data/mock";
+import { gapCount, overlapCount, priceLabel, providerById } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useParents, useProvider } from "@/lib/data";
 
 export const Route = createFileRoute("/providers/$providerId")({
   loader: ({ params }) => {
@@ -37,7 +32,10 @@ export const Route = createFileRoute("/providers/$providerId")({
 });
 
 function ProviderProfile() {
-  const { provider } = Route.useLoaderData();
+  const { provider: initial } = Route.useLoaderData();
+  const provider = useProvider(initial.id) ?? initial;
+  const parents = useParents();
+  const parentById = (id: string) => parents.find((p) => p.id === id);
   const { schedule, isFavorite, toggleFavorite, isConnected, toggleConnection } = useApp();
   const fav = isFavorite(provider.id);
 

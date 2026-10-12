@@ -2,6 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
 import { parentById } from "@/data/mock";
 import { useApp } from "@/lib/app-state";
+import { useParent } from "@/lib/data";
 
 export const Route = createFileRoute("/parents/$parentId")({
   loader: ({ params }) => {
@@ -38,7 +39,8 @@ function ParentNotFound() {
 }
 
 function ParentPage() {
-  const { parent } = Route.useLoaderData();
+  const { parent: initial } = Route.useLoaderData();
+  const parent = useParent(initial.id) ?? initial;
   const { isConnected, toggleConnection } = useApp();
   const on = isConnected(parent.id);
   return (
