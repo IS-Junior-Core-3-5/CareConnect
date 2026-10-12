@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
-import { parentById, posts, providerById } from "@/data/mock";
+import { posts } from "@/data/mock";
+import { useParents, usePost, useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/board/$postId")({
   loader: ({ params }) => {
@@ -25,6 +26,8 @@ export const Route = createFileRoute("/board/$postId")({
 });
 
 function Mentions({ ids }: { ids: string[] }) {
+  const providers = useProviders();
+  const providerById = (id: string) => providers.find((p) => p.id === id);
   if (!ids.length) return null;
   return (
     <div className="mt-3 flex flex-wrap gap-1.5">
@@ -47,7 +50,10 @@ function Mentions({ ids }: { ids: string[] }) {
 }
 
 function ThreadPage() {
-  const { post } = Route.useLoaderData();
+  const { post: initial } = Route.useLoaderData();
+  const post = usePost(initial.id) ?? initial;
+  const parents = useParents();
+  const parentById = (id: string) => parents.find((p) => p.id === id);
   const author = parentById(post.authorId);
 
   return (
