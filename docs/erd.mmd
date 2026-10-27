@@ -15,16 +15,7 @@ erDiagram
   PROVIDERS ||--o{ PROVIDER_PAST_FAMILIES : "served"
   PARENTS ||--o{ FAVORITES : "saves"
   PROVIDERS ||--o{ FAVORITES : "saved in"
-  PARENTS ||--o{ PARENT_CONNECTIONS : "connects"
-  PARENTS ||--o{ PARENT_CONNECTIONS : "connected to"
   PARENTS ||--o{ PROVIDERS : "owns listing"
-  PARENTS ||--o{ POSTS : "writes"
-  POSTS ||--o{ POST_REPLIES : "has"
-  PARENTS ||--o{ POST_REPLIES : "writes"
-  POSTS ||--o{ POST_MENTIONS : "tags"
-  PROVIDERS ||--o{ POST_MENTIONS : "tagged in"
-  POST_REPLIES ||--o{ REPLY_MENTIONS : "tags"
-  PROVIDERS ||--o{ REPLY_MENTIONS : "tagged in"
 
   PROVIDERS {
     text id PK
@@ -119,32 +110,4 @@ erDiagram
     text parent_id PK,FK
     text provider_id PK,FK
     timestamptz created_at
-  }
-  PARENT_CONNECTIONS {
-    text parent_id PK,FK
-    text connected_parent_id PK,FK
-    timestamptz created_at
-  }
-  POSTS {
-    text id PK
-    text author_id FK
-    text category
-    text title
-    text body
-    timestamptz created_at
-  }
-  POST_REPLIES {
-    bigint id PK
-    text post_id FK
-    text author_id FK
-    text body
-    timestamptz created_at
-  }
-  POST_MENTIONS {
-    text post_id PK,FK
-    text provider_id PK,FK
-  }
-  REPLY_MENTIONS {
-    bigint reply_id PK,FK
-    text provider_id PK,FK
   }

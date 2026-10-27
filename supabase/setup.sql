@@ -26,7 +26,7 @@ end $$;
 -- 1. Clean rebuild of CareConnect objects
 -- ---------------------------------------------------------------------
 drop view  if exists provider_summary;
-drop table if exists reply_mentions, post_mentions, post_replies, posts,
+drop table if exists reply_mentions, post_mentions, post_replies, posts,  -- removed features, dropped if present
                      parent_connections, favorites, reviews, provider_past_families,
                      parent_availability, provider_availability,
                      children, parent_languages, provider_languages, languages,
@@ -161,7 +161,7 @@ create table provider_past_families (                   -- families who have use
 );
 
 -- ---------------------------------------------------------------------
--- 7. Favorites + parent connections (Should)
+-- 7. Favorites (Should)
 -- ---------------------------------------------------------------------
 create table favorites (
   parent_id    text not null references parents(id)   on delete cascade,
@@ -170,58 +170,17 @@ create table favorites (
   primary key (parent_id, provider_id)
 );
 
-create table parent_connections (
-  parent_id            text not null references parents(id) on delete cascade,
-  connected_parent_id  text not null references parents(id) on delete cascade,
-  created_at           timestamptz not null default now(),
-  primary key (parent_id, connected_parent_id),
-  check (parent_id <> connected_parent_id)
-);
-
 -- ---------------------------------------------------------------------
--- 8. Message board (Should)
--- ---------------------------------------------------------------------
-create table posts (
-  id          text primary key,                         -- slug, e.g. 'split-week'
-  author_id   text not null references parents(id) on delete cascade,
-  category    text not null,                            -- Schedules / Pricing / Recommendations
-  title       text not null,
-  body        text not null,
-  created_at  timestamptz not null default now()
-);
-
-create table post_replies (
-  id          bigint generated always as identity primary key,
-  post_id     text not null references posts(id)   on delete cascade,
-  author_id   text not null references parents(id) on delete cascade,
-  body        text not null,
-  created_at  timestamptz not null default now()
-);
-
-create table post_mentions (                            -- providers tagged in a post
-  post_id      text not null references posts(id)     on delete cascade,
-  provider_id  text not null references providers(id) on delete cascade,
-  primary key (post_id, provider_id)
-);
-
-create table reply_mentions (
-  reply_id     bigint not null references post_replies(id) on delete cascade,
-  provider_id  text   not null references providers(id)    on delete cascade,
-  primary key (reply_id, provider_id)
-);
-
--- ---------------------------------------------------------------------
--- 9. Indexes for search / filter (Must: search & filter, BR 1/8)
+-- 8. Indexes for search / filter (Must: search & filter, BR 1/8)
 -- ---------------------------------------------------------------------
 create index on providers (care_type);
 create index on providers (daily_rate);
 create index on providers (neighborhood);
 create index on reviews (provider_id);
-create index on post_replies (post_id);
 create index on children (parent_id);
 
 -- ---------------------------------------------------------------------
--- 10. Search-results view: price + schedule + trust in one row (BR 12)
+-- 9. Search-results view: price + schedule + trust in one row (BR 12)
 -- ---------------------------------------------------------------------
 create view provider_summary with (security_invoker = true) as
 select p.*,
@@ -232,7 +191,7 @@ left join reviews r on r.provider_id = p.id
 group by p.id;
 
 -- ---------------------------------------------------------------------
--- 11. Security (Row Level Security)
+-- 10. Security (Row Level Security)
 --     Everyone can READ. Writes are closed until login (Supabase Auth) is added.
 --     Parent emails are hidden from the public API.
 -- ---------------------------------------------------------------------
@@ -241,8 +200,7 @@ declare t text;
 begin
   foreach t in array array['providers','parents','children','provider_pricing_notes','provider_photos',
     'provider_credentials','languages','provider_languages','parent_languages','provider_availability',
-    'parent_availability','reviews','provider_past_families','favorites','parent_connections',
-    'posts','post_replies','post_mentions','reply_mentions'] loop
+    'parent_availability','reviews','provider_past_families','favorites'] loop
     execute format('alter table %I enable row level security', t);
     execute format('create policy "public read" on %I for select to anon, authenticated using (true)', t);
   end loop;
@@ -252,7 +210,7 @@ revoke select on parents from anon;
 grant  select (id, name, neighborhood, blurb, created_at) on parents to anon;
 
 -- ---------------------------------------------------------------------
--- 12. Seed data (converted from the site's existing demo data)
+-- 11. Seed data (converted from the site's existing demo data)
 -- ---------------------------------------------------------------------
 insert into languages (name) values ('English');
 insert into languages (name) values ('French');
@@ -441,24 +399,9 @@ insert into provider_availability (provider_id, day_of_week, block) values ('wil
 insert into provider_availability (provider_id, day_of_week, block) values ('willow-bend', 4, 'Morning');
 insert into provider_past_families (provider_id, parent_id) values ('willow-bend', 'p-jordan');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('willow-bend', 'p-jordan', 'You get out what you put in. The shift requirement is real, but Theo loved his year here.', 4, 5, 4, 4, '2025-10-01');
-insert into posts (id, author_id, category, title, body, created_at) values ('split-week', 'p-jordan', 'Schedules', 'Anyone splitting the week between two providers?', 'We have Maya Okafor Monday through Wednesday and are trying to fill Thursday and Friday. Has anyone made a two-provider week work without the kids melting down? Curious whether consistency matters more than convenience here.', '2026-03-12');
-insert into post_mentions (post_id, provider_id) values ('split-week', 'maya-okafor');
-with new_reply as (insert into post_replies (post_id, author_id, body, created_at) values ('split-week', 'p-luis', 'We do exactly this. Sunny Meadows Daycare two days, a sitter the other three. The trick was keeping the same nap window at both places.', '2026-03-12') returning id) insert into reply_mentions (reply_id, provider_id) select new_reply.id, m.pid from new_reply, (values ('sunny-meadows')) as m(pid);
-with new_reply as (insert into post_replies (post_id, author_id, body, created_at) values ('split-week', 'p-nina', 'Two weeks of grumpiness, then totally fine. Little Lantern Preschool was flexible about the transition.', '2026-03-13') returning id) insert into reply_mentions (reply_id, provider_id) select new_reply.id, m.pid from new_reply, (values ('little-lantern')) as m(pid);
-insert into posts (id, author_id, category, title, body, created_at) values ('evening-rates', 'p-amara', 'Pricing', 'What''s a fair evening rate right now?', 'I''m on rotating night shifts and paying for evening blocks most weeks. Rates I''m seeing range from $85 to $168 a day depending on the place. What are people actually paying for after-6pm care?', '2026-03-09');
-insert into post_mentions (post_id, provider_id) values ('evening-rates', 'harborview-kids');
-insert into post_replies (post_id, author_id, body, created_at) values ('evening-rates', 'p-jordan', '$28/hr for evening add-on with our sitter. Feels standard for the neighborhood.', '2026-03-09');
-insert into posts (id, author_id, category, title, body, created_at) values ('bilingual-care', 'p-luis', 'Recommendations', 'Recommendations for Spanish-speaking care?', 'We want Sofia hearing Spanish outside the house too. Daniel Reyes has been great for Mateo after school — anyone know of daycare or preschool options with Spanish-speaking staff?', '2026-03-04');
-insert into post_mentions (post_id, provider_id) values ('bilingual-care', 'daniel-reyes');
-with new_reply as (insert into post_replies (post_id, author_id, body, created_at) values ('bilingual-care', 'p-amara', 'Harborview Kids Center has staff in a few languages, worth asking which room.', '2026-03-05') returning id) insert into reply_mentions (reply_id, provider_id) select new_reply.id, m.pid from new_reply, (values ('harborview-kids')) as m(pid);
-insert into posts (id, author_id, category, title, body, created_at) values ('verified-meaning', 'p-nina', 'Recommendations', 'How much weight do you give the Verified badge?', 'Grace Lindqvist isn''t verified on here but half the block has used her for years. Do you treat the badge as a hard requirement or just one signal among several?', '2026-02-27');
-insert into post_mentions (post_id, provider_id) values ('verified-meaning', 'grace-lindqvist');
-insert into post_replies (post_id, author_id, body, created_at) values ('verified-meaning', 'p-jordan', 'One signal. For a center I want the license; for a neighbor I want references.', '2026-02-27');
-with new_reply as (insert into post_replies (post_id, author_id, body, created_at) values ('verified-meaning', 'p-luis', 'Same. Willow Bend Preschool Co-op is verified and I still asked for three references.', '2026-02-28') returning id) insert into reply_mentions (reply_id, provider_id) select new_reply.id, m.pid from new_reply, (values ('willow-bend')) as m(pid);
 insert into favorites (parent_id, provider_id) values ('p-jordan', 'maya-okafor');
 insert into favorites (parent_id, provider_id) values ('p-jordan', 'sunny-meadows');
 insert into favorites (parent_id, provider_id) values ('p-jordan', 'little-lantern');
-insert into parent_connections (parent_id, connected_parent_id) values ('p-jordan', 'p-luis');
 
 -- ---------------------------------------------------------------------
 -- Example: schedule overlap (BR 4) — blocks where a parent needs care
@@ -561,32 +504,12 @@ begin
   end loop;
 end $$;
 
-create policy "own connections insert" on parent_connections for insert to authenticated with check (parent_id = my_parent_id());
-create policy "own connections delete" on parent_connections for delete to authenticated using (parent_id = my_parent_id());
-
 create policy "own reviews insert" on reviews for insert to authenticated with check (parent_id = my_parent_id());
 create policy "own reviews update" on reviews for update to authenticated using (parent_id = my_parent_id()) with check (parent_id = my_parent_id());
 create policy "own reviews delete" on reviews for delete to authenticated using (parent_id = my_parent_id());
 
 create policy "own past family insert" on provider_past_families for insert to authenticated with check (parent_id = my_parent_id());
 create policy "own past family delete" on provider_past_families for delete to authenticated using (parent_id = my_parent_id());
-
-create policy "own posts insert" on posts for insert to authenticated with check (author_id = my_parent_id());
-create policy "own posts update" on posts for update to authenticated using (author_id = my_parent_id()) with check (author_id = my_parent_id());
-create policy "own posts delete" on posts for delete to authenticated using (author_id = my_parent_id());
-
-create policy "own replies insert" on post_replies for insert to authenticated with check (author_id = my_parent_id());
-create policy "own replies update" on post_replies for update to authenticated using (author_id = my_parent_id()) with check (author_id = my_parent_id());
-create policy "own replies delete" on post_replies for delete to authenticated using (author_id = my_parent_id());
-
-create policy "own post mentions insert" on post_mentions for insert to authenticated
-  with check (exists (select 1 from posts p where p.id = post_id and p.author_id = my_parent_id()));
-create policy "own post mentions delete" on post_mentions for delete to authenticated
-  using (exists (select 1 from posts p where p.id = post_id and p.author_id = my_parent_id()));
-create policy "own reply mentions insert" on reply_mentions for insert to authenticated
-  with check (exists (select 1 from post_replies r where r.id = reply_id and r.author_id = my_parent_id()));
-create policy "own reply mentions delete" on reply_mentions for delete to authenticated
-  using (exists (select 1 from post_replies r where r.id = reply_id and r.author_id = my_parent_id()));
 
 create policy "own listing insert" on providers for insert to authenticated with check (owner_id = auth.uid());
 create policy "own listing update" on providers for update to authenticated using (owner_id = auth.uid()) with check (owner_id = auth.uid());

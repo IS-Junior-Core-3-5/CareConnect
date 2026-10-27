@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as BoardRouteImport } from './routes/board'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ListingRouteImport } from './routes/listing'
@@ -18,8 +17,6 @@ import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProvidersRouteImport } from './routes/providers'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SearchRouteImport } from './routes/search'
-import { Route as BoardIndexRouteImport } from './routes/board.index'
-import { Route as BoardPostIdRouteImport } from './routes/board.$postId'
 import { Route as ParentsParentIdRouteImport } from './routes/parents.$parentId'
 import { Route as ProvidersIndexRouteImport } from './routes/providers.index'
 import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$providerId'
@@ -27,11 +24,6 @@ import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$pro
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BoardRoute = BoardRouteImport.update({
-  id: '/board',
-  path: '/board',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FavoritesRoute = FavoritesRouteImport.update({
@@ -69,16 +61,6 @@ const SearchRoute = SearchRouteImport.update({
   path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BoardIndexRoute = BoardIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => BoardRoute,
-} as any)
-const BoardPostIdRoute = BoardPostIdRouteImport.update({
-  id: '/$postId',
-  path: '/$postId',
-  getParentRoute: () => BoardRoute,
-} as any)
 const ParentsParentIdRoute = ParentsParentIdRouteImport.update({
   id: '/parents/$parentId',
   path: '/parents/$parentId',
@@ -97,7 +79,6 @@ const ProvidersProviderIdRoute = ProvidersProviderIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/board': typeof BoardRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
@@ -105,10 +86,8 @@ export interface FileRoutesByFullPath {
   '/providers': typeof ProvidersRouteWithChildren
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
-  '/board/$postId': typeof BoardPostIdRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
-  '/board/': typeof BoardIndexRoute
   '/providers/': typeof ProvidersIndexRoute
 }
 export interface FileRoutesByTo {
@@ -119,16 +98,13 @@ export interface FileRoutesByTo {
   '/profile': typeof ProfileRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
-  '/board/$postId': typeof BoardPostIdRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
-  '/board': typeof BoardIndexRoute
   '/providers': typeof ProvidersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/board': typeof BoardRouteWithChildren
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
@@ -136,17 +112,14 @@ export interface FileRoutesById {
   '/providers': typeof ProvidersRouteWithChildren
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
-  '/board/$postId': typeof BoardPostIdRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
-  '/board/': typeof BoardIndexRoute
   '/providers/': typeof ProvidersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/board'
     | '/favorites'
     | '/home'
     | '/listing'
@@ -154,10 +127,8 @@ export interface FileRouteTypes {
     | '/providers'
     | '/schedule'
     | '/search'
-    | '/board/$postId'
     | '/parents/$parentId'
     | '/providers/$providerId'
-    | '/board/'
     | '/providers/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -168,15 +139,12 @@ export interface FileRouteTypes {
     | '/profile'
     | '/schedule'
     | '/search'
-    | '/board/$postId'
     | '/parents/$parentId'
     | '/providers/$providerId'
-    | '/board'
     | '/providers'
   id:
     | '__root__'
     | '/'
-    | '/board'
     | '/favorites'
     | '/home'
     | '/listing'
@@ -184,16 +152,13 @@ export interface FileRouteTypes {
     | '/providers'
     | '/schedule'
     | '/search'
-    | '/board/$postId'
     | '/parents/$parentId'
     | '/providers/$providerId'
-    | '/board/'
     | '/providers/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BoardRoute: typeof BoardRouteWithChildren
   FavoritesRoute: typeof FavoritesRoute
   HomeRoute: typeof HomeRoute
   ListingRoute: typeof ListingRoute
@@ -211,13 +176,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/board': {
-      id: '/board'
-      path: '/board'
-      fullPath: '/board'
-      preLoaderRoute: typeof BoardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favorites': {
@@ -269,20 +227,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/board/': {
-      id: '/board/'
-      path: '/'
-      fullPath: '/board/'
-      preLoaderRoute: typeof BoardIndexRouteImport
-      parentRoute: typeof BoardRoute
-    }
-    '/board/$postId': {
-      id: '/board/$postId'
-      path: '/$postId'
-      fullPath: '/board/$postId'
-      preLoaderRoute: typeof BoardPostIdRouteImport
-      parentRoute: typeof BoardRoute
-    }
     '/parents/$parentId': {
       id: '/parents/$parentId'
       path: '/parents/$parentId'
@@ -307,18 +251,6 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface BoardRouteChildren {
-  BoardPostIdRoute: typeof BoardPostIdRoute
-  BoardIndexRoute: typeof BoardIndexRoute
-}
-
-const BoardRouteChildren: BoardRouteChildren = {
-  BoardPostIdRoute: BoardPostIdRoute,
-  BoardIndexRoute: BoardIndexRoute,
-}
-
-const BoardRouteWithChildren = BoardRoute._addFileChildren(BoardRouteChildren)
-
 interface ProvidersRouteChildren {
   ProvidersProviderIdRoute: typeof ProvidersProviderIdRoute
   ProvidersIndexRoute: typeof ProvidersIndexRoute
@@ -335,7 +267,6 @@ const ProvidersRouteWithChildren = ProvidersRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BoardRoute: BoardRouteWithChildren,
   FavoritesRoute: FavoritesRoute,
   HomeRoute: HomeRoute,
   ListingRoute: ListingRoute,

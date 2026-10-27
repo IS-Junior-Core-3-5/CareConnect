@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
-import { useParents, usePosts, useProviders } from "@/lib/data";
+import { useParents, useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/search")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -13,12 +13,12 @@ export const Route = createFileRoute("/search")({
       {
         name: "description",
         content:
-          "Search across CareConnect at once: caregivers and centers, other parents, and message board threads.",
+          "Search across CareConnect at once: caregivers, centers, and other parents.",
       },
       { property: "og:title", content: "Search — CareConnect" },
       {
         property: "og:description",
-        content: "One search across caregivers, parents, and message board threads.",
+        content: "One search across caregivers and parents.",
       },
     ],
   }),
@@ -29,7 +29,6 @@ function SearchPage() {
   const { q } = Route.useSearch();
   const providers = useProviders();
   const parents = useParents();
-  const posts = usePosts();
   const term = q.trim().toLowerCase();
 
   const matchedProviders = term
@@ -45,11 +44,7 @@ function SearchPage() {
         [p.name, p.neighborhood, p.blurb, p.language].join(" ").toLowerCase().includes(term),
       )
     : [];
-  const matchedPosts = term
-    ? posts.filter((p) => [p.title, p.body, p.category].join(" ").toLowerCase().includes(term))
-    : [];
-
-  const total = matchedProviders.length + matchedParents.length + matchedPosts.length;
+  const total = matchedProviders.length + matchedParents.length;
 
   return (
     <AppShell>
@@ -59,8 +54,8 @@ function SearchPage() {
         </h1>
         <p className="mt-1 text-sm text-ink-soft">
           {term
-            ? `${total} ${total === 1 ? "match" : "matches"} across providers, parents, and posts`
-            : "Use the search bar above to look across providers, parents, and posts."}
+            ? `${total} ${total === 1 ? "match" : "matches"} across providers and parents`
+            : "Use the search bar above to look across providers and parents."}
         </p>
 
         {term && total === 0 ? (
@@ -99,27 +94,6 @@ function SearchPage() {
           </div>
         ) : null}
 
-        {matchedPosts.length ? (
-          <div className="mt-8">
-            <h2 className="font-display text-2xl font-bold tracking-tight">Message board</h2>
-            <div className="mt-4 space-y-3">
-              {matchedPosts.map((p) => (
-                <Link
-                  key={p.id}
-                  to="/board/$postId"
-                  params={{ postId: p.id }}
-                  className="card-lift block rounded-3xl bg-surface p-4 ring-1 ring-line"
-                >
-                  <span className="font-mono text-[11px] uppercase tracking-wider text-primary-ink">
-                    {p.category}
-                  </span>
-                  <p className="mt-1 font-display text-lg font-bold">{p.title}</p>
-                  <p className="mt-1 line-clamp-2 text-sm text-ink-soft">{p.body}</p>
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </section>
     </AppShell>
   );

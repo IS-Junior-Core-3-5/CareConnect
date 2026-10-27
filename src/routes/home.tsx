@@ -13,7 +13,7 @@ export const Route = createFileRoute("/home")({
       {
         name: "description",
         content:
-          "Your CareConnect home: search providers, parents and posts, jump to your schedule, favorites, and the parent message board.",
+          "Your CareConnect home: search providers and parents, and jump to your schedule, favorites, and provider listing.",
       },
       { property: "og:title", content: "Home — CareConnect" },
       {
@@ -29,7 +29,7 @@ const tiles = [
   { to: "/schedule", n: "01", title: "My schedule", sub: "The hours you need covered", cls: "bg-primary text-primary-soft" },
   { to: "/providers", n: "02", title: "Trusted providers", sub: "Filter by fit and price", cls: "bg-leaf text-white" },
   { to: "/favorites", n: "03", title: "My favorites", sub: "Shortlist & compare", cls: "bg-sun text-ink" },
-  { to: "/board", n: "04", title: "Message board", sub: "Ask the community", cls: "bg-surface ring-1 ring-line" },
+  { to: "/listing", n: "04", title: "My listing", sub: "Offer care to families", cls: "bg-surface ring-1 ring-line" },
 ] as const;
 
 function HomePage() {
@@ -55,7 +55,7 @@ function HomePage() {
             Good afternoon, <span className="italic text-primary">{parentName.split(" ")[0]}</span>.
           </h1>
           <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
-            Search everything at once — caregivers, other parents, and message board threads.
+            Search caregivers and other parents at once.
           </p>
 
           <form
@@ -71,7 +71,7 @@ function HomePage() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
-                placeholder="Search providers, parents, or posts"
+                placeholder="Search providers or parents"
               />
             </div>
             <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink">

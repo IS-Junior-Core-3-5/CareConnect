@@ -5,7 +5,6 @@ import {
   scheduleFromRows,
   type CareType,
   type Parent,
-  type Post,
   type Provider,
   type Review,
 } from "@/lib/model";
@@ -17,7 +16,6 @@ import {
 export const QK = {
   providers: ["providers"] as const,
   parents: ["parents"] as const,
-  posts: ["posts"] as const,
   languages: ["languages"] as const,
 };
 
@@ -121,36 +119,6 @@ export async function fetchParents(): Promise<Parent[]> {
   });
 }
 
-export async function fetchPosts(): Promise<Post[]> {
-  const { data, error } = await supabase
-    .from("posts")
-    .select(
-      `id, author_id, category, title, body, created_at,
-       post_mentions(provider_id),
-       post_replies(id, author_id, body, created_at, reply_mentions(provider_id))`,
-    )
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []).map((r: Row) => ({
-    id: r.id,
-    authorId: r.author_id,
-    category: r.category,
-    title: r.title,
-    body: r.body,
-    createdAt: r.created_at,
-    date: formatDate(r.created_at),
-    mentions: (r.post_mentions ?? []).map((m: Row) => m.provider_id),
-    replies: [...(r.post_replies ?? [])]
-      .sort((a: Row, b: Row) => a.created_at.localeCompare(b.created_at) || a.id - b.id)
-      .map((x: Row) => ({
-        id: x.id,
-        authorId: x.author_id,
-        body: x.body,
-        date: formatDate(x.created_at),
-        mentions: (x.reply_mentions ?? []).map((m: Row) => m.provider_id),
-      })),
-  }));
-}
 
 export async function fetchLanguages(): Promise<{ id: number; name: string }[]> {
   const { data, error } = await supabase.from("languages").select("id, name").order("name");
@@ -166,9 +134,6 @@ export function useProvidersQuery() {
 export function useParentsQuery() {
   return useQuery({ queryKey: QK.parents, queryFn: fetchParents, ...opts });
 }
-export function usePostsQuery() {
-  return useQuery({ queryKey: QK.posts, queryFn: fetchPosts, ...opts });
-}
 export function useLanguages() {
   return useQuery({ queryKey: QK.languages, queryFn: fetchLanguages, staleTime: 300_000 }).data ?? [];
 }
@@ -179,9 +144,6 @@ export function useProviders(): Provider[] {
 export function useParents(): Parent[] {
   return useParentsQuery().data ?? [];
 }
-export function usePosts(): Post[] {
-  return usePostsQuery().data ?? [];
-}
 
 export function useProvider(id: string) {
   const q = useProvidersQuery();
@@ -190,8 +152,4 @@ export function useProvider(id: string) {
 export function useParent(id: string) {
   const q = useParentsQuery();
   return { parent: q.data?.find((p) => p.id === id), isLoading: q.isLoading, error: q.error };
-}
-export function usePost(id: string) {
-  const q = usePostsQuery();
-  return { post: q.data?.find((p) => p.id === id), isLoading: q.isLoading, error: q.error };
 }

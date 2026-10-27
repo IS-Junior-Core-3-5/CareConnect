@@ -44,7 +44,7 @@ function ProviderProfilePage() {
 }
 
 function ProviderProfile({ provider }: { provider: Provider }) {
-  const { schedule, isFavorite, toggleFavorite, isConnected, toggleConnection, userId, parentId } = useApp();
+  const { schedule, isFavorite, toggleFavorite, userId, parentId } = useApp();
   const parents = useParents();
   const qc = useQueryClient();
   const isOwner = !!userId && provider.ownerId === userId;
@@ -235,7 +235,6 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                   {provider.pastFamilies.map((pid) => {
                     const parent = parents.find((x) => x.id === pid);
                     if (!parent) return null;
-                    const connected = isConnected(pid);
                     const isMe = pid === parentId;
                     return (
                       <li
@@ -256,20 +255,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                               .join(" · ")}
                           </p>
                         </div>
-                        {isMe ? (
-                          <span className="text-sm font-semibold text-ink-faint">You</span>
-                        ) : (
-                        <button
-                          onClick={() => toggleConnection(pid)}
-                          className={`chip rounded-full px-4 py-2 text-sm font-semibold ${
-                            connected
-                              ? "bg-leaf-soft text-leaf-ink"
-                              : "bg-primary text-primary-soft hover:bg-primary-ink"
-                          }`}
-                        >
-                          {connected ? "Connected" : "Connect"}
-                        </button>
-                        )}
+                        {isMe ? <span className="text-sm font-semibold text-ink-faint">You</span> : null}
                       </li>
                     );
                   })}

@@ -15,7 +15,7 @@ import { QK } from "@/lib/data";
 import { BLOCKS, emptySchedule, scheduleFromRows, type Child, type Schedule } from "@/lib/model";
 
 /**
- * Signed-in user + their saved data (profile, schedule, favorites, connections).
+ * Signed-in user + their saved data (profile, schedule, favorites).
  * Every change is written to Supabase right away; the UI updates instantly and
  * rolls back with an error toast if the save fails.
  */
@@ -30,7 +30,6 @@ type Me = {
   children: Child[];
   schedule: Schedule;
   favorites: string[];
-  connections: string[];
 };
 
 type AppState = {
@@ -45,7 +44,6 @@ type AppState = {
   language: string;
   schedule: Schedule;
   favorites: string[];
-  connections: string[];
   signOut: () => Promise<void>;
   refreshMe: () => Promise<unknown>;
   setLanguage: (v: string) => Promise<void>;
@@ -53,8 +51,6 @@ type AppState = {
   toggleBlock: (day: number, block: number) => void;
   toggleFavorite: (id: string) => void;
   isFavorite: (id: string) => boolean;
-  toggleConnection: (id: string) => void;
-  isConnected: (id: string) => boolean;
 };
 
 const Ctx = createContext<AppState | null>(null);
@@ -74,12 +70,12 @@ async function fetchMe(userId: string, email: string): Promise<Me | null> {
     .maybeSingle();
   if (error) throw error;
   if (!p) return null;
-  const [fav, con] = await Promise.all([
-    supabase.from("favorites").select("provider_id, created_at").eq("parent_id", p.id).order("created_at"),
-    supabase.from("parent_connections").select("connected_parent_id").eq("parent_id", p.id),
-  ]);
+  const fav = await supabase
+    .from("favorites")
+    .select("provider_id, created_at")
+    .eq("parent_id", p.id)
+    .order("created_at");
   if (fav.error) throw fav.error;
-  if (con.error) throw con.error;
   return {
     parentId: p.id,
     name: p.name,
@@ -90,7 +86,6 @@ async function fetchMe(userId: string, email: string): Promise<Me | null> {
     children: [...(p.children ?? [])].sort((a: Row, b: Row) => a.id - b.id),
     schedule: scheduleFromRows(p.parent_availability ?? []),
     favorites: (fav.data ?? []).map((f) => f.provider_id),
-    connections: (con.data ?? []).map((c) => c.connected_parent_id),
   };
 }
 
@@ -213,24 +208,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [parentId, me, patchMe, fail, needLogin],
   );
 
-  const toggleConnection = useCallback(
-    (id: string) => {
-      if (!parentId || !me) return needLogin();
-      if (id === parentId) return;
-      const on = me.connections.includes(id);
-      const prev = patchMe((m) => ({
-        ...m,
-        connections: on ? m.connections.filter((x) => x !== id) : [...m.connections, id],
-      }));
-      const req = on
-        ? supabase.from("parent_connections").delete().match({ parent_id: parentId, connected_parent_id: id })
-        : supabase.from("parent_connections").insert({ parent_id: parentId, connected_parent_id: id });
-      req.then(({ error }) => {
-        if (error) fail(prev, error, "connection");
-      });
-    },
-    [parentId, me, patchMe, fail, needLogin],
-  );
 
   const setLanguage = useCallback(
     async (name: string) => {
@@ -257,7 +234,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<AppState>(() => {
     const favorites = me?.favorites ?? [];
-    const connections = me?.connections ?? [];
     return {
       authLoading,
       session,
@@ -269,7 +245,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       language: me?.languages[0] ?? "English",
       schedule: me?.schedule ?? emptySchedule(),
       favorites,
-      connections,
       signOut,
       refreshMe: () => meQuery.refetch(),
       setLanguage,
@@ -277,8 +252,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       toggleBlock,
       toggleFavorite,
       isFavorite: (id) => favorites.includes(id),
-      toggleConnection,
-      isConnected: (id) => connections.includes(id),
     };
   }, [
     authLoading,
@@ -292,7 +265,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     setSchedule,
     toggleBlock,
     toggleFavorite,
-    toggleConnection,
   ]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -5,15 +5,15 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/NavBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
-import { QK, useLanguages, useParents } from "@/lib/data";
+import { QK, useLanguages } from "@/lib/data";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "My profile — CareConnect" },
-      { name: "description", content: "Your CareConnect profile: children, language, saved schedule, favorites and connections." },
+      { name: "description", content: "Your CareConnect profile: children, language, saved schedule and favorites." },
       { property: "og:title", content: "My profile — CareConnect" },
-      { property: "og:description", content: "Manage your family details, language and parent connections." },
+      { property: "og:description", content: "Manage your family details, language and schedule." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -36,8 +36,7 @@ function ProfilePage() {
 }
 
 function ProfileBody() {
-  const { me, language, setLanguage, favorites, connections, toggleConnection, refreshMe } = useApp();
-  const parents = useParents();
+  const { me, language, setLanguage, favorites, refreshMe } = useApp();
   const languages = useLanguages();
   const qc = useQueryClient();
 
@@ -230,30 +229,6 @@ function ProfileBody() {
             <p className="font-display text-2xl font-bold">Offer care?</p>
             <p className="mt-1 text-sm text-ink-soft">Create or edit your provider listing.</p>
           </Link>
-          <div className="rounded-3xl bg-surface p-6 ring-1 ring-line">
-            <h2 className="font-display text-2xl font-bold">Connections</h2>
-            {connections.length === 0 ? (
-              <p className="mt-3 text-sm text-ink-soft">
-                No connections yet. Connect with parents from the message board or a provider's past families.
-              </p>
-            ) : null}
-            <ul className="mt-3 space-y-2">
-              {connections.map((id) => {
-                const p = parents.find((x) => x.id === id);
-                if (!p) return null;
-                return (
-                  <li key={id} className="flex items-center justify-between rounded-2xl bg-background px-4 py-3 text-sm">
-                    <Link to="/parents/$parentId" params={{ parentId: id }} className="font-semibold hover:text-primary-ink">
-                      {p.name}
-                    </Link>
-                    <button onClick={() => toggleConnection(id)} className="text-xs font-semibold text-ink-soft hover:text-clay">
-                      Remove
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
           <form onSubmit={changePassword} className="space-y-3 rounded-3xl bg-surface p-6 ring-1 ring-line">
             <h2 className="font-display text-2xl font-bold">Change password</h2>
             <input

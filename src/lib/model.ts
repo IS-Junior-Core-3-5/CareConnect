@@ -14,8 +14,6 @@ export type Schedule = boolean[][];
 export const CARE_TYPES = ["Daycare", "Preschool", "Sitter", "Family Friend"] as const;
 export type CareType = (typeof CARE_TYPES)[number];
 
-export const POST_CATEGORIES = ["Schedules", "Pricing", "Recommendations"] as const;
-
 export type Scores = { experience: number; values: number; communication: number; safety: number };
 
 export type Review = {
@@ -69,20 +67,6 @@ export type Parent = {
   children: Child[];
   blurb: string;
   schedule: Schedule;
-};
-
-export type Reply = { id: number; authorId: string; date: string; body: string; mentions: string[] };
-
-export type Post = {
-  id: string;
-  title: string;
-  authorId: string;
-  category: string;
-  date: string;
-  createdAt: string;
-  body: string;
-  mentions: string[];
-  replies: Reply[];
 };
 
 export function emptySchedule(): Schedule {

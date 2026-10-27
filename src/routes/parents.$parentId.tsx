@@ -18,7 +18,7 @@ export const Route = createFileRoute("/parents/$parentId")({
 function ParentPage() {
   const { parentId } = Route.useParams();
   const { parent, isLoading, error } = useParent(parentId);
-  const { isConnected, toggleConnection, parentId: myId, schedule } = useApp();
+  const { parentId: myId, schedule } = useApp();
 
   if (isLoading)
     return (
@@ -37,14 +37,13 @@ function ParentPage() {
       <AppShell>
         <p className="py-16 text-center text-ink-soft">
           That parent isn't here.{" "}
-          <Link to="/board" className="font-semibold text-primary-ink">
-            Back to the board
+          <Link to="/providers" className="font-semibold text-primary-ink">
+            Back to providers
           </Link>
         </p>
       </AppShell>
     );
 
-  const on = isConnected(parent.id);
   const isMe = parent.id === myId;
   const shared = overlapCount(schedule, parent.schedule);
 
@@ -73,16 +72,7 @@ function ParentPage() {
             >
               Edit my profile
             </Link>
-          ) : (
-            <button
-              onClick={() => toggleConnection(parent.id)}
-              className={`mt-6 rounded-2xl px-6 py-3 text-sm font-semibold transition-colors ${
-                on ? "bg-leaf-soft text-leaf-ink" : "bg-primary text-primary-soft hover:bg-primary-ink"
-              }`}
-            >
-              {on ? "Connected ✓" : "Connect"}
-            </button>
-          )}
+          ) : null}
         </div>
 
         {!isMe && scheduleCount(parent.schedule) > 0 ? (
