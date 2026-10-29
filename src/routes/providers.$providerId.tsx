@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
+import { RequestCare } from "@/components/CareBookings";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { distanceLabel, gapCount, overlapCount, priceLabel, type Provider, type Scores } from "@/lib/model";
@@ -76,6 +77,8 @@ function ProviderProfile({ provider }: { provider: Provider }) {
         <Link to="/providers" className="text-sm font-semibold text-primary-ink">
           ← Back to providers
         </Link>
+
+        <RequestCare provider={provider} />
 
         <div className="mt-4 grid gap-6 lg:grid-cols-12">
           <div className="space-y-6 lg:col-span-8">
