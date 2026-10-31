@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useApp } from "@/lib/app-state";
 
@@ -14,6 +14,7 @@ const links = [
 export function NavBar() {
   const navigate = useNavigate();
   const { favorites, signOut } = useApp();
+  const showGlobalSearch = useRouterState({ select: (state) => state.location.pathname !== "/home" });
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
 
@@ -49,17 +50,19 @@ export function NavBar() {
           ))}
         </nav>
 
-        <form onSubmit={submit} className="ml-auto hidden items-center md:flex">
-          <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2 ring-1 ring-line">
-            <span className="text-ink-faint">⌕</span>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="w-44 bg-transparent text-sm outline-none placeholder:text-ink-faint"
-              placeholder="Search everything"
-            />
-          </div>
-        </form>
+        {showGlobalSearch ? (
+          <form onSubmit={submit} className="ml-auto hidden items-center md:flex">
+            <div className="flex items-center gap-2 rounded-2xl bg-surface px-3 py-2 ring-1 ring-line">
+              <span className="text-ink-faint">⌕</span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="w-44 bg-transparent text-sm outline-none placeholder:text-ink-faint"
+                placeholder="Search everything"
+              />
+            </div>
+          </form>
+        ) : null}
 
         <button
           onClick={async () => {
@@ -81,15 +84,17 @@ export function NavBar() {
 
       {open ? (
         <div className="border-t border-line bg-surface px-5 py-3 lg:hidden">
-          <form onSubmit={submit} className="mb-3 flex items-center gap-2 rounded-2xl bg-background px-3 py-2">
-            <span className="text-ink-faint">⌕</span>
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
-              placeholder="Search everything"
-            />
-          </form>
+          {showGlobalSearch ? (
+            <form onSubmit={submit} className="mb-3 flex items-center gap-2 rounded-2xl bg-background px-3 py-2">
+              <span className="text-ink-faint">⌕</span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
+                placeholder="Search everything"
+              />
+            </form>
+          ) : null}
           <div className="grid grid-cols-2 gap-1.5">
             {links.map((l) => (
               <Link
