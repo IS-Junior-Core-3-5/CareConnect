@@ -38,9 +38,20 @@ function ProvidersPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [matchesSchedule, setMatchesSchedule] = useState(false);
   const [sort, setSort] = useState("match");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const results = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
     const filtered = providers.filter((p) => {
+      if (
+        query &&
+        ![p.name, p.careType, p.neighborhood, p.blurb, p.bio, ...p.languages]
+          .join(" ")
+          .toLowerCase()
+          .includes(query)
+      ) {
+        return false;
+      }
       if (types.length && !types.includes(p.careType)) return false;
       if (distance < 99 && (p.distance === null || p.distance > distance)) return false;
       if (p.dailyRate !== null && maxPrice < 250 && p.dailyRate > maxPrice) return false;
@@ -64,7 +75,7 @@ function ProvidersPage() {
           (a.schedule ? overlapCount(schedule, a.schedule) : -1),
       );
     return sorted;
-  }, [providers, types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
+  }, [providers, searchTerm, types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
 
   const empty = results.length === 0;
 
@@ -75,6 +86,7 @@ function ProvidersPage() {
     setMinRating(0);
     setVerifiedOnly(false);
     setMatchesSchedule(false);
+    setSearchTerm("");
   }
 
   return (
@@ -99,6 +111,18 @@ function ProvidersPage() {
             <option value="price">Lowest price</option>
           </select>
         </div>
+
+        <label className="mb-6 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 ring-1 ring-line">
+          <span aria-hidden="true" className="text-lg text-ink-faint">⌕</span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search trusted providers"
+            placeholder="Search providers by name, care type, or neighborhood"
+            className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
+          />
+        </label>
 
         <div className="grid gap-6 lg:grid-cols-12">
           <aside className="lg:col-span-3">
@@ -238,10 +262,12 @@ function ProvidersPage() {
             {providersQuery.error ? <ErrorState error={providersQuery.error} /> : null}
             {empty && providers.length ? (
               <div className="rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
-                No providers match the selected criteria. Showing the default provider list below.
+                {searchTerm.trim()
+                  ? `No providers found for “${searchTerm.trim()}”. Try another search.`
+                  : "No providers match the selected criteria. Showing the default provider list below."}
               </div>
             ) : null}
-            {(empty ? providers : results).map((p) => (
+            {(empty && !searchTerm.trim() ? providers : results).map((p) => (
               <ProviderCard key={p.id} provider={p} />
             ))}
           </div>
