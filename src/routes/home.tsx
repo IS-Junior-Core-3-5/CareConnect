@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
 import { overlapCount } from "@/lib/model";
@@ -12,12 +13,12 @@ export const Route = createFileRoute("/home")({
       {
         name: "description",
         content:
-          "Your CareConnect home: check your schedule, favorites, and provider listing.",
+          "Your CareConnect home: search providers and parents, and jump to your schedule, favorites, and provider listing.",
       },
       { property: "og:title", content: "Home — CareConnect" },
       {
         property: "og:description",
-        content: "Check your weekly schedule, see how providers line up with it, and revisit your favorites.",
+        content: "Search care, check your weekly schedule, and see how providers line up with it.",
       },
     ],
   }),
@@ -32,8 +33,10 @@ const tiles = [
 ] as const;
 
 function HomePage() {
+  const navigate = useNavigate();
   const { parentName, schedule, favorites } = useApp();
   const providers = useProviders();
+  const [q, setQ] = useState("");
 
   const best = providers
     .filter((p) => p.schedule)
@@ -52,7 +55,44 @@ function HomePage() {
             Good afternoon, <span className="italic text-primary">{parentName.split(" ")[0]}</span>.
           </h1>
           <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
-            Find trusted care, compare schedules, and keep your favorites in one place.
+            Search caregivers and other parents at once.
+          </p>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate({ to: "/search", search: { q } });
+            }}
+            className="mt-6 flex flex-col gap-2 rounded-3xl bg-surface p-2 ring-1 ring-line sm:flex-row sm:items-center"
+          >
+            <div className="flex flex-1 items-center gap-3 rounded-2xl bg-background px-4 py-3">
+              <span className="text-ink-faint">⌕</span>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
+                placeholder="Search providers or parents"
+              />
+            </div>
+            <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink">
+              Search
+            </button>
+          </form>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-ink-faint">Popular:</span>
+            {["Evening care", "Preschool", "Pricing"].map((t) => (
+              <Link
+                key={t}
+                to="/search"
+                search={{ q: t }}
+                className="chip rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary-ink"
+              >
+                {t}
+              </Link>
+            ))}
+          </div>
+
           </p>
 
         </div>
