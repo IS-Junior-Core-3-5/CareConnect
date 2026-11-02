@@ -92,9 +92,6 @@ function HomePage() {
               </Link>
             ))}
           </div>
-
-          </p>
-
         </div>
 
         <div className="lg:col-span-5">
