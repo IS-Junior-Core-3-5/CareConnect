@@ -47,13 +47,14 @@ export function NavBar() {
             await signOut();
             navigate({ to: "/" });
           }}
-          className="ml-auto rounded-full px-3 py-2 text-sm font-medium text-ink-soft hover:text-ink md:ml-2"
+          className="ml-auto whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-ink-soft hover:text-ink"
         >
           Sign out
         </button>
 
         <button
           onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
           className="rounded-full border border-line px-3 py-2 text-sm font-medium text-ink-soft lg:hidden"
         >
           Menu

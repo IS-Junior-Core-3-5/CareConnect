@@ -108,12 +108,12 @@ function ProfileBody() {
     <>
       <section className="py-10">
         <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Personal profile</span>
-        <h1 className="mt-1 font-display text-5xl font-bold tracking-tight">{me.name}</h1>
+        <h1 className="mt-1 font-display text-4xl sm:text-5xl font-bold tracking-tight">{me.name}</h1>
         <p className="mt-2 text-ink-soft">{[me.email, me.neighborhood].filter(Boolean).join(" · ")}</p>
       </section>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <div className="space-y-4">
-          <form onSubmit={saveProfile} className="space-y-4 rounded-3xl bg-surface p-6 ring-1 ring-line">
+          <form onSubmit={saveProfile} className="space-y-4 rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
             <h2 className="font-display text-2xl font-bold">About you</h2>
             <div>
               <label className={label} htmlFor="p-name">
@@ -150,7 +150,7 @@ function ProfileBody() {
             </button>
           </form>
 
-          <div className="rounded-3xl bg-surface p-6 ring-1 ring-line">
+          <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
             <h2 className="font-display text-2xl font-bold">Children</h2>
             {me.children.length === 0 ? <p className="mt-3 text-sm text-ink-soft">No children added yet.</p> : null}
             <ul className="mt-3 space-y-2">
@@ -164,11 +164,11 @@ function ProfileBody() {
                 </li>
               ))}
             </ul>
-            <form onSubmit={addChild} className="mt-3 flex gap-2">
+            <form onSubmit={addChild} className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex">
               <input
                 value={kidName}
                 onChange={(e) => setKidName(e.target.value)}
-                className={field}
+                className={`${field} col-span-2 min-w-0 sm:col-span-1`}
                 placeholder="Child's name"
                 aria-label="Child's name"
               />
@@ -178,10 +178,10 @@ function ProfileBody() {
                 max={17}
                 value={kidAge}
                 onChange={(e) => setKidAge(e.target.value)}
-                className="w-24 rounded-2xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-line"
+                className="w-full min-w-0 rounded-2xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-line sm:w-24"
                 aria-label="Age"
               />
-              <button className={btn}>Add</button>
+              <button className={`${btn} whitespace-nowrap`}>Add child</button>
             </form>
 
             <label className={`${label} mt-6`} htmlFor="lang">
@@ -205,7 +205,7 @@ function ProfileBody() {
               <input
                 value={newLang}
                 onChange={(e) => setNewLang(e.target.value)}
-                className={field}
+                className={`${field} min-w-0`}
                 placeholder="Not listed? Type a language"
                 aria-label="Other language"
               />
@@ -229,7 +229,7 @@ function ProfileBody() {
             <p className="font-display text-2xl font-bold">Offer care?</p>
             <p className="mt-1 text-sm text-ink-soft">Create or edit your provider listing.</p>
           </Link>
-          <form onSubmit={changePassword} className="space-y-3 rounded-3xl bg-surface p-6 ring-1 ring-line">
+          <form onSubmit={changePassword} className="space-y-3 rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
             <h2 className="font-display text-2xl font-bold">Change password</h2>
             <input
               type="password"

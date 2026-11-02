@@ -45,13 +45,13 @@ function AuthPage() {
       </header>
 
       <main className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 lg:grid-cols-12 lg:items-start">
-        <section className="lg:col-span-5 lg:pt-10">
+        <section className="min-w-0 lg:col-span-5 lg:pt-10">
           {verified > 0 ? (
             <span className="inline-flex items-center gap-2 rounded-full bg-sun-soft px-3 py-1.5 text-xs font-semibold text-ink-soft">
               <span className="size-1.5 rounded-full bg-sun" /> {verified} verified providers
             </span>
           ) : null}
-          <h1 className="mt-5 font-display text-5xl font-bold leading-[1.02] tracking-tight text-balance">
+          <h1 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.02] tracking-tight text-balance">
             Find care that <span className="italic text-primary">fits your week</span>.
           </h1>
           <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
@@ -60,8 +60,8 @@ function AuthPage() {
           </p>
         </section>
 
-        <section className="lg:col-span-7">
-          <div className="rounded-[28px] bg-surface p-6 ring-1 ring-line sm:p-8">
+        <section className="min-w-0 lg:col-span-7">
+          <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8">
             <div className="flex gap-1 rounded-full bg-background p-1">
               <button
                 onClick={() => setMode("login")}

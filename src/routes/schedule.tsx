@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/NavBar";
-import { ScheduleGrid } from "@/components/ScheduleGrid";
+import { DayHeader, GRID_COLS, RowLabel, ScheduleGrid } from "@/components/ScheduleGrid";
 import { CareBookings } from "@/components/CareBookings";
-import { BLOCKS, DAYS, type Schedule } from "@/lib/model";
+import { BLOCK_HOURS, BLOCKS, DAYS, type Schedule } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
@@ -51,13 +51,13 @@ function SchedulePage() {
   return (
     <AppShell>
       <section className="py-8">
-        <h1 className="font-display text-4xl font-bold tracking-tight">My weekly schedule</h1>
+        <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">My weekly schedule</h1>
         <p className="mt-1 max-w-[60ch] text-sm text-ink-soft">
           Tap any block to add or remove the hours you need covered — changes save automatically. Overlay
           providers below to see where your week is covered and where it gaps.
         </p>
 
-        <div className="mt-6 rounded-[28px] bg-surface p-6 ring-1 ring-line">
+        <div className="mt-6 rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6">
           <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Editable · hours you need</p>
           <div className="mt-4">
             <ScheduleGrid schedule={schedule} editable onToggle={toggleBlock} />
@@ -66,7 +66,7 @@ function SchedulePage() {
 
         <CareBookings />
 
-        <div className="mt-6 rounded-[28px] bg-surface p-6 ring-1 ring-line">
+        <div className="mt-6 rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="font-display text-2xl font-bold tracking-tight">Overlay providers</h2>
@@ -102,66 +102,57 @@ function SchedulePage() {
               })}
           </div>
 
-          <div className="mt-6 overflow-x-auto">
-            <div className="min-w-[620px]">
-              <div className="grid grid-cols-[110px_repeat(7,1fr)] gap-1.5">
-                <div />
-                {DAYS.map((d) => (
-                  <div key={d} className="text-center font-mono text-xs text-ink-faint">
-                    {d}
+          <div className="mt-6 w-full min-w-0">
+            <DayHeader />
+
+            {BLOCKS.map((b, t) => (
+              <div key={b} className="mt-4">
+                <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint sm:text-[11px]">
+                  {b} · {BLOCK_HOURS[b]}
+                </p>
+                <div className={GRID_COLS}>
+                  <RowLabel>You need</RowLabel>
+                  {DAYS.map((d, i) => {
+                    const c = coverage(i, t);
+                    return (
+                      <div
+                        key={d}
+                        className={`grid h-8 min-w-0 place-items-center rounded-md text-[11px] font-bold sm:h-9 sm:rounded-lg ${
+                          c === "covered"
+                            ? "bg-leaf text-white"
+                            : c === "gap"
+                              ? "bg-clay text-white"
+                              : "bg-background ring-1 ring-line"
+                        }`}
+                      >
+                        {c === "covered" ? "✓" : c === "gap" ? "✕" : ""}
+                      </div>
+                    );
+                  })}
+                </div>
+                {overlaid.map((p) => (
+                  <div key={p.id} className={`mt-1 sm:mt-1.5 ${GRID_COLS}`}>
+                    <RowLabel>{p.name.split(" ")[0]}</RowLabel>
+                    {DAYS.map((d, i) => (
+                      <div
+                        key={d}
+                        className={`h-8 min-w-0 rounded-md sm:h-9 sm:rounded-lg ${
+                          (p.schedule as Schedule)[i][t] ? "bg-leaf-soft" : "bg-background ring-1 ring-line"
+                        }`}
+                      />
+                    ))}
                   </div>
                 ))}
               </div>
+            ))}
 
-              {BLOCKS.map((b, t) => (
-                <div key={b} className="mt-4">
-                  <p className="mb-1 font-mono text-[11px] uppercase tracking-wider text-ink-faint">{b}</p>
-                  <div className="grid grid-cols-[110px_repeat(7,1fr)] gap-1.5">
-                    <div className="flex items-center font-mono text-[11px] text-ink-faint">YOU NEED</div>
-                    {DAYS.map((d, i) => {
-                      const c = coverage(i, t);
-                      return (
-                        <div
-                          key={d}
-                          className={`h-9 rounded-lg ${
-                            c === "covered"
-                              ? "bg-leaf text-white"
-                              : c === "gap"
-                                ? "bg-clay text-white"
-                                : "bg-background ring-1 ring-line"
-                          } grid place-items-center text-[11px] font-bold`}
-                        >
-                          {c === "covered" ? "✓" : c === "gap" ? "✕" : ""}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {overlaid.map((p) => (
-                    <div key={p.id} className="mt-1.5 grid grid-cols-[110px_repeat(7,1fr)] gap-1.5">
-                      <div className="flex items-center truncate font-mono text-[11px] uppercase text-ink-faint">
-                        {p.name.split(" ")[0]}
-                      </div>
-                      {DAYS.map((d, i) => (
-                        <div
-                          key={d}
-                          className={`h-9 rounded-lg ${
-                            (p.schedule as Schedule)[i][t] ? "bg-leaf-soft" : "bg-background ring-1 ring-line"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              ))}
-
-              <div className="mt-5 flex flex-wrap items-center gap-4 text-xs font-medium">
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-3 rounded-sm bg-leaf" /> Covered by an overlaid provider
-                </span>
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="size-3 rounded-sm bg-clay" /> Still uncovered
-                </span>
-              </div>
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-medium">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-3 rounded-sm bg-leaf" /> Covered by an overlaid provider
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="size-3 rounded-sm bg-clay" /> Still uncovered
+              </span>
             </div>
           </div>
         </div>

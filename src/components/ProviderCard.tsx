@@ -51,16 +51,16 @@ export function ProviderCard({ provider }: { provider: Provider }) {
   const fav = isFavorite(provider.id);
 
   return (
-    <article className="card-lift grid gap-4 rounded-3xl bg-surface p-4 ring-1 ring-line sm:grid-cols-[168px_1fr]">
+    <article className="card-lift grid gap-4 rounded-3xl bg-surface p-4 ring-1 ring-line sm:grid-cols-[168px_minmax(0,1fr)]">
       <div className="relative">
-        <ProviderPhoto provider={provider} className="aspect-square w-full rounded-2xl" />
+        <ProviderPhoto provider={provider} className="aspect-[16/10] w-full rounded-2xl sm:aspect-square" />
         <span className="absolute left-2 top-2">
           <VerifiedBadge verified={provider.verified} />
         </span>
       </div>
-      <div className="flex flex-col">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+      <div className="flex min-w-0 flex-col">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-display text-xl font-bold tracking-tight">{provider.name}</h3>
               <span className="rounded-full bg-sun-soft px-2 py-0.5 text-xs font-semibold text-ink-soft">
@@ -69,7 +69,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
             </div>
             <p className="mt-0.5 text-sm text-ink-soft">{provider.blurb}</p>
           </div>
-          <div className="shrink-0 text-right">
+          <div className="flex shrink-0 items-baseline gap-2 sm:block sm:text-right">
             <p className="font-display text-xl font-bold leading-none">
               {provider.dailyRate === null ? (
                 <span className="text-sm font-semibold text-ink-faint">Pricing unavailable</span>
@@ -77,7 +77,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
                 priceLabel(provider)
               )}
             </p>
-            <p className="mt-1 text-xs text-ink-faint">{distanceLabel(provider.distance)}</p>
+            <p className="text-xs text-ink-faint sm:mt-1">{distanceLabel(provider.distance)}</p>
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           <Link
             to="/providers/$providerId"
             params={{ providerId: provider.id }}
-            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink"
+            className="whitespace-nowrap rounded-full bg-primary px-3.5 py-2 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink sm:px-4"
           >
             View profile
           </Link>
@@ -125,9 +125,10 @@ export function ProviderCard({ provider }: { provider: Provider }) {
             to="/providers/$providerId"
             params={{ providerId: provider.id }}
             hash="compare"
-            className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink"
+            className="whitespace-nowrap rounded-full border border-line px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink sm:px-4"
           >
-            Compare schedule
+            <span className="sm:hidden">Compare</span>
+            <span className="hidden sm:inline">Compare schedule</span>
           </Link>
           <button
             onClick={() => toggleFavorite(provider.id)}

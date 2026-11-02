@@ -78,24 +78,41 @@ function ProviderProfile({ provider }: { provider: Provider }) {
           ← Back to providers
         </Link>
 
-        <RequestCare provider={provider} />
-
         <div className="mt-4 grid gap-6 lg:grid-cols-12">
-          <div className="space-y-6 lg:col-span-8">
-            <section className="overflow-hidden rounded-[28px] bg-surface ring-1 ring-line">
-              <ProviderPhoto provider={provider} className="h-64 w-full sm:h-80" />
-              <div className="p-6">
+          <div className="min-w-0 space-y-6 lg:col-span-8">
+            <section className="overflow-hidden rounded-3xl bg-surface ring-1 ring-line sm:rounded-[28px]">
+              <ProviderPhoto provider={provider} className="h-56 w-full rounded-none sm:h-80" />
+              <div className="p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h1 className="font-display text-4xl font-bold tracking-tight">{provider.name}</h1>
+                      <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+                        {provider.name}
+                      </h1>
                       <VerifiedBadge verified={provider.verified} />
                     </div>
                     <p className="mt-1 text-sm text-ink-soft">
                       {provider.careType} · {provider.neighborhood} · {distanceLabel(provider.distance)}
                     </p>
+                    {/* Price and hours live in the sidebar on desktop; on phones show them up top. */}
+                    <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          provider.dailyRate === null ? "bg-clay-soft text-clay" : "bg-primary-soft text-primary-ink"
+                        }`}
+                      >
+                        {priceLabel(provider)}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          provider.schedule ? "bg-background text-ink-soft" : "bg-clay-soft text-clay"
+                        }`}
+                      >
+                        {provider.scheduleSummary}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
                     {isOwner ? (
                       <Link
                         to="/listing"
@@ -106,7 +123,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                     ) : null}
                     <button
                       onClick={() => toggleFavorite(provider.id)}
-                      className={`chip rounded-full px-4 py-2 text-sm font-semibold ${
+                      className={`chip flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:flex-none ${
                         fav ? "bg-clay-soft text-clay" : "border border-line text-ink-soft hover:border-primary"
                       }`}
                     >
@@ -114,7 +131,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                     </button>
                     <a
                       href="#compare"
-                      className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink"
+                      className="flex-1 whitespace-nowrap rounded-full bg-primary px-4 py-2 text-center text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink sm:flex-none"
                     >
                       Compare schedule
                     </a>
@@ -136,7 +153,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               </div>
             </section>
 
-            <section id="compare" className="scroll-mt-24 rounded-[28px] bg-surface p-6 ring-1 ring-line">
+            <section id="compare" className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">
                 Compare schedule
               </span>
@@ -172,7 +189,9 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               )}
             </section>
 
-            <section className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+            <RequestCare provider={provider} />
+
+            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <h2 className="font-display text-2xl font-bold tracking-tight">Ratings & reviews</h2>
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {(
@@ -217,7 +236,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               {!isOwner ? <ReviewForm provider={provider} /> : null}
             </section>
 
-            <section className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="font-display text-2xl font-bold tracking-tight">Past families</h2>
                 {!isOwner ? (
@@ -267,8 +286,8 @@ function ProviderProfile({ provider }: { provider: Provider }) {
             </section>
           </div>
 
-          <aside className="space-y-6 lg:col-span-4">
-            <section className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+          <aside className="min-w-0 space-y-6 lg:col-span-4">
+            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Pricing</p>
               {provider.dailyRate === null ? (
                 <p className="mt-2 rounded-2xl bg-clay-soft px-3 py-2 text-sm font-semibold text-clay">
@@ -286,7 +305,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               )}
             </section>
 
-            <section className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Hours</p>
               <p
                 className={`mt-1 font-semibold ${provider.schedule ? "" : "text-clay"}`}
@@ -307,7 +326,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               )}
             </section>
 
-            <section className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Location</p>
               <p className="mt-1 font-semibold">
                 {provider.neighborhood} · {distanceLabel(provider.distance)}

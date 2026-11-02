@@ -46,12 +46,12 @@ function HomePage() {
   return (
     <AppShell>
       <section className="grid gap-8 py-10 lg:grid-cols-12 lg:items-center">
-        <div className="lg:col-span-7">
+        <div className="min-w-0 lg:col-span-7">
           <span className="inline-flex items-center gap-2 rounded-full bg-sun-soft px-3 py-1.5 text-xs font-semibold text-ink-soft">
             <span className="size-1.5 rounded-full bg-sun" /> {providers.filter((p) => p.verified).length} verified
             providers near you
           </span>
-          <h1 className="mt-5 font-display text-5xl font-bold leading-[1.02] tracking-tight text-balance">
+          <h1 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.02] tracking-tight text-balance">
             Good afternoon, <span className="italic text-primary">{parentName.split(" ")[0]}</span>.
           </h1>
           <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
@@ -94,7 +94,7 @@ function HomePage() {
           </div>
         </div>
 
-        <div className="lg:col-span-5">
+        <div className="min-w-0 lg:col-span-5">
           <div className="grid grid-cols-2 gap-3">
             {tiles.map((t) => (
               <Link key={t.to} to={t.to} className={`card-lift rounded-3xl p-5 ${t.cls}`}>
@@ -111,7 +111,7 @@ function HomePage() {
 
       {best ? (
         <section className="py-6">
-          <div className="rounded-[28px] bg-surface p-6 ring-1 ring-line sm:p-8">
+          <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Schedule match</span>

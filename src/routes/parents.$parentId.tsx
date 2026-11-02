@@ -50,11 +50,11 @@ function ParentPage() {
   return (
     <AppShell>
       <section className="mx-auto max-w-3xl space-y-6 py-12">
-        <div className="rounded-[28px] bg-surface p-8 ring-1 ring-line">
+        <div className="rounded-3xl bg-surface p-6 ring-1 ring-line sm:rounded-[28px] sm:p-8">
           <span className="grid size-16 place-items-center rounded-3xl bg-primary-soft font-display text-2xl font-bold text-primary-ink">
             {parent.name[0]}
           </span>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight">{parent.name}</h1>
+          <h1 className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight">{parent.name}</h1>
           <p className="mt-1 text-sm text-ink-soft">
             {[parent.neighborhood, parent.language && `Speaks ${parent.language}`].filter(Boolean).join(" · ")}
           </p>
@@ -76,7 +76,7 @@ function ParentPage() {
         </div>
 
         {!isMe && scheduleCount(parent.schedule) > 0 ? (
-          <div className="rounded-[28px] bg-surface p-6 ring-1 ring-line">
+          <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
             <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Compare schedules</span>
             <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">
               You both need care in {shared} {shared === 1 ? "block" : "blocks"}

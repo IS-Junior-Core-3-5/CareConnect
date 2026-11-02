@@ -46,7 +46,7 @@ function FavoritesPage() {
       <section className="py-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-4xl font-bold tracking-tight">My favorites</h1>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">My favorites</h1>
             <p className="mt-1 text-sm text-ink-soft">
               {saved.length} saved · select 2–3 to compare side by side
             </p>
@@ -134,7 +134,7 @@ function FavoritesPage() {
         )}
 
         {comparing && chosen.length >= 2 ? (
-          <section className="mt-8 rounded-[28px] bg-surface p-6 ring-1 ring-line">
+          <section className="mt-8 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-display text-2xl font-bold tracking-tight">Side by side</h2>
               <button onClick={() => setComparing(false)} className="text-sm font-semibold text-primary-ink">

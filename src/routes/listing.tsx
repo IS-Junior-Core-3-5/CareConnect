@@ -180,7 +180,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
   return (
     <section className="py-8">
       <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Provider listing</span>
-      <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">
+      <h1 className="mt-1 font-display text-3xl sm:text-4xl font-bold tracking-tight">
         {existing ? "Edit your listing" : "Offer care on CareConnect"}
       </h1>
       <p className="mt-1 max-w-[60ch] text-sm text-ink-soft">
@@ -196,8 +196,8 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         ) : null}
       </p>
 
-      <form onSubmit={save} className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="space-y-4 rounded-3xl bg-surface p-6 ring-1 ring-line">
+      <form onSubmit={save} className="mt-6 grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
+        <div className="space-y-4 rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
           <h2 className="font-display text-2xl font-bold">Basics</h2>
           <div>
             <label className={label} htmlFor="l-name">
@@ -305,7 +305,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-4 rounded-3xl bg-surface p-6 ring-1 ring-line">
+          <div className="space-y-4 rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
             <h2 className="font-display text-2xl font-bold">Pricing</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
@@ -342,7 +342,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
             </div>
           </div>
 
-          <div className="space-y-4 rounded-3xl bg-surface p-6 ring-1 ring-line">
+          <div className="space-y-4 rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-2xl font-bold">Availability</h2>
               <label className="flex items-center gap-2 text-sm font-medium">

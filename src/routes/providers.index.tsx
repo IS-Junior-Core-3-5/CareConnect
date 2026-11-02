@@ -39,6 +39,14 @@ function ProvidersPage() {
   const [matchesSchedule, setMatchesSchedule] = useState(false);
   const [sort, setSort] = useState("match");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilters =
+    types.length +
+    (distance < 99 ? 1 : 0) +
+    (maxPrice < 250 ? 1 : 0) +
+    (minRating > 0 ? 1 : 0) +
+    (verifiedOnly ? 1 : 0) +
+    (matchesSchedule ? 1 : 0);
 
   const results = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -94,7 +102,9 @@ function ProvidersPage() {
       <section className="py-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-4xl font-bold tracking-tight">Trusted providers near you</h1>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+              Trusted providers near you
+            </h1>
             <p className="mt-1 text-sm text-ink-soft">
               {results.length} {results.length === 1 ? "result" : "results"} · filters update instantly
             </p>
@@ -125,8 +135,29 @@ function ProvidersPage() {
         </label>
 
         <div className="grid gap-6 lg:grid-cols-12">
-          <aside className="lg:col-span-3">
-            <div className="sticky top-20 space-y-6 rounded-3xl bg-surface p-5 ring-1 ring-line">
+          <aside className="min-w-0 lg:col-span-3">
+            {/* Phones: filters collapse behind a button so results show first. */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              className="flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm font-semibold ring-1 ring-line lg:hidden"
+            >
+              <span>
+                Filters
+                {activeFilters > 0 ? (
+                  <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-soft">
+                    {activeFilters}
+                  </span>
+                ) : null}
+              </span>
+              <span aria-hidden="true" className="text-ink-faint">
+                {filtersOpen ? "▲" : "▼"}
+              </span>
+            </button>
+            <div
+              className={`${filtersOpen ? "mt-3 block" : "hidden"} space-y-6 rounded-3xl bg-surface p-5 ring-1 ring-line lg:sticky lg:top-20 lg:mt-0 lg:block`}
+            >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">Filters</span>
                 <button onClick={reset} className="text-xs font-semibold text-primary-ink">
@@ -257,7 +288,7 @@ function ProvidersPage() {
             </div>
           </aside>
 
-          <div className="space-y-4 lg:col-span-9">
+          <div className="min-w-0 space-y-4 lg:col-span-9">
             {providersQuery.isLoading ? <LoadingState label="Loading providers…" /> : null}
             {providersQuery.error ? <ErrorState error={providersQuery.error} /> : null}
             {empty && providers.length ? (

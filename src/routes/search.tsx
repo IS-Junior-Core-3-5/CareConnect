@@ -49,7 +49,7 @@ function SearchPage() {
   return (
     <AppShell>
       <section className="py-8">
-        <h1 className="font-display text-4xl font-bold tracking-tight">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
           {term ? <>Results for “{q}”</> : "Search CareConnect"}
         </h1>
         <p className="mt-1 text-sm text-ink-soft">

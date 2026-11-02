@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
-import { BLOCKS, type Block, type Provider } from "@/lib/model";
+import { BLOCKS, formatDate, type Block, type Provider } from "@/lib/model";
 
 type Booking = {
   id: string;
@@ -48,12 +48,12 @@ export function RequestCare({ provider }: { provider: Provider }) {
 
   const localToday = new Date().toLocaleDateString("en-CA");
   return (
-    <form onSubmit={request} className="mt-6 rounded-3xl bg-surface p-6 ring-1 ring-line">
+    <form onSubmit={request} className="mt-6 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
       <h2 className="font-display text-2xl font-bold">Request a care block</h2>
       <p className="mt-1 text-sm text-ink-soft">
         The provider will confirm or decline your request.
       </p>
-      <div className="mt-4 flex flex-wrap items-end gap-3">
+      <div className="mt-4 grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
         <label className="text-sm font-medium">
           Date
           <input
@@ -62,7 +62,7 @@ export function RequestCare({ provider }: { provider: Provider }) {
             min={localToday}
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="mt-1 block rounded-xl bg-background px-3 py-2 ring-1 ring-line"
+            className="mt-1 block w-full min-w-0 rounded-xl bg-background px-3 py-2 ring-1 ring-line"
           />
         </label>
         <label className="text-sm font-medium">
@@ -70,7 +70,7 @@ export function RequestCare({ provider }: { provider: Provider }) {
           <select
             value={block}
             onChange={(e) => setBlock(e.target.value as Block)}
-            className="mt-1 block rounded-xl bg-background px-3 py-2 ring-1 ring-line"
+            className="mt-1 block w-full min-w-0 rounded-xl bg-background px-3 py-2 ring-1 ring-line"
           >
             {BLOCKS.map((b) => (
               <option key={b}>{b}</option>
@@ -79,7 +79,7 @@ export function RequestCare({ provider }: { provider: Provider }) {
         </label>
         <button
           disabled={busy}
-          className="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-soft disabled:opacity-50"
+          className="col-span-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-soft disabled:opacity-50 sm:col-span-1"
         >
           {busy ? "Sending…" : "Send request"}
         </button>
@@ -119,7 +119,7 @@ export function CareBookings() {
   }
 
   return (
-    <section className="mt-6 rounded-3xl bg-surface p-6 ring-1 ring-line">
+    <section className="mt-6 rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6">
       <h2 className="font-display text-2xl font-bold">Care requests</h2>
       <p className="mt-1 text-sm text-ink-soft">
         Requests and confirmations are saved to your account.
@@ -140,11 +140,24 @@ export function CareBookings() {
               key={booking.id}
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background p-4 ring-1 ring-line"
             >
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold">{provider?.name ?? booking.provider_id}</p>
                 <p className="text-sm text-ink-soft">
-                  {booking.care_date} · {booking.block} ·{" "}
-                  {mine ? "Your request" : "Incoming request"} · {booking.status}
+                  {formatDate(booking.care_date)} · {booking.block}
+                </p>
+                <p className="mt-0.5 text-xs text-ink-faint">
+                  {mine ? "Your request" : "Incoming request"} ·{" "}
+                  <span
+                    className={`font-semibold ${
+                      booking.status === "confirmed"
+                        ? "text-leaf-ink"
+                        : booking.status === "pending"
+                          ? "text-ink-soft"
+                          : "text-clay"
+                    }`}
+                  >
+                    {booking.status[0].toUpperCase() + booking.status.slice(1)}
+                  </span>
                 </p>
               </div>
               <div className="flex gap-2">
