@@ -7,6 +7,7 @@ CareConnect stores two kinds of schedule data in Supabase:
 | Parent weekly need | `parent_availability` | Monday through Sunday, Morning/Afternoon/Evening blocks |
 | Provider weekly offer | `provider_availability` | Blocks a provider lists as available |
 | Dated care request | `care_bookings` | One parent requests one provider for a calendar date and block |
+| Rebooking tracker (OKR 2) | `rebook_tracking` | Confirmed bookings per parent + provider pair; `is_rebooking` once a family books the same provider twice. Updated by a trigger on `care_bookings`. Summaries: `provider_rebook_rates`, `parent_rebook_summary` |
 
 Supabase Auth identifies the signed-in user. A signup trigger creates their `parents` row and initial weekly schedule. The frontend loads their saved schedule on login. Provider schedules belong to the user who owns the listing. Row level security limits booking reads to the requesting parent and listing owner, and limits writes to the relevant participant.
 

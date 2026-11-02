@@ -1,0 +1,33 @@
+erDiagram
+  direction LR
+  PARENTS ||--o{ CARE_BOOKINGS : "requests"
+  PROVIDERS ||--o{ CARE_BOOKINGS : "receives"
+  PARENTS ||--o{ REBOOK_TRACKING : "rebooks"
+  PROVIDERS ||--o{ REBOOK_TRACKING : "rebooked by"
+  CARE_BOOKINGS }o--|| REBOOK_TRACKING : "counted in"
+  PARENTS {
+    text id PK
+  }
+  PROVIDERS {
+    text id PK
+  }
+  CARE_BOOKINGS {
+    uuid id PK
+    text parent_id FK
+    text provider_id FK
+    date care_date
+    time_block block
+    text status "pending/confirmed/declined/cancelled"
+    timestamptz created_at
+    timestamptz updated_at
+  }
+  REBOOK_TRACKING {
+    text parent_id PK,FK
+    text provider_id PK,FK
+    int confirmed_bookings
+    int rebook_count "confirmed - 1"
+    boolean is_rebooking "booked 2+ times"
+    date first_care_date
+    date last_care_date
+    timestamptz updated_at
+  }

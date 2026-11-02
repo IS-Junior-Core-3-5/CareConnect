@@ -5,11 +5,11 @@
 
 ## App Summary
 
-Parents struggle to find child care that fits their family's specific needs because the options are scattered across provider websites, listings, and word-of-mouth recommendations. Every family weighs things differently: some need care that adapts to a constantly changing work schedule, some are priced out or surprised by extra fees, and some care most about trusting the people watching their children. The people who feel this most are working parents — especially shift workers, first-time parents, and bilingual households — who have to compare daycares, preschools, sitters, and family friends by hand. CareConnect puts price, schedule, and trust in one place. Parents filter providers by care type, price, distance, rating, verification, and language, and see each provider's daily cost (or a clear "pricing unavailable"). They save the hours they need care in a weekly calendar and the app shows exactly where a provider's availability overlaps or leaves gaps. Parents can read and write detailed ratings, save favorites and compare two or three side by side, while caregivers can publish their own listing.
+Parents struggle to find child care that fits their family's specific needs because the options are scattered across provider websites, listings, and word-of-mouth recommendations. Every family weighs things differently: some need care that adapts to a constantly changing work schedule, some are priced out or surprised by extra fees, and some care most about trusting the people watching their children. The people who feel this most are working parents — especially shift workers, first-time parents, and bilingual households — who have to compare daycares, preschools, sitters, and family friends by hand. CareConnect puts price, schedule, and trust in one place. Parents filter providers by care type, price, distance, rating, verification, and language, and see each provider's daily cost (or a clear "pricing unavailable"). They save the hours they need care in a weekly calendar and the app shows exactly where a provider's availability overlaps or leaves gaps. Parents can read and write detailed ratings, save favorites and compare two or three side by side, and request dated care blocks that providers confirm, while caregivers can publish their own listing.
 
 ## ERD
 
-Our database has 14 tables. To keep it readable, the ERD is split into three diagrams by feature. Together they show every table, every attribute, and every labeled relationship. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
+Our database has 16 tables. To keep it readable, the ERD is split into four diagrams by feature. Together they show every table, every attribute, and every labeled relationship. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
 
 **Key:** `PK` primary key · `FK` foreign key · `UK` unique · `||--o{` one-to-many (one on the bar side, zero-or-many on the crow's-foot side)
 
@@ -28,7 +28,12 @@ Reviews with four detailed scores, families who have used a provider, and saved 
 
 <a href="docs/erd-3-trust.png"><img src="docs/erd-3-trust.png" alt="ERD: reviews, provider past families, favorites" width="70%"></a>
 
-**Full diagram:** all 14 tables on one page are in [docs/erd.png](docs/erd.png) (zoom in to read). Diagram sources are the `docs/*.mmd` Mermaid files, and the SQL that builds the database is in [`supabase/setup.sql`](supabase/setup.sql).
+### 4. Bookings and rebooking
+Dated care requests that a provider confirms or declines, and the rebooking tracker built from them (OKR 2). `REBOOK_TRACKING` has no foreign key to `CARE_BOOKINGS`; a database trigger recalculates it whenever a booking changes.
+
+<a href="docs/erd-4-bookings.png"><img src="docs/erd-4-bookings.png" alt="ERD: care bookings and rebook tracking" width="100%"></a>
+
+**Full diagram:** all 16 tables on one page are in [docs/erd.png](docs/erd.png) (zoom in to read). Diagram sources are the `docs/*.mmd` Mermaid files, and the SQL that builds the database is [`supabase/setup.sql`](supabase/setup.sql) plus the files in [`supabase/migrations/`](supabase/migrations).
 
 ## Tech Stack
 
@@ -72,7 +77,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ### Option C — Use your own Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules.
+2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, oldest first (care bookings, then rebook tracking). Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
 3. In **Project Settings → API**, copy the Project URL and the publishable key into `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. In **Authentication → URL Configuration**, set **Site URL** to where the app runs (e.g. your local URL or your Lovable URL) and add it under **Redirect URLs**. For quick testing, turn off **Confirm email** under **Authentication → Sign In / Providers → User Signups**.
 5. Run `npm run dev`.
@@ -95,6 +100,41 @@ The vertical slice is the **Add to favorites** button: UI → Supabase `favorite
 7. Click the heart again to remove it, then refresh. The heart stays empty and the row is gone from the table.
 
 Other actions that also save and survive a refresh: editing your schedule (**Schedule** page), editing your profile and children (**Profile** page), writing a review on a provider's profile, and creating a provider listing on **My listing**.
+
+## OKR 2: Rebooking Tracker
+
+**Goal:** show whether families keep coming back to the same provider.
+
+**Table:** `rebook_tracking` — one row per family + provider pair.
+
+| Column | Meaning |
+| --- | --- |
+| `confirmed_bookings` | How many of this family's bookings with this provider were confirmed |
+| `rebook_count` | Times they came back after the first booking (`confirmed_bookings − 1`) |
+| `is_rebooking` | `true` once a family has booked the same provider 2+ times |
+| `first_care_date` / `last_care_date` | Their first and most recent confirmed care dates |
+
+**How it updates:** automatically. A trigger on `care_bookings` recalculates the pair whenever a provider confirms a request or a family cancels one. Pending and declined requests don't count. Nobody can edit the table by hand, and each user can only read rows for their own family or their own listing.
+
+**Summary views:**
+- `provider_rebook_rates` — per provider: families booked, families who rebooked, and the rebook rate (%).
+- `parent_rebook_summary` — per family: providers booked, providers rebooked, and total rebookings.
+
+**Check it** in Supabase → **SQL Editor**:
+
+```sql
+-- Which providers do families come back to?
+select provider_name, families_booked, families_rebooked, rebook_rate_pct
+from provider_rebook_rates
+where families_booked > 0
+order by rebook_rate_pct desc;
+
+-- Overall rebook rate across the app
+select round(100.0 * count(*) filter (where is_rebooking) / nullif(count(*), 0), 1) as overall_rebook_rate_pct
+from rebook_tracking;
+```
+
+**To generate data:** a provider account creates a listing on **My listing** with weekly hours. A parent account opens that provider's page, uses **Request a care block** two or more times, and the provider confirms each request under **Schedule → Care requests**. The pair then shows `is_rebooking = true`. The SQL is in [`supabase/migrations/20261102000000_rebook_tracking.sql`](supabase/migrations/20261102000000_rebook_tracking.sql).
 
 ## Vertical Stack Demo
 [CareConnect Vertical Stack Demo](https://youtube.com/watch?v=2-67DQt3WOw)
