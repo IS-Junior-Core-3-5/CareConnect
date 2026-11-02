@@ -95,33 +95,51 @@ Deno.serve(async (req) => {
       my_past_reviews: parent.reviews ?? [],
     };
 
-    // 3. Ask Gemini (retry + fall back to other free models if busy)
-    const body = JSON.stringify({
+    // 3. Ask Gemini. Each call is capped at 30s and the whole run at ~110s
+    //    (Supabase kills functions at 150s). Busy/slow models fall back to the next one.
+    const started = Date.now();
+    const prompt = `PARENT PROFILE:\n${JSON.stringify(profile)}\n\nPROVIDERS:\n${JSON.stringify(
+      providers.map((p: any) => ({ ...p, bio: p.bio ? String(p.bio).slice(0, 300) : p.bio })),
+    )}`;
+    const makeBody = (fastThinking: boolean) => JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
-      contents: [{
-        role: "user",
-        parts: [{
-          text: `PARENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nPROVIDERS:\n${JSON.stringify(providers, null, 2)}`,
-        }],
-      }],
-      generationConfig: { responseMimeType: "application/json", temperature: 0.4, maxOutputTokens: 8192 },
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.4,
+        maxOutputTokens: 4096,
+        ...(fastThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+      },
     });
     let aiRes: Response | null = null;
     let MODEL = "";
     let lastStatus = 0;
     outer: for (const m of [...new Set(MODELS)]) {
+      let fastThinking = true;
       for (let attempt = 0; attempt < 2; attempt++) {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-          method: "POST",
-          headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
-          body,
-        });
+        const left = 110_000 - (Date.now() - started);
+        if (left < 5_000) break outer;
+        let res: Response;
+        try {
+          res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+            method: "POST",
+            headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+            body: makeBody(fastThinking),
+            signal: AbortSignal.timeout(Math.min(30_000, left)),
+          });
+        } catch (e) {
+          console.error("Gemini timeout/network", m, String(e));
+          lastStatus = 504;
+          break; // too slow, try the next model
+        }
         if (res.ok) { aiRes = res; MODEL = m; break outer; }
         lastStatus = res.status;
-        console.error("Gemini error", m, res.status, await res.text());
-        if (res.status === 404) break;              // model name not available, try next
+        const errText = await res.text();
+        console.error("Gemini error", m, res.status, errText.slice(0, 500));
+        if (res.status === 400 && fastThinking && /thinking/i.test(errText)) { fastThinking = false; continue; }
+        if (res.status === 404) break;              // model not available, try next
         if (!RETRYABLE.has(res.status)) break outer; // e.g. bad key
-        await sleep(1500 * (attempt + 1));
+        await sleep(1500);
       }
     }
     if (!aiRes) {

@@ -98,6 +98,9 @@ export function AiRecommendations() {
           </p>
         ) : null}
 
+        {run.isPending ? (
+          <p className="mt-5 text-sm text-ink-soft">The AI is reading your profile and every provider. This can take up to a minute.</p>
+        ) : null}
         {isLoading ? <p className="mt-5 text-sm text-ink-soft">Loading…</p> : null}
         {!isLoading && recs.length === 0 && !run.isPending ? (
           <p className="mt-5 text-sm text-ink-soft">
