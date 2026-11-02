@@ -134,7 +134,60 @@ select round(100.0 * count(*) filter (where is_rebooking) / nullif(count(*), 0),
 from rebook_tracking;
 ```
 
-**To generate data:** a provider account creates a listing on **My listing** with weekly hours. A parent account opens that provider's page, uses **Request a care block** two or more times, and the provider confirms each request under **Schedule → Care requests**. The pair then shows `is_rebooking = true`. The SQL is in [`supabase/migrations/20261102000000_rebook_tracking.sql`](supabase/migrations/20261102000000_rebook_tracking.sql).
+### Verifying OKR 2
+
+A rebook counts when the **same family** books the **same provider** on **2 or more dates** and the provider **confirms** each booking.
+
+**Option 1: through the app (two accounts)**
+
+1. **Provider account:** sign up, go to **My listing**, keep **Show my schedule** checked, select some blocks (e.g. Mon–Fri mornings), and click **Publish listing**. Sign out.
+2. **Parent account:** sign up or log in as a different user. Open the provider's page from **Trusted Providers**. Under **Request a care block**, send two requests for two different future dates in a block the provider offers (e.g. two Mondays, Morning). Sign out.
+3. **Provider account:** log in, go to **Schedule → Care requests**, and click **Confirm** on both.
+4. In Supabase → **SQL Editor**, run:
+
+   ```sql
+   select p.name as parent, pr.name as provider,
+          r.confirmed_bookings, r.rebook_count, r.is_rebooking
+   from rebook_tracking r
+   join parents p on p.id = r.parent_id
+   join providers pr on pr.id = r.provider_id;
+   ```
+
+   Expected: `confirmed_bookings = 2`, `rebook_count = 1`, `is_rebooking = true`.
+5. Optional: as the parent, **Cancel** one booking and run the query again. It drops to `confirmed_bookings = 1`, `is_rebooking = false`.
+
+**Option 2: database-only test (nothing is saved)**
+
+Run this in Supabase → **SQL Editor**. It creates a test provider and parent, books the same provider three times, confirms, shows the result, then rolls everything back.
+
+```sql
+begin;
+insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
+ ('aaaaaaaa-0000-0000-0000-0000000000a1','00000000-0000-0000-0000-000000000000','authenticated','authenticated','okr-provider@example.com','{"name":"OKR Provider"}', now(), now()),
+ ('aaaaaaaa-0000-0000-0000-0000000000a2','00000000-0000-0000-0000-000000000000','authenticated','authenticated','okr-parent@example.com','{"name":"OKR Parent"}', now(), now());
+update providers set owner_id = 'aaaaaaaa-0000-0000-0000-0000000000a1' where id = 'maya-okafor';
+
+-- parent books Maya for the next 3 Monday mornings
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-0000000000a2","role":"authenticated"}', true);
+insert into care_bookings (parent_id, provider_id, care_date, block)
+select my_parent_id(), 'maya-okafor', d, 'Morning'
+from (select (current_date + ((8 - extract(isodow from current_date)::int) % 7) + 7*g)::date d
+      from generate_series(0, 2) g) x;
+
+-- provider confirms them
+select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-0000-0000-0000-0000000000a1","role":"authenticated"}', true);
+update care_bookings set status = 'confirmed' where provider_id = 'maya-okafor' and status = 'pending';
+
+select r.confirmed_bookings, r.rebook_count, r.is_rebooking,
+       (select rebook_rate_pct from provider_rebook_rates where provider_id = 'maya-okafor') as maya_rebook_rate
+from rebook_tracking r;
+rollback;
+```
+
+Expected: `confirmed_bookings = 3`, `rebook_count = 2`, `is_rebooking = true`, `maya_rebook_rate = 100.0`.
+
+The SQL that creates the tracker is in [`supabase/migrations/20261102000000_rebook_tracking.sql`](supabase/migrations/20261102000000_rebook_tracking.sql).
 
 ## Vertical Stack Demo
 [CareConnect Vertical Stack Demo](https://youtube.com/watch?v=2-67DQt3WOw)
