@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { AiRecommendations } from "@/components/AiRecommendations";
 import { AppShell } from "@/components/NavBar";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
 import { overlapCount } from "@/lib/model";
@@ -108,6 +109,8 @@ function HomePage() {
           </div>
         </div>
       </section>
+
+      <AiRecommendations />
 
       {best ? (
         <section className="py-6">
