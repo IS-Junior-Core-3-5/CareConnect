@@ -7,9 +7,9 @@ import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
 /**
- * AI recommendations: Claude (via the recommend-providers Edge Function) analyzes the
+ * AI recommendations: Google Gemini (via the recommend-providers Edge Function) analyzes the
  * parent's profile against every provider. Each pick has preset questions; the answers
- * were written by Claude in the same run, so clicking one just reveals it.
+ * were written by the AI in the same run, so clicking one just reveals it.
  */
 
 type Details = { why?: string; tradeoffs?: string; schedule?: string; cost?: string; trust?: string };
@@ -79,7 +79,7 @@ export function AiRecommendations() {
             <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">AI recommendations</span>
             <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Best matches for your family</h2>
             <p className="mt-1 max-w-[52ch] text-sm text-ink-soft text-pretty">
-              Claude compares your schedule, kids' ages, languages, neighborhood and reviews against every provider.
+              AI compares your schedule, kids' ages, languages, neighborhood and reviews against every provider.
             </p>
           </div>
           <button

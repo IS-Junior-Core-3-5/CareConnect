@@ -1,12 +1,12 @@
 // Supabase Edge Function: recommend-providers
-// Sends the logged-in parent's profile + facts about every provider to Claude.
-// Claude picks the top 3 and writes the answers behind each "Why?" style button.
+// Sends the logged-in parent's profile + facts about every provider to Google Gemini.
+// Gemini picks the top 3 and writes the answers behind each "Why?" style button.
 // Results are cached in public.ai_recommendations.
 //
-// Secrets: ANTHROPIC_API_KEY (required), ANTHROPIC_MODEL (optional)
+// Secrets: GEMINI_API_KEY (required, free from aistudio.google.com), GEMINI_MODEL (optional)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") ?? "claude-sonnet-5-5";
+const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-flash-latest";
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DETAIL_KEYS = ["why", "tradeoffs", "schedule", "cost", "trust"] as const;
 
@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-    if (!apiKey) return json({ error: "AI is not configured yet (missing ANTHROPIC_API_KEY)." }, 500);
+    const apiKey = Deno.env.get("GEMINI_API_KEY");
+    if (!apiKey) return json({ error: "AI is not configured yet (missing GEMINI_API_KEY)." }, 500);
 
     // Runs as the logged-in user, so RLS still applies
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
@@ -87,26 +87,34 @@ Deno.serve(async (req) => {
       my_past_reviews: parent.reviews ?? [],
     };
 
-    // 3. Ask Claude
-    const aiRes = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 3000,
-        system: SYSTEM,
-        messages: [{
-          role: "user",
-          content: `PARENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nPROVIDERS:\n${JSON.stringify(providers, null, 2)}`,
-        }],
-      }),
-    });
+    // 3. Ask Gemini
+    const aiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+      {
+        method: "POST",
+        headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: SYSTEM }] },
+          contents: [{
+            role: "user",
+            parts: [{
+              text: `PARENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nPROVIDERS:\n${JSON.stringify(providers, null, 2)}`,
+            }],
+          }],
+          generationConfig: { responseMimeType: "application/json", temperature: 0.4, maxOutputTokens: 8192 },
+        }),
+      },
+    );
     if (!aiRes.ok) {
-      console.error("Anthropic error", aiRes.status, await aiRes.text());
+      console.error("Gemini error", aiRes.status, await aiRes.text());
+      if (aiRes.status === 429) return json({ error: "The free AI limit was hit. Wait a minute and try again." }, 429);
       return json({ error: `AI request failed (${aiRes.status}).` }, 502);
     }
     const ai = await aiRes.json();
-    const text: string = ai.content?.find((b: any) => b.type === "text")?.text ?? "";
+    const text: string = (ai.candidates?.[0]?.content?.parts ?? [])
+      .filter((p: any) => !p.thought)
+      .map((p: any) => p.text ?? "")
+      .join("");
     const match = text.match(/\{[\s\S]*\}/);
     if (!match) return json({ error: "AI returned an unreadable answer. Try again." }, 502);
     const parsed = JSON.parse(match[0]);
