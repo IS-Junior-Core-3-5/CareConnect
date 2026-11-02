@@ -6,7 +6,15 @@
 // Secrets: GEMINI_API_KEY (required, free from aistudio.google.com), GEMINI_MODEL (optional)
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-flash-latest";
+// Tried in order; Google's free models are sometimes overloaded (503), so fall back.
+const MODELS = [
+  ...(Deno.env.get("GEMINI_MODEL") ? [Deno.env.get("GEMINI_MODEL")!] : []),
+  "gemini-flash-latest",
+  "gemini-flash-lite-latest",
+  "gemini-2.5-flash",
+];
+const RETRYABLE = new Set([429, 500, 503, 504]);
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DETAIL_KEYS = ["why", "tradeoffs", "schedule", "cost", "trust"] as const;
 
@@ -87,28 +95,39 @@ Deno.serve(async (req) => {
       my_past_reviews: parent.reviews ?? [],
     };
 
-    // 3. Ask Gemini
-    const aiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-      {
-        method: "POST",
-        headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: SYSTEM }] },
-          contents: [{
-            role: "user",
-            parts: [{
-              text: `PARENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nPROVIDERS:\n${JSON.stringify(providers, null, 2)}`,
-            }],
-          }],
-          generationConfig: { responseMimeType: "application/json", temperature: 0.4, maxOutputTokens: 8192 },
-        }),
-      },
-    );
-    if (!aiRes.ok) {
-      console.error("Gemini error", aiRes.status, await aiRes.text());
-      if (aiRes.status === 429) return json({ error: "The free AI limit was hit. Wait a minute and try again." }, 429);
-      return json({ error: `AI request failed (${aiRes.status}).` }, 502);
+    // 3. Ask Gemini (retry + fall back to other free models if busy)
+    const body = JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEM }] },
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `PARENT PROFILE:\n${JSON.stringify(profile, null, 2)}\n\nPROVIDERS:\n${JSON.stringify(providers, null, 2)}`,
+        }],
+      }],
+      generationConfig: { responseMimeType: "application/json", temperature: 0.4, maxOutputTokens: 8192 },
+    });
+    let aiRes: Response | null = null;
+    let MODEL = "";
+    let lastStatus = 0;
+    outer: for (const m of [...new Set(MODELS)]) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+          method: "POST",
+          headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+          body,
+        });
+        if (res.ok) { aiRes = res; MODEL = m; break outer; }
+        lastStatus = res.status;
+        console.error("Gemini error", m, res.status, await res.text());
+        if (res.status === 404) break;              // model name not available, try next
+        if (!RETRYABLE.has(res.status)) break outer; // e.g. bad key
+        await sleep(1500 * (attempt + 1));
+      }
+    }
+    if (!aiRes) {
+      if (RETRYABLE.has(lastStatus)) return json({ error: "Google's free AI is busy right now. Try again in a minute." }, 503);
+      if (lastStatus === 400 || lastStatus === 403) return json({ error: "The Gemini API key was rejected. Check GEMINI_API_KEY in Supabase." }, 502);
+      return json({ error: `AI request failed (${lastStatus}).` }, 502);
     }
     const ai = await aiRes.json();
     const text: string = (ai.candidates?.[0]?.content?.parts ?? [])
