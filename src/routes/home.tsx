@@ -73,19 +73,6 @@ function HomePage() {
             </button>
           </form>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="text-xs font-medium text-ink-faint">Popular:</span>
-            {["Evening care", "Preschool", "Pricing"].map((t) => (
-              <Link
-                key={t}
-                to="/search"
-                search={{ q: t }}
-                className="chip rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-medium text-ink-soft hover:border-primary hover:text-primary-ink"
-              >
-                {t}
-              </Link>
-            ))}
-          </div>
         </div>
 
         <div className="min-w-0 lg:col-span-5">
