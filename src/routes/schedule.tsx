@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { DayHeader, GRID_COLS, RowLabel, ScheduleGrid } from "@/components/ScheduleGrid";
-import { CareBookings } from "@/components/CareBookings";
 import { BLOCK_HOURS, BLOCKS, DAYS, type Schedule } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
@@ -64,7 +63,6 @@ function SchedulePage() {
           </div>
         </div>
 
-        <CareBookings />
 
         <div className="mt-6 rounded-3xl bg-surface p-4 ring-1 ring-line sm:rounded-[28px] sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-3">
