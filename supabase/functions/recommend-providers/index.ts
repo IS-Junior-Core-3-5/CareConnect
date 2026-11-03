@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- untyped Supabase and AI JSON payloads */
 // Supabase Edge Function: recommend-providers
 // Sends the logged-in parent's profile + facts about every provider to Google Gemini.
 // Gemini picks the top 3 and writes the answers behind each "Why?" style button.
@@ -24,7 +25,10 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const json = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
 
 const SYSTEM = `You are CareConnect's childcare matching engine. You are not a chatbot.
 You get one parent's profile and facts about every childcare provider.
@@ -63,21 +67,33 @@ Deno.serve(async (req) => {
     if (!apiKey) return json({ error: "AI is not configured yet (missing GEMINI_API_KEY)." }, 500);
 
     // Runs as the logged-in user, so RLS still applies
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
-    });
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } },
+      },
+    );
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return json({ error: "Please log in first." }, 401);
 
-    // 1. Parent profile (children's names are not sent, only ages)
+    // 1. Parent profile (children's names are not sent, only ages).
+    //    Resolve it through my_parent_id() so this function never reads the
+    //    private auth_user_id column.
+    const { data: parentId, error: idErr } = await supabase.rpc("my_parent_id");
+    if (idErr || !parentId) return json({ error: "Parent profile not found." }, 404);
     const { data: parent, error: pErr } = await supabase
       .from("parents")
-      .select(`id, neighborhood, blurb,
+      .select(
+        `id, neighborhood, blurb,
                children(age),
                parent_languages(languages(name)),
                parent_availability(day_of_week, block),
-               reviews(provider_id, body, score_experience, score_values, score_communication, score_safety)`)
-      .eq("auth_user_id", user.id)
+               reviews(provider_id, body, score_experience, score_values, score_communication, score_safety)`,
+      )
+      .eq("id", parentId)
       .single();
     if (pErr || !parent) return json({ error: "Parent profile not found." }, 404);
 
@@ -91,7 +107,9 @@ Deno.serve(async (req) => {
       about: parent.blurb,
       children_ages: (parent.children ?? []).map((c: { age: number | null }) => c.age),
       languages: (parent.parent_languages ?? []).map((l: any) => l.languages?.name).filter(Boolean),
-      needs_care: (parent.parent_availability ?? []).map((a: any) => `${DAYS[a.day_of_week]} ${a.block}`),
+      needs_care: (parent.parent_availability ?? []).map(
+        (a: any) => `${DAYS[a.day_of_week]} ${a.block}`,
+      ),
       my_past_reviews: parent.reviews ?? [],
     };
 
@@ -101,16 +119,17 @@ Deno.serve(async (req) => {
     const prompt = `PARENT PROFILE:\n${JSON.stringify(profile)}\n\nPROVIDERS:\n${JSON.stringify(
       providers.map((p: any) => ({ ...p, bio: p.bio ? String(p.bio).slice(0, 300) : p.bio })),
     )}`;
-    const makeBody = (fastThinking: boolean) => JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM }] },
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-        maxOutputTokens: 4096,
-        ...(fastThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-      },
-    });
+    const makeBody = (fastThinking: boolean) =>
+      JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM }] },
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          temperature: 0.4,
+          maxOutputTokens: 4096,
+          ...(fastThinking ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        },
+      });
     let aiRes: Response | null = null;
     let MODEL = "";
     let lastStatus = 0;
@@ -121,30 +140,45 @@ Deno.serve(async (req) => {
         if (left < 5_000) break outer;
         let res: Response;
         try {
-          res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
-            method: "POST",
-            headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
-            body: makeBody(fastThinking),
-            signal: AbortSignal.timeout(Math.min(30_000, left)),
-          });
+          res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,
+            {
+              method: "POST",
+              headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
+              body: makeBody(fastThinking),
+              signal: AbortSignal.timeout(Math.min(30_000, left)),
+            },
+          );
         } catch (e) {
           console.error("Gemini timeout/network", m, String(e));
           lastStatus = 504;
           break; // too slow, try the next model
         }
-        if (res.ok) { aiRes = res; MODEL = m; break outer; }
+        if (res.ok) {
+          aiRes = res;
+          MODEL = m;
+          break outer;
+        }
         lastStatus = res.status;
         const errText = await res.text();
         console.error("Gemini error", m, res.status, errText.slice(0, 500));
-        if (res.status === 400 && fastThinking && /thinking/i.test(errText)) { fastThinking = false; continue; }
-        if (res.status === 404) break;              // model not available, try next
+        if (res.status === 400 && fastThinking && /thinking/i.test(errText)) {
+          fastThinking = false;
+          continue;
+        }
+        if (res.status === 404) break; // model not available, try next
         if (!RETRYABLE.has(res.status)) break outer; // e.g. bad key
         await sleep(1500);
       }
     }
     if (!aiRes) {
-      if (RETRYABLE.has(lastStatus)) return json({ error: "Google's free AI is busy right now. Try again in a minute." }, 503);
-      if (lastStatus === 400 || lastStatus === 403) return json({ error: "The Gemini API key was rejected. Check GEMINI_API_KEY in Supabase." }, 502);
+      if (RETRYABLE.has(lastStatus))
+        return json({ error: "Google's free AI is busy right now. Try again in a minute." }, 503);
+      if (lastStatus === 400 || lastStatus === 403)
+        return json(
+          { error: "The Gemini API key was rejected. Check GEMINI_API_KEY in Supabase." },
+          502,
+        );
       return json({ error: `AI request failed (${lastStatus}).` }, 502);
     }
     const ai = await aiRes.json();
@@ -158,11 +192,17 @@ Deno.serve(async (req) => {
 
     // 4. Keep only real providers, top 3, clean fields
     const validIds = new Set(providers.map((p: any) => p.provider_id));
-    const clip = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
+    const clip = (v: unknown, n: number) =>
+      String(v ?? "")
+        .trim()
+        .slice(0, n);
     const summary = clip(parsed.summary, 400);
     const seen = new Set<string>();
     const rows = (parsed.recommendations ?? [])
-      .filter((r: any) => validIds.has(r.provider_id) && !seen.has(r.provider_id) && seen.add(r.provider_id))
+      .filter(
+        (r: any) =>
+          validIds.has(r.provider_id) && !seen.has(r.provider_id) && seen.add(r.provider_id),
+      )
       .slice(0, 3)
       .map((r: any, i: number) => ({
         parent_id: parent.id,
@@ -176,7 +216,10 @@ Deno.serve(async (req) => {
       }));
 
     // 5. Replace the cached set
-    const { error: dErr } = await supabase.from("ai_recommendations").delete().eq("parent_id", parent.id);
+    const { error: dErr } = await supabase
+      .from("ai_recommendations")
+      .delete()
+      .eq("parent_id", parent.id);
     if (dErr) return json({ error: dErr.message }, 500);
     if (rows.length) {
       const { error: iErr } = await supabase.from("ai_recommendations").insert(rows);

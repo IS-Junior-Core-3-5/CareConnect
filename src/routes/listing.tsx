@@ -69,7 +69,9 @@ function ListingForm({ existing }: { existing: Provider | null }) {
   const [rate, setRate] = useState(existing?.dailyRate?.toString() ?? "");
   const [rateMax, setRateMax] = useState(existing?.dailyRateMax?.toString() ?? "");
   const [pricingNotes, setPricingNotes] = useState(existing?.pricingNotes.join("\n") ?? "");
-  const [neighborhood, setNeighborhood] = useState(existing?.neighborhood ?? me?.neighborhood ?? "");
+  const [neighborhood, setNeighborhood] = useState(
+    existing?.neighborhood ?? me?.neighborhood ?? "",
+  );
   const [distance, setDistance] = useState(existing?.distance?.toString() ?? "");
   const [languages, setLanguages] = useState<string[]>(existing?.languages ?? ["English"]);
   const [otherLang, setOtherLang] = useState("");
@@ -84,15 +86,19 @@ function ListingForm({ existing }: { existing: Provider | null }) {
 
   useEffect(() => setConfirmDelete(false), [existing]);
 
-  const langOptions = Array.from(new Set([...allLanguages.map((l) => l.name), ...languages])).sort();
+  const langOptions = Array.from(
+    new Set([...allLanguages.map((l) => l.name), ...languages]),
+  ).sort();
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!userId) return;
     const dailyRate = rate === "" ? null : Number(rate);
     const dailyRateMax = rateMax === "" ? null : Number(rateMax);
-    if (dailyRate !== null && dailyRateMax !== null && dailyRateMax < dailyRate)
-      { toast.error("The highest rate can't be lower than the starting rate."); return; }
+    if (dailyRate !== null && dailyRateMax !== null && dailyRateMax < dailyRate) {
+      toast.error("The highest rate can't be lower than the starting rate.");
+      return;
+    }
     setBusy(true);
     try {
       const id = existing?.id ?? slugify(name);
@@ -113,18 +119,43 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         : await supabase.from("providers").insert({ ...row, id, owner_id: userId });
       if (res.error) throw res.error;
 
-      // Replace the child rows with what's in the form.
-      for (const t of ["provider_pricing_notes", "provider_languages", "provider_availability"]) {
-        const d = await supabase.from(t).delete().eq("provider_id", id);
-        if (d.error) throw d.error;
-      }
+      // Child rows are updated by diff instead of delete-then-insert, so a
+      // failed request can never leave the listing half-empty.
+
+      // Pricing notes: update matching rows in place, add new ones, drop extras.
+      const { data: noteRows, error: noteReadError } = await supabase
+        .from("provider_pricing_notes")
+        .select("id, note, sort_order")
+        .eq("provider_id", id)
+        .order("sort_order");
+      if (noteReadError) throw noteReadError;
+      const existingNotes = (noteRows ?? []) as { id: number; note: string; sort_order: number }[];
       const notes = lines(pricingNotes);
-      if (notes.length) {
+      for (let i = 0; i < Math.min(existingNotes.length, notes.length); i++) {
+        if (existingNotes[i].note === notes[i] && existingNotes[i].sort_order === i) continue;
         const r = await supabase
           .from("provider_pricing_notes")
-          .insert(notes.map((note, i) => ({ provider_id: id, note, sort_order: i })));
+          .update({ note: notes[i], sort_order: i })
+          .eq("id", existingNotes[i].id);
         if (r.error) throw r.error;
       }
+      const addedNotes = notes.slice(existingNotes.length);
+      if (addedNotes.length) {
+        const r = await supabase.from("provider_pricing_notes").insert(
+          addedNotes.map((note, i) => ({
+            provider_id: id,
+            note,
+            sort_order: existingNotes.length + i,
+          })),
+        );
+        if (r.error) throw r.error;
+      }
+      const removedNotes = existingNotes.slice(notes.length).map((n) => n.id);
+      if (removedNotes.length) {
+        const r = await supabase.from("provider_pricing_notes").delete().in("id", removedNotes);
+        if (r.error) throw r.error;
+      }
+
       // Credentials are verified by admins, and this form is not allowed to set
       // that flag. Update them in place (add new names, remove dropped ones) so
       // editing a listing never resets existing verification.
@@ -135,12 +166,6 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         .eq("provider_id", id);
       if (credReadError) throw credReadError;
       const existingCreds = (credRows ?? []) as { id: number; name: string }[];
-      const wantedCreds = new Set(lic);
-      const removedCreds = existingCreds.filter((c) => !wantedCreds.has(c.name)).map((c) => c.id);
-      if (removedCreds.length) {
-        const r = await supabase.from("provider_credentials").delete().in("id", removedCreds);
-        if (r.error) throw r.error;
-      }
       const existingCredNames = new Set(existingCreds.map((c) => c.name));
       const addedCreds = lic.filter((name) => !existingCredNames.has(name));
       if (addedCreds.length) {
@@ -149,27 +174,87 @@ function ListingForm({ existing }: { existing: Provider | null }) {
           .insert(addedCreds.map((name) => ({ provider_id: id, name })));
         if (r.error) throw r.error;
       }
+      const wantedCreds = new Set(lic);
+      const removedCreds = existingCreds.filter((c) => !wantedCreds.has(c.name)).map((c) => c.id);
+      if (removedCreds.length) {
+        const r = await supabase.from("provider_credentials").delete().in("id", removedCreds);
+        if (r.error) throw r.error;
+      }
+
+      // Languages: add first, then remove dropped ones.
       if (languages.length) {
         const missing = languages.filter((l) => !allLanguages.some((x) => x.name === l));
         if (missing.length) {
-          const r = await supabase
-            .from("languages")
-            .upsert(missing.map((n) => ({ name: n })), { onConflict: "name", ignoreDuplicates: true });
+          const r = await supabase.from("languages").upsert(
+            missing.map((n) => ({ name: n })),
+            { onConflict: "name", ignoreDuplicates: true },
+          );
           if (r.error) throw r.error;
         }
-        const { data: langRows, error } = await supabase.from("languages").select("id, name").in("name", languages);
-        if (error) throw error;
-        const r = await supabase
+        const { data: langRows, error: langError } = await supabase
+          .from("languages")
+          .select("id, name")
+          .in("name", languages);
+        if (langError) throw langError;
+        const wantedLanguageIds = new Set((langRows ?? []).map((l) => l.id));
+        const { data: currentLanguages, error: currentLanguageError } = await supabase
           .from("provider_languages")
-          .insert((langRows ?? []).map((l) => ({ provider_id: id, language_id: l.id })));
+          .select("language_id")
+          .eq("provider_id", id);
+        if (currentLanguageError) throw currentLanguageError;
+        const currentLanguageIds = new Set((currentLanguages ?? []).map((l) => l.language_id));
+        const addedLanguages = [...wantedLanguageIds].filter((lid) => !currentLanguageIds.has(lid));
+        if (addedLanguages.length) {
+          const r = await supabase
+            .from("provider_languages")
+            .insert(addedLanguages.map((language_id) => ({ provider_id: id, language_id })));
+          if (r.error) throw r.error;
+        }
+        const removedLanguages = [...currentLanguageIds].filter(
+          (lid) => !wantedLanguageIds.has(lid),
+        );
+        if (removedLanguages.length) {
+          const r = await supabase
+            .from("provider_languages")
+            .delete()
+            .eq("provider_id", id)
+            .in("language_id", removedLanguages);
+          if (r.error) throw r.error;
+        }
+      } else {
+        // No languages selected: clear any existing rows.
+        const r = await supabase.from("provider_languages").delete().eq("provider_id", id);
         if (r.error) throw r.error;
       }
-      if (hasSchedule) {
-        const rows = scheduleToRows(schedule).map((r) => ({ provider_id: id, ...r }));
-        if (rows.length) {
-          const r = await supabase.from("provider_availability").insert(rows);
-          if (r.error) throw r.error;
-        }
+
+      // Availability: add first, then remove dropped blocks.
+      const desiredBlocks = hasSchedule ? scheduleToRows(schedule) : [];
+      const blockKey = (d: number, b: string) => `${d}:${b}`;
+      const desiredKeys = new Set(desiredBlocks.map((r) => blockKey(r.day_of_week, r.block)));
+      const { data: currentAvailability, error: availabilityError } = await supabase
+        .from("provider_availability")
+        .select("day_of_week, block")
+        .eq("provider_id", id);
+      if (availabilityError) throw availabilityError;
+      const currentKeys = new Set(
+        (currentAvailability ?? []).map((r) => blockKey(r.day_of_week, r.block)),
+      );
+      const addedBlocks = desiredBlocks.filter(
+        (r) => !currentKeys.has(blockKey(r.day_of_week, r.block)),
+      );
+      if (addedBlocks.length) {
+        const r = await supabase
+          .from("provider_availability")
+          .insert(addedBlocks.map((b) => ({ provider_id: id, ...b })));
+        if (r.error) throw r.error;
+      }
+      for (const b of currentAvailability ?? []) {
+        if (desiredKeys.has(blockKey(b.day_of_week, b.block))) continue;
+        const r = await supabase
+          .from("provider_availability")
+          .delete()
+          .match({ provider_id: id, day_of_week: b.day_of_week, block: b.block });
+        if (r.error) throw r.error;
       }
       await Promise.all([
         qc.invalidateQueries({ queryKey: QK.providers }),
@@ -190,7 +275,10 @@ function ListingForm({ existing }: { existing: Provider | null }) {
     setBusy(true);
     const { error } = await supabase.from("providers").delete().eq("id", existing.id);
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Listing deleted");
     await qc.invalidateQueries({ queryKey: QK.providers });
     navigate({ to: "/providers" });
@@ -198,17 +286,23 @@ function ListingForm({ existing }: { existing: Provider | null }) {
 
   return (
     <section className="py-8">
-      <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Provider listing</span>
+      <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">
+        Provider listing
+      </span>
       <h1 className="mt-1 font-display text-3xl sm:text-4xl font-bold tracking-tight">
         {existing ? "Edit your listing" : "Offer care on CareConnect"}
       </h1>
       <p className="mt-1 max-w-[60ch] text-sm text-ink-soft">
-        Parents search and filter by these details. Leave the price empty if you'd rather not list one — it will show as
-        "Pricing unavailable".
+        Parents search and filter by these details. Leave the price empty if you'd rather not list
+        one — it will show as "Pricing unavailable".
         {existing ? (
           <>
             {" "}
-            <Link to="/providers/$providerId" params={{ providerId: existing.id }} className="font-semibold text-primary-ink">
+            <Link
+              to="/providers/$providerId"
+              params={{ providerId: existing.id }}
+              className="font-semibold text-primary-ink"
+            >
               View your public profile
             </Link>
           </>
@@ -222,7 +316,13 @@ function ListingForm({ existing }: { existing: Provider | null }) {
             <label className={label} htmlFor="l-name">
               Listing name
             </label>
-            <input id="l-name" required value={name} onChange={(e) => setName(e.target.value)} className={field} />
+            <input
+              id="l-name"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={field}
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
@@ -244,7 +344,12 @@ function ListingForm({ existing }: { existing: Provider | null }) {
               <label className={label} htmlFor="l-hood">
                 Neighborhood
               </label>
-              <input id="l-hood" value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)} className={field} />
+              <input
+                id="l-hood"
+                value={neighborhood}
+                onChange={(e) => setNeighborhood(e.target.value)}
+                className={field}
+              />
             </div>
           </div>
           <div>
@@ -263,7 +368,13 @@ function ListingForm({ existing }: { existing: Provider | null }) {
             <label className={label} htmlFor="l-bio">
               About your care
             </label>
-            <textarea id="l-bio" rows={5} value={bio} onChange={(e) => setBio(e.target.value)} className={field} />
+            <textarea
+              id="l-bio"
+              rows={5}
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className={field}
+            />
           </div>
           <div>
             <span className={label}>Languages</span>
@@ -274,7 +385,9 @@ function ListingForm({ existing }: { existing: Provider | null }) {
                   <button
                     key={l}
                     type="button"
-                    onClick={() => setLanguages((prev) => (on ? prev.filter((x) => x !== l) : [...prev, l]))}
+                    onClick={() =>
+                      setLanguages((prev) => (on ? prev.filter((x) => x !== l) : [...prev, l]))
+                    }
                     className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
                       on ? "bg-primary-soft text-primary-ink" : "border border-line text-ink-soft"
                     }`}
@@ -331,19 +444,43 @@ function ListingForm({ existing }: { existing: Provider | null }) {
                 <label className={label} htmlFor="l-rate">
                   Daily rate ($)
                 </label>
-                <input id="l-rate" type="number" min={0} step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className={field} />
+                <input
+                  id="l-rate"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                  className={field}
+                />
               </div>
               <div>
                 <label className={label} htmlFor="l-rmax">
                   Up to ($)
                 </label>
-                <input id="l-rmax" type="number" min={0} step="0.01" value={rateMax} onChange={(e) => setRateMax(e.target.value)} className={field} />
+                <input
+                  id="l-rmax"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={rateMax}
+                  onChange={(e) => setRateMax(e.target.value)}
+                  className={field}
+                />
               </div>
               <div>
                 <label className={label} htmlFor="l-dist">
                   Distance (mi)
                 </label>
-                <input id="l-dist" type="number" min={0} step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} className={field} />
+                <input
+                  id="l-dist"
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={distance}
+                  onChange={(e) => setDistance(e.target.value)}
+                  className={field}
+                />
               </div>
             </div>
             <div>
@@ -365,7 +502,11 @@ function ListingForm({ existing }: { existing: Provider | null }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-2xl font-bold">Availability</h2>
               <label className="flex items-center gap-2 text-sm font-medium">
-                <input type="checkbox" checked={hasSchedule} onChange={(e) => setHasSchedule(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={hasSchedule}
+                  onChange={(e) => setHasSchedule(e.target.checked)}
+                />
                 Show my schedule
               </label>
             </div>
@@ -375,7 +516,11 @@ function ListingForm({ existing }: { existing: Provider | null }) {
                   schedule={schedule}
                   editable
                   onToggle={(d, t) =>
-                    setSchedule((prev) => prev.map((row, di) => (di === d ? row.map((v, ti) => (ti === t ? !v : v)) : row)))
+                    setSchedule((prev) =>
+                      prev.map((row, di) =>
+                        di === d ? row.map((v, ti) => (ti === t ? !v : v)) : row,
+                      ),
+                    )
                   }
                 />
                 <div>
@@ -409,15 +554,28 @@ function ListingForm({ existing }: { existing: Provider | null }) {
               confirmDelete ? (
                 <span className="flex items-center gap-2 text-sm">
                   Delete this listing and its reviews?
-                  <button type="button" disabled={busy} onClick={remove} className="font-semibold text-clay">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={remove}
+                    className="font-semibold text-clay"
+                  >
                     Yes, delete
                   </button>
-                  <button type="button" onClick={() => setConfirmDelete(false)} className="font-semibold text-ink-soft">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="font-semibold text-ink-soft"
+                  >
                     Cancel
                   </button>
                 </span>
               ) : (
-                <button type="button" onClick={() => setConfirmDelete(true)} className="ml-auto text-sm font-semibold text-clay">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="ml-auto text-sm font-semibold text-clay"
+                >
                   Delete listing
                 </button>
               )

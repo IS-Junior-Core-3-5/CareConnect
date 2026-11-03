@@ -484,7 +484,7 @@ create trigger on_auth_user_created after insert on auth.users
 -- ---------------------------------------------------------------------
 -- Parents: nobody reads emails through the API; users edit only these fields
 revoke select, insert, update on parents from authenticated;
-grant  select (id, auth_user_id, name, neighborhood, blurb, created_at) on parents to authenticated;
+grant  select (id, name, neighborhood, blurb, created_at) on parents to authenticated;
 grant  update (name, neighborhood, blurb) on parents to authenticated;
 
 -- Providers: owners can't mark themselves verified or change the owner
