@@ -9,7 +9,7 @@ Parents struggle to find child care that fits their family's specific needs beca
 
 ## ERD
 
-Our database has 16 tables. To keep it readable, the ERD is split into four diagrams by feature. Together they show every table, every attribute, and every labeled relationship. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
+The product data model has 16 tables. To keep it readable, the ERD is split into four diagrams by feature. Together they show every product table, every attribute, and every labeled relationship. Login totals are tracked separately in `user_login_counts`. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
 
 **Key:** `PK` primary key · `FK` foreign key · `UK` unique · `||--o{` one-to-many (one on the bar side, zero-or-many on the crow's-foot side)
 
@@ -33,7 +33,7 @@ Dated care requests that a provider confirms or declines, and the rebooking trac
 
 <a href="docs/erd-4-bookings.png"><img src="docs/erd-4-bookings.png" alt="ERD: care bookings and rebook tracking" width="100%"></a>
 
-**Full diagram:** all 16 tables on one page are in [docs/erd.png](docs/erd.png) (zoom in to read). Diagram sources are the `docs/*.mmd` Mermaid files, and the SQL that builds the database is [`supabase/setup.sql`](supabase/setup.sql) plus the files in [`supabase/migrations/`](supabase/migrations).
+**Full diagram:** all 16 product tables on one page are in [docs/erd.png](docs/erd.png) (zoom in to read). Diagram sources are the `docs/*.mmd` Mermaid files, and the SQL that builds the database is [`supabase/setup.sql`](supabase/setup.sql) plus the files in [`supabase/migrations/`](supabase/migrations).
 
 ## Tech Stack
 
@@ -77,7 +77,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ### Option C — Use your own Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, oldest first (care bookings, then rebook tracking). Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
+2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, and per-user login counts. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
 3. In **Project Settings → API**, copy the Project URL and the publishable key into `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. In **Authentication → URL Configuration**, set **Site URL** to where the app runs (e.g. your local URL or your Lovable URL) and add it under **Redirect URLs**. For quick testing, turn off **Confirm email** under **Authentication → Sign In / Providers → User Signups**.
 5. Run `npm run dev`.
