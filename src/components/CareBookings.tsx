@@ -13,6 +13,7 @@ type Booking = {
   care_date: string;
   block: Block;
   status: "pending" | "confirmed" | "declined" | "cancelled";
+  parents?: { name: string | null } | { name: string | null }[] | null;
 };
 
 const bookingKey = (userId: string | null) => ["care_bookings", userId] as const;
@@ -48,7 +49,10 @@ export function RequestCare({ provider }: { provider: Provider }) {
 
   const localToday = new Date().toLocaleDateString("en-CA");
   return (
-    <form onSubmit={request} className="mt-6 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
+    <form
+      onSubmit={request}
+      className="mt-6 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
+    >
       <h2 className="font-display text-2xl font-bold">Request a care block</h2>
       <p className="mt-1 text-sm text-ink-soft">
         The provider will confirm or decline your request.
@@ -99,10 +103,10 @@ export function CareBookings() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("care_bookings")
-        .select("id, parent_id, provider_id, care_date, block, status")
+        .select("id, parent_id, provider_id, care_date, block, status, parents(name)")
         .order("care_date", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as Booking[];
+      return (data ?? []) as unknown as Booking[];
     },
   });
 
@@ -141,7 +145,13 @@ export function CareBookings() {
               className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background p-4 ring-1 ring-line"
             >
               <div className="min-w-0">
-                <p className="font-semibold">{provider?.name ?? booking.provider_id}</p>
+                <p className="font-semibold">
+                  {mine
+                    ? (provider?.name ?? booking.provider_id)
+                    : ((Array.isArray(booking.parents)
+                        ? booking.parents[0]?.name
+                        : booking.parents?.name) ?? "A family")}
+                </p>
                 <p className="text-sm text-ink-soft">
                   {formatDate(booking.care_date)} · {booking.block}
                 </p>

@@ -12,7 +12,14 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { QK } from "@/lib/data";
-import { BLOCKS, emptySchedule, scheduleFromRows, type Child, type Schedule } from "@/lib/model";
+import {
+  BLOCKS,
+  emptySchedule,
+  scheduleFromRows,
+  type Block,
+  type Child,
+  type Schedule,
+} from "@/lib/model";
 
 /**
  * Signed-in user + their saved data (profile, schedule, favorites).
@@ -55,9 +62,16 @@ type AppState = {
 
 const Ctx = createContext<AppState | null>(null);
 
+// Supabase rows are untyped until we generate DB types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
-async function fetchMe(userId: string, email: string): Promise<Me | null> {
+async function fetchMe(email: string): Promise<Me | null> {
+  // Resolve the caller's parent row through my_parent_id() so the browser never
+  // needs to read the private auth_user_id column.
+  const { data: parentId, error: idError } = await supabase.rpc("my_parent_id");
+  if (idError) throw idError;
+  if (!parentId) return null;
   const { data: p, error } = await supabase
     .from("parents")
     .select(
@@ -66,7 +80,7 @@ async function fetchMe(userId: string, email: string): Promise<Me | null> {
        parent_languages(languages(name)),
        parent_availability(day_of_week, block)`,
     )
-    .eq("auth_user_id", userId)
+    .eq("id", parentId)
     .maybeSingle();
   if (error) throw error;
   if (!p) return null;
@@ -117,7 +131,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const meQuery = useQuery({
     queryKey: meKey,
-    queryFn: () => fetchMe(userId!, email),
+    queryFn: () => fetchMe(email),
     enabled: !!userId,
   });
   const me = meQuery.data ?? null;
@@ -154,15 +168,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const turnOn = !me.schedule[day][block];
       const prev = patchMe((m) => ({
         ...m,
-        schedule: m.schedule.map((row, d) => (d === day ? row.map((v, t) => (t === block ? turnOn : v)) : row)),
+        schedule: m.schedule.map((row, d) =>
+          d === day ? row.map((v, t) => (t === block ? turnOn : v)) : row,
+        ),
       }));
       const row = { parent_id: parentId, day_of_week: day, block: BLOCKS[block] };
       const req = turnOn
         ? supabase.from("parent_availability").upsert(row, { ignoreDuplicates: true })
-        : supabase
-            .from("parent_availability")
-            .delete()
-            .match(row);
+        : supabase.from("parent_availability").delete().match(row);
       req.then(({ error }) => {
         if (error) fail(prev, error, "your schedule");
         else qc.invalidateQueries({ queryKey: QK.parents });
@@ -173,20 +186,33 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const setSchedule = useCallback(
     async (s: Schedule) => {
-      if (!parentId) return needLogin();
+      if (!parentId || !me) return needLogin();
+      const before = me.schedule;
       const prev = patchMe((m) => ({ ...m, schedule: s }));
-      const del = await supabase.from("parent_availability").delete().eq("parent_id", parentId);
-      if (del.error) return fail(prev, del.error, "your schedule");
-      const rows = s.flatMap((r, d) =>
-        r.flatMap((on, t) => (on ? [{ parent_id: parentId, day_of_week: d, block: BLOCKS[t] }] : [])),
+      const added: { parent_id: string; day_of_week: number; block: Block }[] = [];
+      const removed: { parent_id: string; day_of_week: number; block: Block }[] = [];
+      s.forEach((row, d) =>
+        row.forEach((on, t) => {
+          if (on === before[d][t]) return;
+          const r = { parent_id: parentId, day_of_week: d, block: BLOCKS[t] };
+          (on ? added : removed).push(r);
+        }),
       );
-      if (rows.length) {
-        const ins = await supabase.from("parent_availability").insert(rows);
+      // Add first, then remove, so a failed request can never leave the family
+      // with an empty schedule.
+      if (added.length) {
+        const ins = await supabase
+          .from("parent_availability")
+          .upsert(added, { ignoreDuplicates: true });
         if (ins.error) return fail(prev, ins.error, "your schedule");
+      }
+      for (const row of removed) {
+        const del = await supabase.from("parent_availability").delete().match(row);
+        if (del.error) return fail(prev, del.error, "your schedule");
       }
       qc.invalidateQueries({ queryKey: QK.parents });
     },
-    [parentId, patchMe, fail, needLogin, qc],
+    [parentId, me, patchMe, fail, needLogin, qc],
   );
 
   const toggleFavorite = useCallback(
@@ -208,18 +234,32 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [parentId, me, patchMe, fail, needLogin],
   );
 
-
   const setLanguage = useCallback(
     async (name: string) => {
       if (!parentId) return needLogin();
       const prev = patchMe((m) => ({ ...m, languages: [name] }));
-      await supabase.from("languages").upsert({ name }, { onConflict: "name", ignoreDuplicates: true });
-      const { data: lang, error: e1 } = await supabase.from("languages").select("id").eq("name", name).single();
+      const up = await supabase
+        .from("languages")
+        .upsert({ name }, { onConflict: "name", ignoreDuplicates: true });
+      if (up.error) return fail(prev, up.error, "language");
+      const { data: lang, error: e1 } = await supabase
+        .from("languages")
+        .select("id")
+        .eq("name", name)
+        .single();
       if (e1 || !lang) return fail(prev, e1, "language");
-      const del = await supabase.from("parent_languages").delete().eq("parent_id", parentId);
-      if (del.error) return fail(prev, del.error, "language");
-      const ins = await supabase.from("parent_languages").insert({ parent_id: parentId, language_id: lang.id });
+      // Add the new language before removing the old one, so a failed request
+      // cannot leave the family with no language.
+      const ins = await supabase
+        .from("parent_languages")
+        .upsert({ parent_id: parentId, language_id: lang.id }, { ignoreDuplicates: true });
       if (ins.error) return fail(prev, ins.error, "language");
+      const del = await supabase
+        .from("parent_languages")
+        .delete()
+        .eq("parent_id", parentId)
+        .neq("language_id", lang.id);
+      if (del.error) return fail(prev, del.error, "language");
       qc.invalidateQueries({ queryKey: QK.parents });
       qc.invalidateQueries({ queryKey: QK.languages });
       toast.success("Language saved");

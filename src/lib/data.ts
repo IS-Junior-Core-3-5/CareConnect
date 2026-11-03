@@ -19,6 +19,8 @@ export const QK = {
   languages: ["languages"] as const,
 };
 
+// Supabase rows are untyped until we generate DB types.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = Record<string, any>;
 
 const PROVIDER_SELECT = `
@@ -55,7 +57,9 @@ function mapProvider(r: Row): Provider {
     .sort((a: Review, b: Review) => b.reviewedOn.localeCompare(a.reviewedOn));
   const avg = reviews.length
     ? reviews.reduce(
-        (s, v) => s + (v.scores.experience + v.scores.values + v.scores.communication + v.scores.safety) / 4,
+        (s, v) =>
+          s +
+          (v.scores.experience + v.scores.values + v.scores.communication + v.scores.safety) / 4,
         0,
       ) / reviews.length
     : 0;
@@ -78,7 +82,10 @@ function mapProvider(r: Row): Provider {
     reviewCount: reviews.length,
     verified: !!r.verified,
     licenses: (r.provider_credentials ?? []).map((c: Row) => c.name),
-    languages: (r.provider_languages ?? []).map((l: Row) => l.languages?.name).filter(Boolean).sort(),
+    languages: (r.provider_languages ?? [])
+      .map((l: Row) => l.languages?.name)
+      .filter(Boolean)
+      .sort(),
     schedule: r.schedule_available ? scheduleFromRows(r.provider_availability ?? []) : null,
     scheduleSummary: r.schedule_available ? (r.schedule_summary ?? "") : "Schedule unavailable",
     pastFamilies: (r.provider_past_families ?? []).map((f: Row) => f.parent_id),
@@ -96,7 +103,7 @@ export async function fetchParents(): Promise<Parent[]> {
   const { data, error } = await supabase
     .from("parents")
     .select(
-      `id, auth_user_id, name, neighborhood, blurb,
+      `id, name, neighborhood, blurb,
        children(id, name, age),
        parent_languages(languages(name)),
        parent_availability(day_of_week, block)`,
@@ -107,7 +114,6 @@ export async function fetchParents(): Promise<Parent[]> {
     const languages = (r.parent_languages ?? []).map((l: Row) => l.languages?.name).filter(Boolean);
     return {
       id: r.id,
-      authUserId: r.auth_user_id ?? null,
       name: r.name,
       neighborhood: r.neighborhood ?? "",
       blurb: r.blurb ?? "",
@@ -118,7 +124,6 @@ export async function fetchParents(): Promise<Parent[]> {
     };
   });
 }
-
 
 export async function fetchLanguages(): Promise<{ id: number; name: string }[]> {
   const { data, error } = await supabase.from("languages").select("id, name").order("name");
@@ -135,7 +140,9 @@ export function useParentsQuery() {
   return useQuery({ queryKey: QK.parents, queryFn: fetchParents, ...opts });
 }
 export function useLanguages() {
-  return useQuery({ queryKey: QK.languages, queryFn: fetchLanguages, staleTime: 300_000 }).data ?? [];
+  return (
+    useQuery({ queryKey: QK.languages, queryFn: fetchLanguages, staleTime: 300_000 }).data ?? []
+  );
 }
 
 export function useProviders(): Provider[] {

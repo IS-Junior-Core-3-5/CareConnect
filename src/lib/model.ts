@@ -58,7 +58,6 @@ export type Child = { id: number; name: string; age: number | null };
 
 export type Parent = {
   id: string;
-  authUserId: string | null;
   name: string;
   neighborhood: string;
   /** Comma-separated, for display */
@@ -86,7 +85,9 @@ export function scheduleFromRows(rows: { day_of_week: number; block: string }[])
 /** 7x3 grid -> rows of [day, block] */
 export function scheduleToRows(s: Schedule): { day_of_week: number; block: Block }[] {
   const rows: { day_of_week: number; block: Block }[] = [];
-  s.forEach((row, d) => row.forEach((on, t) => on && rows.push({ day_of_week: d, block: BLOCKS[t] })));
+  s.forEach((row, d) =>
+    row.forEach((on, t) => on && rows.push({ day_of_week: d, block: BLOCKS[t] })),
+  );
   return rows;
 }
 
