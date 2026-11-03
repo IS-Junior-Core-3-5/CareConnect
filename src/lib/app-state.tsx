@@ -127,6 +127,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const userId = session?.user.id ?? null;
   const email = session?.user.email ?? "";
+
+  useEffect(() => {
+    if (!userId) return;
+    void supabase.rpc("resume_provider_search_timer").then(({ error }) => {
+      if (error) console.error("Could not resume provider search timer:", error);
+    });
+  }, [userId]);
+
   const meKey = ["me", userId] as const;
 
   const meQuery = useQuery({
@@ -268,6 +276,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
+    const { error: timerError } = await supabase.rpc("pause_provider_search_timer");
+    if (timerError) console.error("Could not pause provider search timer:", timerError);
     await supabase.auth.signOut();
     qc.removeQueries({ queryKey: ["me"] });
   }, [qc]);
