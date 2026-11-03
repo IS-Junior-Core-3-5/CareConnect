@@ -431,6 +431,12 @@ returns text language sql stable security definer set search_path = public as $$
   select id from parents where auth_user_id = auth.uid()
 $$;
 
+-- Children's names and ages are private to their parent. Keep RLS on, but
+-- replace the public read policy with one that only shows a parent their own rows.
+drop policy if exists "public read" on children;
+create policy "own children read" on children for select to authenticated
+  using (parent_id = public.my_parent_id());
+
 -- Create the parent profile when someone signs up
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
@@ -532,8 +538,6 @@ grant  insert (provider_id, name) on provider_credentials to authenticated;
 grant  update (name) on provider_credentials to authenticated;
 
 create policy "add language" on languages for insert to authenticated with check (true);
-
-grant select (auth_user_id) on parents to anon;
 
 -- Only the signup trigger runs handle_new_user; my_parent_id is for logged-in users' policies
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
