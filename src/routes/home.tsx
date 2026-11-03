@@ -2,8 +2,6 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { AiRecommendations } from "@/components/AiRecommendations";
 import { AppShell } from "@/components/NavBar";
-import { ScheduleCompare } from "@/components/ScheduleGrid";
-import { overlapCount } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
@@ -35,14 +33,9 @@ const tiles = [
 
 function HomePage() {
   const navigate = useNavigate();
-  const { parentName, schedule, favorites } = useApp();
+  const { parentName, favorites } = useApp();
   const providers = useProviders();
   const [q, setQ] = useState("");
-
-  const best = providers
-    .filter((p) => p.schedule)
-    .map((p) => ({ p, overlap: overlapCount(schedule, p.schedule!) }))
-    .sort((a, b) => b.overlap - a.overlap)[0];
 
   return (
     <AppShell>
@@ -112,68 +105,6 @@ function HomePage() {
 
       <AiRecommendations />
 
-      {best ? (
-        <section className="py-6">
-          <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Schedule match</span>
-                <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">
-                  Your week vs. {best.p.name}
-                </h2>
-                <p className="mt-1 max-w-[46ch] text-sm text-ink-soft text-pretty">
-                  Green means they cover a block you need. Red means a gap.
-                </p>
-              </div>
-              <Link
-                to="/providers/$providerId"
-                params={{ providerId: best.p.id }}
-                className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink"
-              >
-                View profile
-              </Link>
-            </div>
-            <div className="mt-6">
-              <ScheduleCompare
-                parent={schedule}
-                provider={best.p.schedule!}
-                providerLabel={best.p.name.split(" ")[0].toUpperCase()}
-              />
-            </div>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="py-6">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <h2 className="font-display text-3xl font-bold tracking-tight">Your saved favorites</h2>
-          <Link to="/favorites" className="text-sm font-semibold text-primary-ink">
-            See all
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {favorites.slice(0, 3).map((id) => {
-            const p = providers.find((x) => x.id === id);
-            if (!p) return null;
-            return (
-              <Link
-                key={id}
-                to="/providers/$providerId"
-                params={{ providerId: id }}
-                className="card-lift rounded-3xl bg-surface p-4 ring-1 ring-line"
-              >
-                <p className="font-display text-lg font-bold">{p.name}</p>
-                <p className="mt-1 text-sm text-ink-soft">
-                  {p.careType} · {p.neighborhood}
-                </p>
-              </Link>
-            );
-          })}
-          {favorites.length === 0 ? (
-            <p className="text-sm text-ink-soft">Nothing saved yet — tap the heart on any provider.</p>
-          ) : null}
-        </div>
-      </section>
     </AppShell>
   );
 }
