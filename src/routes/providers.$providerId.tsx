@@ -4,7 +4,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
-import { RequestCare } from "@/components/CareBookings";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { distanceLabel, gapCount, overlapCount, priceLabel, type Provider, type Scores } from "@/lib/model";
@@ -189,7 +188,6 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               )}
             </section>
 
-            <RequestCare provider={provider} />
 
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <h2 className="font-display text-2xl font-bold tracking-tight">Ratings & reviews</h2>
