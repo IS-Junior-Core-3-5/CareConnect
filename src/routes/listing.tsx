@@ -114,7 +114,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
       if (res.error) throw res.error;
 
       // Replace the child rows with what's in the form.
-      for (const t of ["provider_pricing_notes", "provider_credentials", "provider_languages", "provider_availability"]) {
+      for (const t of ["provider_pricing_notes", "provider_languages", "provider_availability"]) {
         const d = await supabase.from(t).delete().eq("provider_id", id);
         if (d.error) throw d.error;
       }
@@ -125,9 +125,28 @@ function ListingForm({ existing }: { existing: Provider | null }) {
           .insert(notes.map((note, i) => ({ provider_id: id, note, sort_order: i })));
         if (r.error) throw r.error;
       }
-      const lic = lines(licenses);
-      if (lic.length) {
-        const r = await supabase.from("provider_credentials").insert(lic.map((n) => ({ provider_id: id, name: n })));
+      // Credentials are verified by admins, and this form is not allowed to set
+      // that flag. Update them in place (add new names, remove dropped ones) so
+      // editing a listing never resets existing verification.
+      const lic = [...new Set(lines(licenses))];
+      const { data: credRows, error: credReadError } = await supabase
+        .from("provider_credentials")
+        .select("id, name")
+        .eq("provider_id", id);
+      if (credReadError) throw credReadError;
+      const existingCreds = (credRows ?? []) as { id: number; name: string }[];
+      const wantedCreds = new Set(lic);
+      const removedCreds = existingCreds.filter((c) => !wantedCreds.has(c.name)).map((c) => c.id);
+      if (removedCreds.length) {
+        const r = await supabase.from("provider_credentials").delete().in("id", removedCreds);
+        if (r.error) throw r.error;
+      }
+      const existingCredNames = new Set(existingCreds.map((c) => c.name));
+      const addedCreds = lic.filter((name) => !existingCredNames.has(name));
+      if (addedCreds.length) {
+        const r = await supabase
+          .from("provider_credentials")
+          .insert(addedCreds.map((name) => ({ provider_id: id, name })));
         if (r.error) throw r.error;
       }
       if (languages.length) {
