@@ -13,14 +13,8 @@ comment on table public.user_login_counts is
 
 alter table public.user_login_counts enable row level security;
 
-create policy "Users can read their own login count"
-  on public.user_login_counts
-  for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-revoke all on public.user_login_counts from anon, authenticated;
-grant select on public.user_login_counts to authenticated;
+-- Keep the count table private from the browser/API roles.
+revoke all on public.user_login_counts from public, anon, authenticated;
 
 create or replace function public.increment_user_login_count()
 returns trigger

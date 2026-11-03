@@ -9,7 +9,7 @@ Parents struggle to find child care that fits their family's specific needs beca
 
 ## ERD
 
-The product data model has 16 tables. To keep it readable, the ERD is split into four diagrams by feature. Together they show every product table, every attribute, and every labeled relationship. Login totals are tracked separately in `user_login_counts`. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
+The product data model has 16 tables. To keep it readable, the ERD is split into four diagrams by feature. Together they show every product table, every attribute, and every labeled relationship. Login totals are tracked in the internal `user_login_counts` table; users cannot read it. A table drawn with only its `id` is detailed in another diagram. Click any image to open it full size.
 
 **Key:** `PK` primary key · `FK` foreign key · `UK` unique · `||--o{` one-to-many (one on the bar side, zero-or-many on the crow's-foot side)
 
