@@ -115,27 +115,15 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    setInfo(null);
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(false);
     if (error) return setError(error.message);
     navigate({ to: "/home" });
-  }
-
-  async function resetPassword() {
-    if (!email.trim()) return setError("Enter your email first, then press Forgot password.");
-    setError(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/profile`,
-    });
-    if (error) setError(error.message);
-    else setInfo("Check your email for a link to reset your password.");
   }
 
   return (
@@ -171,15 +159,9 @@ function LoginForm() {
         />
       </div>
       {error ? <Notice tone="error">{error}</Notice> : null}
-      {info ? <Notice tone="ok">{info}</Notice> : null}
       <button disabled={busy} className={primaryBtn}>
         {busy ? "Logging in…" : "Log in"}
       </button>
-      <p className="text-center text-xs text-ink-faint">
-        <button type="button" onClick={resetPassword} className="font-semibold text-primary-ink">
-          Forgot password?
-        </button>
-      </p>
     </form>
   );
 }
