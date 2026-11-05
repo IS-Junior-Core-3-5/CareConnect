@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { AiChat } from "@/components/AiChat";
 import { AiRecommendations } from "@/components/AiRecommendations";
 import { AppShell } from "@/components/NavBar";
 import { useApp } from "@/lib/app-state";
@@ -91,6 +92,7 @@ function HomePage() {
       </section>
 
       <AiRecommendations />
+      <AiChat />
 
     </AppShell>
   );
