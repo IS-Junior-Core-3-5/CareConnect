@@ -61,7 +61,7 @@ async function callGemini(
             method: "POST",
             headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
             body: body(fast),
-            signal: AbortSignal.timeout(Math.min(45_000, left)),
+            signal: AbortSignal.timeout(Math.min(30_000, left)),
           },
         );
       } catch (e) {
@@ -92,7 +92,7 @@ async function callGemini(
         fast = false; // model doesn't accept thinkingLevel
         continue;
       }
-      if (RETRYABLE.has(res.status) && attempt < 2) {
+      if (RETRYABLE.has(res.status) && attempt < 1) {
         await sleep(1200);
         continue;
       }
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
       const r = await callGemini(apiKey, CHAT_SYSTEM, contents, {
         json: true,
         maxTokens: 2048,
-        budgetMs: 100_000,
+        budgetMs: 75_000,
       });
       if ("error" in r) return aiError(r);
       let reply = "";
