@@ -9,12 +9,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 // Tried in order; Google's free models are sometimes overloaded (503) or slow, so fall back.
+// (Google retired gemini-2.5-* for new keys; a 404 just moves on to the next model.)
 const MODELS = [
   ...(Deno.env.get("GEMINI_MODEL") ? [Deno.env.get("GEMINI_MODEL")!] : []),
-  "gemini-2.5-flash",
-  "gemini-flash-latest",
-  "gemini-2.5-flash-lite",
+  "gemini-3.5-flash-lite",
   "gemini-flash-lite-latest",
+  "gemini-3.8-flash",
+  "gemini-flash-latest",
 ];
 const RETRYABLE = new Set([429, 500, 503, 504]);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -32,7 +33,7 @@ async function callGemini(
   opts: { json: boolean; maxTokens: number; budgetMs: number },
 ): Promise<GeminiResult> {
   const started = Date.now();
-  const body = (thinkingOff: boolean) =>
+  const body = (fast: boolean) =>
     JSON.stringify({
       systemInstruction: { parts: [{ text: system }] },
       contents,
@@ -40,14 +41,15 @@ async function callGemini(
         ...(opts.json ? { responseMimeType: "application/json" } : {}),
         temperature: opts.json ? 0.4 : 0.6,
         maxOutputTokens: opts.maxTokens,
-        ...(thinkingOff ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+        // Gemini 3 models take thinkingLevel; "low" keeps answers fast.
+        ...(fast ? { thinkingConfig: { thinkingLevel: "low" } } : {}),
       },
     });
   let lastStatus = 0;
   let keyRejected = false;
   for (const m of [...new Set(MODELS)]) {
-    // First try with thinking off (fast); if the model rejects that setting, retry without it.
-    let thinkingOff = true;
+    // First try with low thinking (fast); if the model rejects that setting, retry without it.
+    let fast = true;
     for (let attempt = 0; attempt < 3; attempt++) {
       const left = opts.budgetMs - (Date.now() - started);
       if (left < 4_000) return { error: "timeout", status: lastStatus || 504 };
@@ -58,7 +60,7 @@ async function callGemini(
           {
             method: "POST",
             headers: { "x-goog-api-key": apiKey, "content-type": "application/json" },
-            body: body(thinkingOff),
+            body: body(fast),
             signal: AbortSignal.timeout(Math.min(45_000, left)),
           },
         );
@@ -81,13 +83,13 @@ async function callGemini(
       }
       lastStatus = res.status;
       const errText = await res.text();
-      console.error("Gemini error", m, res.status, thinkingOff, errText.slice(0, 500));
+      console.error("Gemini error", m, res.status, fast, errText.slice(0, 500));
       if (/API_KEY_INVALID|API key not valid|PERMISSION_DENIED|API key expired/i.test(errText)) {
         keyRejected = true;
         return { error: "key", status: res.status };
       }
-      if (res.status === 400 && thinkingOff) {
-        thinkingOff = false; // model doesn't accept thinkingBudget 0
+      if (res.status === 400 && fast) {
+        fast = false; // model doesn't accept thinkingLevel
         continue;
       }
       if (RETRYABLE.has(res.status) && attempt < 2) {
@@ -243,7 +245,7 @@ Deno.serve(async (req) => {
       ];
       const r = await callGemini(apiKey, CHAT_SYSTEM, contents, {
         json: false,
-        maxTokens: 1024,
+        maxTokens: 2048,
         budgetMs: 100_000,
       });
       if ("error" in r) return aiError(r);
@@ -259,7 +261,7 @@ Deno.serve(async (req) => {
     // 3b. Recommend mode: top 3 picks as JSON
     const r = await callGemini(apiKey, SYSTEM, [{ role: "user", parts: [{ text: context }] }], {
       json: true,
-      maxTokens: 4096,
+      maxTokens: 8192,
       budgetMs: 110_000,
     });
     if ("error" in r) return aiError(r);

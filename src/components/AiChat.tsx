@@ -150,7 +150,7 @@ export function AiChat() {
                     : `rounded-bl-md bg-surface text-ink ring-1 ring-line ${m.pending ? "animate-pulse text-ink-soft" : ""}`
                 }`}
               >
-                {m.content}
+                {m.role === "assistant" ? renderBold(m.content) : m.content}
               </p>
             </div>
           ))}
@@ -188,5 +188,18 @@ export function AiChat() {
         <p className="mt-2 text-xs text-ink-faint">AI answers can be wrong. Check each provider's profile.</p>
       </div>
     </section>
+  );
+}
+
+/** Shows **text** as bold (Gemini sometimes uses it) without rendering any HTML. */
+function renderBold(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
+      <strong key={i} className="font-semibold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
   );
 }
