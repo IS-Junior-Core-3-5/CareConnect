@@ -14,3 +14,6 @@ alter table public.ai_chat_messages enable row level security;
 create policy "own chat read"   on public.ai_chat_messages for select to authenticated using (parent_id = my_parent_id());
 create policy "own chat insert" on public.ai_chat_messages for insert to authenticated with check (parent_id = my_parent_id());
 create policy "own chat delete" on public.ai_chat_messages for delete to authenticated using (parent_id = my_parent_id());
+
+-- Providers the AI recommended in a reply (shown as cards under the message)
+alter table public.ai_chat_messages add column if not exists provider_ids text[] not null default '{}';

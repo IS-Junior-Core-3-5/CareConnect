@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
+import { useProviders } from "@/lib/data";
+import { priceLabel, type Provider } from "@/lib/model";
 
 /**
  * Chat with the CareConnect AI (Google Gemini via the recommend-providers Edge Function, mode "chat").
@@ -10,19 +13,27 @@ import { useApp } from "@/lib/app-state";
  * conversation to public.ai_chat_messages so it survives refreshes.
  */
 
-type Msg = { id: number | string; role: "user" | "assistant"; content: string; pending?: boolean };
+type Msg = {
+  id: number | string;
+  role: "user" | "assistant";
+  content: string;
+  provider_ids?: string[];
+  pending?: boolean;
+};
 
 const STARTERS = [
-  "Who covers my whole schedule?",
-  "Which provider is the best value?",
+  "Recommend a provider that covers my whole schedule",
+  "Best full-day daycare under $150/day?",
+  "Find a Spanish-speaking sitter for evenings",
+  "Who's best for my kids' ages?",
   "Compare my favorites",
-  "What should I ask a new sitter?",
 ];
 
 const chatKey = (parentId: string | null) => ["ai_chat", parentId] as const;
 
-export function AiChat() {
-  const { parentId } = useApp();
+export function AiChat({ page = false }: { page?: boolean }) {
+  const { parentId, isFavorite, toggleFavorite } = useApp();
+  const providers = useProviders();
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [optimistic, setOptimistic] = useState<Msg | null>(null);
@@ -34,7 +45,7 @@ export function AiChat() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ai_chat_messages")
-        .select("id, role, content")
+        .select("id, role, content, provider_ids")
         .eq("parent_id", parentId!)
         .order("created_at")
         .order("id")
@@ -99,14 +110,18 @@ export function AiChat() {
   };
 
   return (
-    <section className="py-6" id="ai-chat">
+    <section className={page ? "py-8" : "py-6"} id="ai-chat">
       <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">AI assistant</span>
-            <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Chat about your care options</h2>
+            {page ? (
+              <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">Ask for a recommendation</h1>
+            ) : (
+              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Chat about your care options</h2>
+            )}
             <p className="mt-1 max-w-[52ch] text-sm text-ink-soft text-pretty">
-              Ask anything. The AI knows your schedule, kids' ages, languages and every provider on CareConnect.
+              Ask for exactly what you need, like "a verified sitter for Saturday mornings near me". The AI checks your schedule, kids' ages and languages against every provider and shows its picks.
             </p>
           </div>
           {msgs.length ? (
@@ -122,7 +137,7 @@ export function AiChat() {
 
         <div
           ref={listRef}
-          className="mt-5 flex max-h-[60vh] min-h-[220px] flex-col gap-3 overflow-y-auto rounded-2xl bg-background p-3 ring-1 ring-line sm:p-4"
+          className={`mt-5 flex ${page ? "h-[60vh] min-h-[360px]" : "max-h-[60vh] min-h-[220px]"} flex-col gap-3 overflow-y-auto rounded-2xl bg-background p-3 ring-1 ring-line sm:p-4`}
         >
           {isLoading ? <p className="text-sm text-ink-soft">Loading…</p> : null}
           {!isLoading && shown.length === 0 ? (
@@ -141,19 +156,37 @@ export function AiChat() {
               </div>
             </div>
           ) : null}
-          {shown.map((m) => (
-            <div key={m.id} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-              <p
-                className={`max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm text-pretty ${
-                  m.role === "user"
-                    ? "rounded-br-md bg-primary text-primary-soft"
-                    : `rounded-bl-md bg-surface text-ink ring-1 ring-line ${m.pending ? "animate-pulse text-ink-soft" : ""}`
-                }`}
-              >
-                {m.role === "assistant" ? renderBold(m.content) : m.content}
-              </p>
-            </div>
-          ))}
+          {shown.map((m) => {
+            const picks = (m.provider_ids ?? [])
+              .map((id) => providers.find((p) => p.id === id))
+              .filter((p): p is Provider => !!p);
+            return (
+              <div key={m.id} className={`flex flex-col gap-2 ${m.role === "user" ? "items-end" : "items-start"}`}>
+                <p
+                  className={`max-w-[92%] sm:max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm text-pretty ${
+                    m.role === "user"
+                      ? "rounded-br-md bg-primary text-primary-soft"
+                      : `rounded-bl-md bg-surface text-ink ring-1 ring-line ${m.pending ? "animate-pulse text-ink-soft" : ""}`
+                  }`}
+                >
+                  {m.role === "assistant" ? renderBold(m.content) : m.content}
+                </p>
+                {picks.length ? (
+                  <div className="grid w-full gap-2 sm:max-w-[85%] sm:grid-cols-2 xl:grid-cols-3">
+                    {picks.map((p, i) => (
+                      <PickCard
+                        key={p.id}
+                        p={p}
+                        rank={i + 1}
+                        saved={isFavorite(p.id)}
+                        onSave={() => toggleFavorite(p.id)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
 
         <form
@@ -174,7 +207,7 @@ export function AiChat() {
             }}
             rows={1}
             maxLength={2000}
-            placeholder="Ask about providers, schedules, costs…"
+            placeholder="Ask for a recommendation…"
             className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-ink-faint"
           />
           <button
@@ -201,5 +234,56 @@ function renderBold(text: string) {
     ) : (
       part
     ),
+  );
+}
+
+function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved: boolean; onSave: () => void }) {
+  return (
+    <div className="flex flex-col rounded-2xl bg-surface p-4 ring-1 ring-line">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <span className="font-mono text-xs text-ink-faint">Pick #{rank}</span>
+          <Link
+            to="/providers/$providerId"
+            params={{ providerId: p.id }}
+            className="block font-display text-lg font-bold leading-tight hover:text-primary-ink"
+          >
+            {p.name}
+          </Link>
+        </div>
+        {p.verified ? (
+          <span className="shrink-0 rounded-full bg-leaf-soft px-2 py-0.5 text-[11px] font-semibold text-leaf-ink">
+            Verified
+          </span>
+        ) : null}
+      </div>
+      <p className="mt-1 text-xs text-ink-soft">
+        {p.careType} · {p.neighborhood} · {priceLabel(p)}
+      </p>
+      {p.reviewCount ? (
+        <p className="mt-0.5 text-xs text-ink-soft">
+          ★ {p.rating} ({p.reviewCount} review{p.reviewCount === 1 ? "" : "s"})
+        </p>
+      ) : null}
+      <div className="mt-3 flex gap-2">
+        <Link
+          to="/providers/$providerId"
+          params={{ providerId: p.id }}
+          className="flex-1 rounded-full bg-primary px-3 py-1.5 text-center text-xs font-semibold text-primary-soft transition-colors hover:bg-primary-ink"
+        >
+          View profile
+        </Link>
+        <button
+          onClick={onSave}
+          className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+            saved
+              ? "border-primary bg-primary-soft text-primary-ink"
+              : "border-line text-ink-soft hover:border-primary hover:text-primary-ink"
+          }`}
+        >
+          {saved ? "♥ Saved" : "♡ Save"}
+        </button>
+      </div>
+    </div>
   );
 }

@@ -152,12 +152,18 @@ no markdown. Respond with JSON only:
 
 const CHAT_SYSTEM = `You are CareConnect's friendly childcare assistant, chatting with one parent.
 You get the parent's profile and facts about every childcare provider on CareConnect.
-Help them find and compare care: answer questions about providers, schedules, costs, trust, and
-what to ask a caregiver. Ground every claim about a provider in the facts given; if something is
-unknown (e.g. schedule_available false, null daily_rate), say so. Never invent providers or facts.
-Mention providers by name. Keep replies short (under 150 words), warm and practical. Plain text,
-you may use simple "- " bullet lines. If asked something unrelated to childcare or parenting,
-briefly steer back.`;
+Help them find and compare care. When they ask for recommendations (e.g. "a Spanish-speaking sitter
+for weekend evenings", "cheapest full-day daycare", "who's best for my 3-year-old"), filter and rank
+the providers against BOTH their request and their profile, and recommend the best 1-3 by name with
+the specific reasons (schedule coverage and gaps, ages, languages, price, distance, verification, reviews).
+If nobody matches well, say so and suggest the closest options or what to change.
+Ground every claim in the facts given; if something is unknown (schedule_available false, null daily_rate),
+say so. Never invent providers or facts. Keep replies under 150 words, warm and practical.
+Plain text; you may use "- " bullet lines and **bold** names. If asked something unrelated to childcare
+or parenting, briefly steer back.
+Respond with JSON only: {"reply": string, "provider_ids": string[]}
+provider_ids = the provider_id of every provider you recommend in this reply, best first (max 3);
+use [] when you are not recommending specific providers.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -218,9 +224,20 @@ Deno.serve(async (req) => {
       my_past_reviews: parent.reviews ?? [],
     };
 
+    // Every provider's open blocks, so specific asks ("weekend evenings") can be checked
+    const { data: avail } = await supabase
+      .from("provider_availability")
+      .select("provider_id, day_of_week, block");
+    const openBlocks = new Map<string, string[]>();
+    for (const a of avail ?? []) {
+      const list = openBlocks.get(a.provider_id) ?? [];
+      list.push(`${DAYS[a.day_of_week]} ${a.block}`);
+      openBlocks.set(a.provider_id, list);
+    }
     const providerFacts = providers.map((p: any) => ({
       ...p,
       bio: p.bio ? String(p.bio).slice(0, 300) : p.bio,
+      open_blocks: p.schedule_available ? (openBlocks.get(p.provider_id) ?? []) : "unknown",
     }));
     const context = `PARENT PROFILE:\n${JSON.stringify(profile)}\n\nPROVIDERS:\n${JSON.stringify(providerFacts)}`;
 
@@ -244,18 +261,29 @@ Deno.serve(async (req) => {
         { role: "user", parts: [{ text: message }] },
       ];
       const r = await callGemini(apiKey, CHAT_SYSTEM, contents, {
-        json: false,
+        json: true,
         maxTokens: 2048,
         budgetMs: 100_000,
       });
       if ("error" in r) return aiError(r);
-      const reply = r.text.slice(0, 4000);
+      let reply = "";
+      let ids: string[] = [];
+      try {
+        const out = JSON.parse(r.text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
+        reply = String(out.reply ?? "").trim();
+        const valid = new Set(providers.map((p: any) => p.provider_id));
+        ids = [...new Set<string>((out.provider_ids ?? []).map(String))].filter((id) => valid.has(id)).slice(0, 3);
+      } catch {
+        reply = r.text.trim();
+      }
+      if (!reply) return json({ error: "AI returned an unreadable answer. Try again." }, 502);
+      reply = reply.slice(0, 4000);
       const { error: iErr } = await supabase.from("ai_chat_messages").insert([
-        { parent_id: parent.id, role: "user", content: message },
-        { parent_id: parent.id, role: "assistant", content: reply, model: r.model },
+        { parent_id: parent.id, role: "user", content: message, provider_ids: [] },
+        { parent_id: parent.id, role: "assistant", content: reply, model: r.model, provider_ids: ids },
       ]);
       if (iErr) return json({ error: iErr.message }, 500);
-      return json({ reply, model: r.model });
+      return json({ reply, provider_ids: ids, model: r.model });
     }
 
     // 3b. Recommend mode: top 3 picks as JSON

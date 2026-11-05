@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as ListingRouteImport } from './routes/listing'
@@ -24,6 +25,11 @@ import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$pro
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FavoritesRoute = FavoritesRouteImport.update({
@@ -79,6 +85,7 @@ const ProvidersProviderIdRoute = ProvidersProviderIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
@@ -105,6 +113,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
@@ -120,6 +129,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assistant'
     | '/favorites'
     | '/home'
     | '/listing'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assistant'
     | '/favorites'
     | '/home'
     | '/listing'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assistant'
     | '/favorites'
     | '/home'
     | '/listing'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistantRoute: typeof AssistantRoute
   FavoritesRoute: typeof FavoritesRoute
   HomeRoute: typeof HomeRoute
   ListingRoute: typeof ListingRoute
@@ -176,6 +189,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favorites': {
@@ -267,6 +287,7 @@ const ProvidersRouteWithChildren = ProvidersRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistantRoute: AssistantRoute,
   FavoritesRoute: FavoritesRoute,
   HomeRoute: HomeRoute,
   ListingRoute: ListingRoute,
