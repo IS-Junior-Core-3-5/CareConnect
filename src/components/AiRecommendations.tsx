@@ -80,7 +80,7 @@ export function AiRecommendations() {
             <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">AI recommendations</span>
             <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Best matches for your family</h2>
             <p className="mt-1 max-w-[52ch] text-sm text-ink-soft text-pretty">
-              AI compares your schedule, kids' ages, languages, neighborhood and reviews against every provider.
+              AI compares your schedule, kids' ages, languages, service address and reviews against every provider.
             </p>
           </div>
           <button
@@ -121,7 +121,7 @@ export function AiRecommendations() {
                 reviewCount={p?.reviewCount ?? 0}
                 meta={
                   p
-                    ? `${p.careType} · ${p.neighborhood} · ${p.dailyRate != null ? `$${p.dailyRate}/day` : "Pricing unavailable"}`
+                    ? `${p.careType} · ${p.address} · ${p.dailyRate != null ? `${p.dailyRate}/day` : "Pricing unavailable"}`
                     : ""
                 }
               />

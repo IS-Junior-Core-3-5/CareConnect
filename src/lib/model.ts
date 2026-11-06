@@ -41,7 +41,6 @@ export type Provider = {
   pricingNotes: string[];
   address: string;
   phone: string;
-  neighborhood: string;
   /** null = distance unknown */
   distance: number | null;
   rating: number;

@@ -108,7 +108,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                       <VerifiedBadge verified={provider.verified} />
                     </div>
                     <p className="mt-1 text-sm text-ink-soft">
-                      {provider.careType} · {provider.address || provider.neighborhood} · {distanceLabel(provider.distance)}
+                      {provider.careType} · {provider.address} · {distanceLabel(provider.distance)}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} />
@@ -428,7 +428,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               )}
               <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">Location</p>
               <p className="mt-1 font-semibold">
-                {provider.address || provider.neighborhood || "Address not provided"}
+                {provider.address || "Address not provided"}
               </p>
               <p className="mt-1 text-sm text-ink-soft">{distanceLabel(provider.distance)}</p>
               <div className="mt-3 grid h-40 place-items-center rounded-2xl bg-leaf-soft">

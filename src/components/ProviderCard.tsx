@@ -85,7 +85,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} size="sm" />
           {provider.reviewCount ? <span className="text-ink-faint">·</span> : null}
-          <span className="text-ink-soft">{provider.address || provider.neighborhood}</span>
+          <span className="text-ink-soft">{provider.address}</span>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
