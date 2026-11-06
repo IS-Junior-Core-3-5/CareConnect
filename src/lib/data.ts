@@ -24,13 +24,17 @@ export const QK = {
 type Row = Record<string, any>;
 
 const PROVIDER_SELECT = `
-  id, owner_id, name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone,
+  id, owner_id, listing_origin, website_url, contact_url, source_url, checked_on,
+  name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone,
   distance_miles, verified, schedule_available, schedule_summary, photo_key,
   provider_pricing_notes(note, sort_order),
   provider_photos(photo_key, sort_order),
   provider_credentials(name, verified),
   provider_languages(languages(name)),
-  provider_availability(day_of_week, block),
+  provider_availability(day_of_week, block)
+`;
+
+const PROVIDER_ACTIVITY_SELECT = `
   provider_past_families(parent_id),
   reviews(id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on, parents(name))
 `;
@@ -67,6 +71,11 @@ function mapProvider(r: Row): Provider {
   return {
     id: r.id,
     ownerId: r.owner_id ?? null,
+    listingOrigin: r.listing_origin ?? "owned",
+    websiteUrl: r.website_url ?? null,
+    contactUrl: r.contact_url ?? null,
+    sourceUrl: r.source_url ?? null,
+    checkedOn: r.checked_on ?? null,
     name: r.name,
     careType: r.care_type as CareType,
     photo: r.photo_key ?? photos[0] ?? null,
@@ -88,14 +97,21 @@ function mapProvider(r: Row): Provider {
       .filter(Boolean)
       .sort(),
     schedule: r.schedule_available ? scheduleFromRows(r.provider_availability ?? []) : null,
-    scheduleSummary: r.schedule_available ? (r.schedule_summary ?? "") : "Schedule unavailable",
+    scheduleSummary: r.schedule_available ? (r.schedule_summary ?? "") : "Availability unknown",
     pastFamilies: (r.provider_past_families ?? []).map((f: Row) => f.parent_id),
     reviews,
   };
 }
 
-export async function fetchProviders(): Promise<Provider[]> {
-  const { data, error } = await supabase.from("providers").select(PROVIDER_SELECT).order("name");
+export async function fetchProviders(includeFamilyActivity = true): Promise<Provider[]> {
+  const select = includeFamilyActivity
+    ? `${PROVIDER_SELECT}, ${PROVIDER_ACTIVITY_SELECT}`
+    : PROVIDER_SELECT;
+  const { data, error } = await supabase
+    .from("providers")
+    .select(select)
+    .eq("is_public", true)
+    .order("name");
   if (error) throw error;
   return (data ?? []).map(mapProvider);
 }
@@ -134,11 +150,15 @@ export async function fetchLanguages(): Promise<{ id: number; name: string }[]> 
 
 const opts = { staleTime: 30_000 };
 
-export function useProvidersQuery() {
-  return useQuery({ queryKey: QK.providers, queryFn: fetchProviders, ...opts });
+export function useProvidersQuery(includeFamilyActivity = true) {
+  return useQuery({
+    queryKey: [...QK.providers, includeFamilyActivity],
+    queryFn: () => fetchProviders(includeFamilyActivity),
+    ...opts,
+  });
 }
-export function useParentsQuery() {
-  return useQuery({ queryKey: QK.parents, queryFn: fetchParents, ...opts });
+export function useParentsQuery(enabled = true) {
+  return useQuery({ queryKey: QK.parents, queryFn: fetchParents, ...opts, enabled });
 }
 export function useLanguages() {
   return (
@@ -149,12 +169,12 @@ export function useLanguages() {
 export function useProviders(): Provider[] {
   return useProvidersQuery().data ?? [];
 }
-export function useParents(): Parent[] {
-  return useParentsQuery().data ?? [];
+export function useParents(enabled = true): Parent[] {
+  return useParentsQuery(enabled).data ?? [];
 }
 
-export function useProvider(id: string) {
-  const q = useProvidersQuery();
+export function useProvider(id: string, includeFamilyActivity = true) {
+  const q = useProvidersQuery(includeFamilyActivity);
   return { provider: q.data?.find((p) => p.id === id), isLoading: q.isLoading, error: q.error };
 }
 export function useParent(id: string) {

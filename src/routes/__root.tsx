@@ -83,13 +83,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Find trusted, verified child care near you and line up a caregiver's availability with your family's weekly schedule.",
+          "Explore child care listings in Provo and Orem and contact external providers directly about current terms.",
       },
       { property: "og:title", content: "CareConnect — child care matched to your week" },
       {
         property: "og:description",
         content:
-          "Find trusted, verified child care near you and line up a caregiver's availability with your family's weekly schedule.",
+          "Explore child care listings in Provo and Orem and contact external providers directly about current terms.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

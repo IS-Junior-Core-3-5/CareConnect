@@ -10,26 +10,25 @@ import { ErrorState, LoadingState } from "@/components/NavBar";
 export const Route = createFileRoute("/providers/")({
   head: () => ({
     meta: [
-      { title: "Trusted providers — CareConnect" },
+      { title: "Provo and Orem providers — CareConnect" },
       {
         name: "description",
         content:
-          "Browse verified daycares, preschools, sitters and family friends. Filter by distance, price, rating, and whether their hours match your schedule.",
+          "Browse childcare, preschool, and sitter listings for Provo and Orem. Confirm current availability and terms directly with external providers.",
       },
-      { property: "og:title", content: "Trusted providers — CareConnect" },
+      { property: "og:title", content: "Provo and Orem providers — CareConnect" },
       {
         property: "og:description",
-        content: "Filter caregivers by distance, price, rating, verification, and schedule fit.",
+        content: "Explore local childcare, preschool, and sitter listings.",
       },
     ],
   }),
   component: ProvidersPage,
 });
 
-
 function ProvidersPage() {
-  const { schedule } = useApp();
-  const providersQuery = useProvidersQuery();
+  const { schedule, userId } = useApp();
+  const providersQuery = useProvidersQuery(!!userId);
   const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
   const [types, setTypes] = useState<CareType[]>([]);
   const [distance, setDistance] = useState(99);
@@ -72,7 +71,8 @@ function ProvidersPage() {
       return true;
     });
     const sorted = [...filtered];
-    if (sort === "distance") sorted.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    if (sort === "distance")
+      sorted.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
     else if (sort === "rating")
       sorted.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
     else if (sort === "price")
@@ -84,7 +84,18 @@ function ProvidersPage() {
           (a.schedule ? overlapCount(schedule, a.schedule) : -1),
       );
     return sorted;
-  }, [providers, searchTerm, types, distance, maxPrice, minRating, verifiedOnly, matchesSchedule, sort, schedule]);
+  }, [
+    providers,
+    searchTerm,
+    types,
+    distance,
+    maxPrice,
+    minRating,
+    verifiedOnly,
+    matchesSchedule,
+    sort,
+    schedule,
+  ]);
 
   const empty = results.length === 0;
 
@@ -99,15 +110,16 @@ function ProvidersPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell publicPage>
       <section className="py-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-              Trusted providers near you
+              Providers in Provo and Orem
             </h1>
             <p className="mt-1 text-sm text-ink-soft">
-              {results.length} {results.length === 1 ? "result" : "results"} · filters update instantly
+              {results.length} {results.length === 1 ? "result" : "results"} · filters update
+              instantly
             </p>
           </div>
           <select
@@ -124,7 +136,9 @@ function ProvidersPage() {
         </div>
 
         <label className="mb-6 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 ring-1 ring-line">
-          <span aria-hidden="true" className="text-lg text-ink-faint">⌕</span>
+          <span aria-hidden="true" className="text-lg text-ink-faint">
+            ⌕
+          </span>
           <input
             type="search"
             value={searchTerm}
@@ -160,14 +174,18 @@ function ProvidersPage() {
               className={`${filtersOpen ? "mt-3 block" : "hidden"} space-y-6 rounded-3xl bg-surface p-5 ring-1 ring-line lg:sticky lg:top-20 lg:mt-0 lg:block`}
             >
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">Filters</span>
+                <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+                  Filters
+                </span>
                 <button onClick={reset} className="text-xs font-semibold text-primary-ink">
                   Reset
                 </button>
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Care type</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+                  Care type
+                </p>
                 <div className="space-y-1.5">
                   {CARE_TYPES.map((t) => (
                     <label key={t} className="flex items-center gap-2.5 text-sm">
@@ -175,7 +193,9 @@ function ProvidersPage() {
                         type="checkbox"
                         checked={types.includes(t)}
                         onChange={() =>
-                          setTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
+                          setTypes((prev) =>
+                            prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
+                          )
                         }
                         className="size-4 rounded accent-[oklch(0.672_0.152_41.5)]"
                       />
@@ -186,7 +206,9 @@ function ProvidersPage() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Distance</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+                  Distance
+                </p>
                 <div className="space-y-1.5">
                   {[
                     { v: 2, l: "Within 2 mi" },
@@ -221,7 +243,9 @@ function ProvidersPage() {
                     onChange={(e) => setMaxPrice(Number(e.target.value))}
                     className="w-full accent-[oklch(0.672_0.152_41.5)]"
                   />
-                  <span className="font-mono text-sm text-ink-soft">{maxPrice >= 250 ? "Any" : `$${maxPrice}`}</span>
+                  <span className="font-mono text-sm text-ink-soft">
+                    {maxPrice >= 250 ? "Any" : `$${maxPrice}`}
+                  </span>
                 </div>
                 <p className="mt-1 text-[11px] text-ink-faint">
                   Providers without pricing are always shown.
@@ -229,7 +253,9 @@ function ProvidersPage() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Rating</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
+                  Rating
+                </p>
                 <div className="flex flex-wrap gap-1.5">
                   {[0, 4.5, 4.8].map((r) => (
                     <button
@@ -273,7 +299,9 @@ function ProvidersPage() {
                   matchesSchedule ? "bg-primary-soft" : "bg-background"
                 }`}
               >
-                <span className="text-left text-sm font-medium text-primary-ink">Matches my schedule</span>
+                <span className="text-left text-sm font-medium text-primary-ink">
+                  Matches my schedule
+                </span>
                 <span
                   className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full ${
                     matchesSchedule ? "bg-primary" : "bg-line"

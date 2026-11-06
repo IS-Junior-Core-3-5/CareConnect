@@ -29,6 +29,11 @@ export type Review = {
 export type Provider = {
   id: string;
   ownerId: string | null;
+  listingOrigin: "owned" | "external" | "sample";
+  websiteUrl: string | null;
+  contactUrl: string | null;
+  sourceUrl: string | null;
+  checkedOn: string | null;
   name: string;
   careType: CareType;
   photo: string | null;
