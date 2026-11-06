@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { RatingSummary } from "@/components/StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
@@ -261,9 +262,12 @@ function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved
         {p.careType} · {p.neighborhood} · {priceLabel(p)}
       </p>
       {p.reviewCount ? (
-        <p className="mt-0.5 text-xs text-ink-soft">
-          ★ {p.rating} ({p.reviewCount} review{p.reviewCount === 1 ? "" : "s"})
-        </p>
+        <RatingSummary
+          rating={p.rating}
+          reviewCount={p.reviewCount}
+          size="sm"
+          className="mt-0.5 text-xs"
+        />
       ) : null}
       <div className="mt-3 flex gap-2">
         <Link

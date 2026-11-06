@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { RatingSummary } from "@/components/StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
@@ -111,8 +112,20 @@ export function AiRecommendations() {
         <div className="mt-6 grid gap-4 lg:grid-cols-3">
           {recs.map((r) => {
             const p = providers.find((x) => x.id === r.provider_id);
-            return <RecCard key={r.provider_id} rec={r} name={p?.name ?? r.provider_id}
-              meta={p ? `${p.careType} · ${p.neighborhood} · ${p.dailyRate != null ? `$${p.dailyRate}/day` : "Pricing unavailable"}` : ""} />;
+            return (
+              <RecCard
+                key={r.provider_id}
+                rec={r}
+                name={p?.name ?? r.provider_id}
+                rating={p?.rating ?? 0}
+                reviewCount={p?.reviewCount ?? 0}
+                meta={
+                  p
+                    ? `${p.careType} · ${p.neighborhood} · ${p.dailyRate != null ? `$${p.dailyRate}/day` : "Pricing unavailable"}`
+                    : ""
+                }
+              />
+            );
           })}
         </div>
 
@@ -122,7 +135,19 @@ export function AiRecommendations() {
   );
 }
 
-function RecCard({ rec, name, meta }: { rec: Rec; name: string; meta: string }) {
+function RecCard({
+  rec,
+  name,
+  meta,
+  rating,
+  reviewCount,
+}: {
+  rec: Rec;
+  name: string;
+  meta: string;
+  rating: number;
+  reviewCount: number;
+}) {
   const [open, setOpen] = useState<keyof Details | null>(null);
   const answer = open ? rec.details?.[open] : null;
 
@@ -139,6 +164,14 @@ function RecCard({ rec, name, meta }: { rec: Rec; name: string; meta: string }) 
             {name}
           </Link>
           {meta ? <p className="mt-0.5 text-xs text-ink-soft">{meta}</p> : null}
+          {reviewCount ? (
+            <RatingSummary
+              rating={rating}
+              reviewCount={reviewCount}
+              size="sm"
+              className="mt-1 text-xs"
+            />
+          ) : null}
         </div>
         {rec.match_score != null ? (
           <span className="shrink-0 rounded-full bg-leaf-soft px-2.5 py-1 text-xs font-semibold text-leaf-ink">

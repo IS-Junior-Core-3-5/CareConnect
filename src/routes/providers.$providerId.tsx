@@ -5,8 +5,17 @@ import { toast } from "sonner";
 import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
+import { RatingSummary, Stars, StarInput } from "@/components/StarRating";
 import { supabase } from "@/integrations/supabase/client";
-import { distanceLabel, gapCount, overlapCount, priceLabel, type Provider, type Scores } from "@/lib/model";
+import {
+  distanceLabel,
+  gapCount,
+  overlapCount,
+  priceLabel,
+  type Provider,
+  type Review,
+  type Scores,
+} from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { QK, useParents, useProvider } from "@/lib/data";
 
@@ -70,6 +79,14 @@ function ProviderProfile({ provider }: { provider: Provider }) {
         ).toFixed(1)
       : "—";
 
+  const overallFor = (r: Review) =>
+    (r.scores.experience + r.scores.values + r.scores.communication + r.scores.safety) / 4;
+
+  const distribution = [5, 4, 3, 2, 1].map((stars) => ({
+    stars,
+    count: provider.reviews.filter((r) => Math.round(overallFor(r)) === stars).length,
+  }));
+
   return (
     <>
       <div className="py-8">
@@ -93,6 +110,17 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                     <p className="mt-1 text-sm text-ink-soft">
                       {provider.careType} · {provider.neighborhood} · {distanceLabel(provider.distance)}
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} />
+                      {provider.reviewCount ? (
+                        <a
+                          href="#reviews"
+                          className="text-sm font-semibold text-primary-ink hover:underline"
+                        >
+                          Read {provider.reviewCount === 1 ? "review" : "reviews"}
+                        </a>
+                      ) : null}
+                    </div>
                     {/* Price and hours live in the sidebar on desktop; on phones show them up top. */}
                     <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden">
                       <span
@@ -189,8 +217,58 @@ function ProviderProfile({ provider }: { provider: Provider }) {
             </section>
 
 
-            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
-              <h2 className="font-display text-2xl font-bold tracking-tight">Ratings & reviews</h2>
+            <section
+              id="reviews"
+              className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
+            >
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="font-display text-2xl font-bold tracking-tight">
+                    Ratings & reviews
+                  </h2>
+                  <p className="mt-1 text-sm text-ink-soft">
+                    {provider.reviewCount
+                      ? `Rated by ${provider.reviewCount} ${provider.reviewCount === 1 ? "family" : "families"} who used ${provider.name}.`
+                      : `No ratings yet — be the first family to rate ${provider.name}.`}
+                  </p>
+                </div>
+              </div>
+
+              {provider.reviewCount ? (
+                <div className="mt-5 grid gap-5 rounded-2xl bg-background p-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:p-5">
+                  <div className="flex flex-col items-center justify-center gap-1 sm:border-r sm:border-line sm:pr-6">
+                    <p className="font-display text-5xl font-bold leading-none">
+                      {provider.rating.toFixed(1)}
+                    </p>
+                    <Stars value={provider.rating} size="lg" />
+                    <p className="text-xs text-ink-faint">
+                      {provider.reviewCount} {provider.reviewCount === 1 ? "review" : "reviews"}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {distribution.map(({ stars, count }) => {
+                      const pct = Math.round((count / provider.reviewCount) * 100);
+                      return (
+                        <div key={stars} className="flex items-center gap-2 text-xs">
+                          <span className="w-8 shrink-0 text-right font-mono text-ink-faint">
+                            {stars}★
+                          </span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-line">
+                            <div
+                              className="h-full rounded-full bg-sun"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="w-5 shrink-0 text-right font-mono text-ink-faint">
+                            {count}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {(
                   [
@@ -201,18 +279,19 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                   ] as const
                 ).map(([label, key]) => (
                   <div key={key} className="rounded-2xl bg-background p-4">
-                    <p className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">{label}</p>
+                    <p className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+                      {label}
+                    </p>
                     <p className="mt-1 font-display text-2xl font-bold">{avg(key)}</p>
+                    <Stars value={Number(avg(key)) || 0} size="sm" className="mt-1" />
                   </div>
                 ))}
               </div>
-              {provider.reviews.length === 0 ? (
-                <p className="mt-4 text-sm text-ink-soft">No reviews yet.</p>
-              ) : null}
+
               <div className="mt-5 space-y-4">
                 {provider.reviews.map((r) => (
                   <div key={r.id} className="rounded-2xl bg-background p-4">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
                       <Link
                         to="/parents/$parentId"
                         params={{ parentId: r.parentId }}
@@ -221,13 +300,27 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                         {r.author}
                         {r.parentId === parentId ? " (you)" : ""}
                       </Link>
-                      <p className="text-xs text-ink-faint">{r.date}</p>
+                      <div className="flex items-center gap-2">
+                        <Stars value={overallFor(r)} size="sm" />
+                        <span className="font-mono text-xs font-semibold text-ink-soft">
+                          {overallFor(r).toFixed(1)}
+                        </span>
+                        <p className="text-xs text-ink-faint">{r.date}</p>
+                      </div>
                     </div>
-                    <p className="mt-1 font-mono text-[11px] text-ink-faint">
-                      Experience {r.scores.experience} · Values {r.scores.values} · Communication{" "}
-                      {r.scores.communication} · Safety {r.scores.safety}
-                    </p>
-                    {r.text ? <p className="mt-2 text-sm text-ink-soft text-pretty">{r.text}</p> : null}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {SCORE_FIELDS.map(([key, label]) => (
+                        <span
+                          key={key}
+                          className="rounded-full bg-surface px-2 py-0.5 text-[11px] text-ink-soft ring-1 ring-line"
+                        >
+                          {label} <span className="font-semibold text-ink">{r.scores[key]}</span>
+                        </span>
+                      ))}
+                    </div>
+                    {r.text ? (
+                      <p className="mt-2 text-sm text-ink-soft text-pretty">{r.text}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -360,6 +453,9 @@ function ReviewForm({ provider }: { provider: Provider }) {
   const [text, setText] = useState(mine?.text ?? "");
   const [busy, setBusy] = useState(false);
 
+  const overall =
+    (scores.experience + scores.values + scores.communication + scores.safety) / 4;
+
   if (!parentId) return null;
 
   async function save(e: React.FormEvent) {
@@ -409,23 +505,30 @@ function ReviewForm({ provider }: { provider: Provider }) {
 
   return (
     <form onSubmit={save} className="mt-5 space-y-4 rounded-2xl bg-background p-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div>
+        <p className="font-display text-lg font-bold tracking-tight">
+          {mine ? "Your review" : "Rate this provider"}
+        </p>
+        <p className="mt-0.5 text-sm text-ink-soft">
+          Tap the stars for each category. Your overall score updates as you go.
+        </p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
         {SCORE_FIELDS.map(([key, label]) => (
-          <label key={key} className="text-sm">
-            <span className="mb-1 block font-mono text-[11px] uppercase tracking-wider text-ink-faint">{label}</span>
-            <select
-              value={scores[key]}
-              onChange={(e) => setScores((s) => ({ ...s, [key]: Number(e.target.value) }))}
-              className="w-full rounded-xl bg-surface px-3 py-2 ring-1 ring-line"
-            >
-              {[5, 4, 3, 2, 1].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
+          <StarInput
+            key={key}
+            label={label}
+            value={scores[key]}
+            onChange={(n) => setScores((s) => ({ ...s, [key]: n }))}
+            disabled={busy}
+          />
         ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm ring-1 ring-line">
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">Overall</span>
+        <Stars value={overall} size="sm" />
+        <span className="font-semibold text-ink">{overall.toFixed(1)}</span>
+        <span className="text-ink-faint">out of 5</span>
       </div>
       <textarea
         value={text}

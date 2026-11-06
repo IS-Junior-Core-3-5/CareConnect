@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
+import { RatingSummary, Stars } from "@/components/StarRating";
 import { distanceLabel, overlapCount, priceLabel } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
@@ -100,6 +101,12 @@ function FavoritesPage() {
                         priceLabel(p)
                       )}
                     </p>
+                    <RatingSummary
+                      rating={p.rating}
+                      reviewCount={p.reviewCount}
+                      size="sm"
+                      className="mt-1 text-xs"
+                    />
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <Link
                         to="/providers/$providerId"
@@ -165,7 +172,21 @@ function FavoritesPage() {
                         (p: (typeof chosen)[number]) =>
                           p.schedule ? `${overlapCount(schedule, p.schedule)} blocks` : "Schedule unavailable",
                       ],
-                      ["Rating", (p: (typeof chosen)[number]) => (p.reviewCount ? `★ ${p.rating.toFixed(1)} (${p.reviewCount})` : "No reviews yet")],
+                      [
+                        "Rating",
+                        (p: (typeof chosen)[number]) =>
+                          p.reviewCount ? (
+                            <span className="inline-flex flex-wrap items-center gap-1.5">
+                              <Stars value={p.rating} size="sm" />
+                              <span className="font-semibold text-ink">{p.rating.toFixed(1)}</span>
+                              <span className="text-ink-faint">
+                                ({p.reviewCount} {p.reviewCount === 1 ? "review" : "reviews"})
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-ink-faint">No reviews yet</span>
+                          ),
+                      ],
                       ["Verified", (p: (typeof chosen)[number]) => (p.verified ? "Yes" : "No")],
                       [
                         "Location",

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { photoFor } from "@/components/photos";
+import { RatingSummary } from "@/components/StarRating";
 import { distanceLabel, priceLabel, type Provider } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 
@@ -81,20 +82,9 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-          {provider.reviewCount ? (
-            <>
-              <span className="inline-flex items-center gap-1 font-semibold text-ink">
-                <span className="text-sun">★</span> {provider.rating.toFixed(1)}
-              </span>
-              <span className="text-ink-faint">
-                {provider.reviewCount} {provider.reviewCount === 1 ? "review" : "reviews"}
-              </span>
-            </>
-          ) : (
-            <span className="text-ink-faint">No reviews yet</span>
-          )}
-          <span className="text-ink-faint">·</span>
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} size="sm" />
+          {provider.reviewCount ? <span className="text-ink-faint">·</span> : null}
           <span className="text-ink-soft">{provider.neighborhood}</span>
         </div>
 

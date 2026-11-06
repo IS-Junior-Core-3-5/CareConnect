@@ -73,7 +73,8 @@ function ProvidersPage() {
     });
     const sorted = [...filtered];
     if (sort === "distance") sorted.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-    else if (sort === "rating") sorted.sort((a, b) => b.rating - a.rating);
+    else if (sort === "rating")
+      sorted.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
     else if (sort === "price")
       sorted.sort((a, b) => (a.dailyRate ?? Infinity) - (b.dailyRate ?? Infinity));
     else
