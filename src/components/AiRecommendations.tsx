@@ -72,7 +72,7 @@ export function AiRecommendations() {
   const updated = recs[0]?.created_at ? new Date(recs[0].created_at).toLocaleDateString() : null;
 
   return (
-    <section className="py-6">
+    <section id="recommendations" className="py-6">
       <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

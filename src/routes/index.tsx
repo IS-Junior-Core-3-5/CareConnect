@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ScheduleGrid } from "@/components/ScheduleGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
-import { useLanguages, useProviders } from "@/lib/data";
+import { useLanguages } from "@/lib/data";
 import { emptySchedule, scheduleToRows, type Schedule } from "@/lib/model";
 
 export const Route = createFileRoute("/")({
@@ -29,7 +30,20 @@ function AuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const { session, authLoading } = useApp();
   const navigate = useNavigate();
-  const verified = useProviders().filter((p) => p.verified).length;
+  // Only a count is public now, so the sign-in screen does not need the full
+  // provider (and review) payload before anyone has logged in.
+  const { data: verified = 0 } = useQuery({
+    queryKey: ["verified-provider-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("providers")
+        .select("id", { count: "exact", head: true })
+        .eq("verified", true);
+      if (error) throw error;
+      return count ?? 0;
+    },
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     if (!authLoading && session) navigate({ to: "/home" });

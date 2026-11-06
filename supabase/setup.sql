@@ -192,8 +192,8 @@ group by p.id;
 
 -- ---------------------------------------------------------------------
 -- 10. Security (Row Level Security)
---     Everyone can READ. Writes are closed until login (Supabase Auth) is added.
---     Parent emails are hidden from the public API.
+--     Most data can be READ by everyone. Writes are closed until login
+--     (Supabase Auth) is added. Parent emails and family activity are private.
 -- ---------------------------------------------------------------------
 do $$
 declare t text;
@@ -208,6 +208,10 @@ end $$;
 
 revoke select on parents from anon;
 grant  select (id, name, neighborhood, blurb, created_at) on parents to anon;
+
+-- Family activity is not public. Every app page requires a login; the sign-in
+-- screen only reads a verified-provider count.
+revoke select on parent_availability, provider_past_families, favorites, reviews from anon;
 
 -- ---------------------------------------------------------------------
 -- 11. Seed data (converted from the site's existing demo data)
