@@ -59,6 +59,7 @@
   --color-primary: var(--primary);
   --color-primary-soft: var(--primary-soft);
   --color-primary-ink: var(--primary-ink);
+  --color-primary-foreground: var(--primary-foreground);
   --color-leaf: var(--leaf);
   --color-leaf-soft: var(--leaf-soft);
   --color-leaf-ink: var(--leaf-ink);
@@ -74,11 +75,15 @@
   --surface: oklch(1 0 0);
   --ink: oklch(0.256 0.008 62.3);
   --ink-soft: oklch(0.484 0.017 68.1);
-  --ink-faint: oklch(0.648 0.021 74.6);
+  /* Darkened from 0.648 so faint text clears 4.5:1 on the cream background. */
+  --ink-faint: oklch(0.53 0.021 74.6);
   --line: oklch(0.897 0.024 82.5);
-  --primary: oklch(0.672 0.152 41.5);
+  /* Darkened from 0.672 so soft/white text on primary surfaces clears 4.5:1. */
+  --primary: oklch(0.52 0.152 41.5);
   --primary-soft: oklch(0.924 0.038 43.7);
-  --primary-ink: oklch(0.545 0.152 38.2);
+  /* Darker than --primary so it works for text on primary-soft and hover states. */
+  --primary-ink: oklch(0.47 0.152 38.2);
+  --primary-foreground: oklch(0.99 0 0);
   --leaf: oklch(0.523 0.084 155.3);
   --leaf-soft: oklch(0.908 0.031 150.8);
   --leaf-ink: oklch(0.417 0.078 155.6);

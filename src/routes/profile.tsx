@@ -218,11 +218,11 @@ function ProfileBody() {
           <div className="grid grid-cols-2 gap-3">
             <Link to="/schedule" className="card-lift rounded-3xl bg-primary p-5 text-primary-soft">
               <p className="font-display text-2xl font-bold">Saved schedule</p>
-              <p className="mt-1 text-sm opacity-90">View & edit</p>
+              <p className="mt-1 text-sm">View & edit</p>
             </Link>
             <Link to="/favorites" className="card-lift rounded-3xl bg-sun p-5 text-ink">
               <p className="font-display text-2xl font-bold">Favorites</p>
-              <p className="mt-1 text-sm opacity-90">{favorites.length} saved</p>
+              <p className="mt-1 text-sm">{favorites.length} saved</p>
             </Link>
           </div>
           <Link to="/listing" className="card-lift rounded-3xl bg-surface p-5 ring-1 ring-line">

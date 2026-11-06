@@ -423,7 +423,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 {provider.neighborhood} · {distanceLabel(provider.distance)}
               </p>
               <div className="mt-3 grid h-40 place-items-center rounded-2xl bg-leaf-soft">
-                <span className="font-mono text-xs uppercase tracking-[0.15em] text-leaf-ink/60">
+                <span className="font-mono text-xs uppercase tracking-[0.15em] text-leaf-ink">
                   Map placeholder
                 </span>
               </div>

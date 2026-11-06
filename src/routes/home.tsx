@@ -80,9 +80,9 @@ function HomePage() {
           <div className="grid grid-cols-2 gap-3">
             {tiles.map((t) => (
               <Link key={t.to} to={t.to} className={`card-lift rounded-3xl p-5 ${t.cls}`}>
-                <span className="font-mono text-xs opacity-70">{t.n}</span>
+                <span className="font-mono text-xs">{t.n}</span>
                 <p className="mt-6 font-display text-2xl font-bold leading-tight">{t.title}</p>
-                <p className="mt-1 text-sm opacity-90">
+                <p className="mt-1 text-sm">
                   {t.to === "/favorites" ? `${favorites.length} saved` : t.sub}
                 </p>
               </Link>
