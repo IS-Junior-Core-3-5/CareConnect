@@ -6,7 +6,7 @@ const links = [
   { to: "/home", label: "Home" },
   { to: "/home", hash: "recommendations", label: "Recommendations" },
   { to: "/schedule", label: "Schedule" },
-  { to: "/providers", label: "Trusted Providers" },
+  { to: "/providers", label: "Providers" },
   { to: "/assistant", label: "AI Assistant" },
   { to: "/favorites", label: "Favorites" },
   { to: "/listing", label: "My listing" },
@@ -99,18 +99,24 @@ export function PageFooter() {
   );
 }
 
-/** Every page inside the app requires a logged-in user. */
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  publicPage = false,
+}: {
+  children: React.ReactNode;
+  publicPage?: boolean;
+}) {
   const { authLoading, session, meLoading, me } = useApp();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!authLoading && !session) navigate({ to: "/" });
-  }, [authLoading, session, navigate]);
+    if (!publicPage && !authLoading && !session) navigate({ to: "/" });
+  }, [authLoading, session, navigate, publicPage]);
 
   let body: React.ReactNode = children;
-  if (authLoading || !session || meLoading) body = <LoadingState label="Loading your account…" />;
-  else if (!me)
+  if (!publicPage && (authLoading || !session || meLoading))
+    body = <LoadingState label="Loading your account…" />;
+  else if (!publicPage && !me)
     body = (
       <p className="py-16 text-center text-ink-soft">
         We couldn't find your parent profile. Try signing out and back in.
@@ -119,7 +125,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-ink">
-      <NavBar />
+      {publicPage && !session ? (
+        <header className="border-b border-line bg-background">
+          <nav className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+            <Link to="/providers" className="font-display text-xl font-bold">
+              CareConnect
+            </Link>
+            <Link to="/" className="text-sm font-semibold text-primary-ink">
+              Sign in
+            </Link>
+          </nav>
+        </header>
+      ) : (
+        <NavBar />
+      )}
       <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-12">{body}</main>
       <PageFooter />
     </div>

@@ -24,7 +24,13 @@ export function RequestCare({ provider }: { provider: Provider }) {
   const [date, setDate] = useState("");
   const [block, setBlock] = useState<Block>("Morning");
   const [busy, setBusy] = useState(false);
-  if (!parentId || !provider.ownerId || provider.ownerId === userId || !provider.schedule)
+  if (
+    !parentId ||
+    provider.listingOrigin !== "owned" ||
+    !provider.ownerId ||
+    provider.ownerId === userId ||
+    !provider.schedule
+  )
     return null;
 
   async function request(e: FormEvent) {

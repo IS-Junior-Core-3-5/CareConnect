@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { RequestCare } from "@/components/CareBookings";
 import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
 import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
@@ -23,7 +24,10 @@ export const Route = createFileRoute("/providers/$providerId")({
   head: () => ({
     meta: [
       { title: "Provider profile — CareConnect" },
-      { name: "description", content: "Pricing, schedule, ratings and reviews for a CareConnect provider." },
+      {
+        name: "description",
+        content: "Pricing, schedule, ratings and reviews for a CareConnect provider.",
+      },
     ],
   }),
   component: ProviderProfilePage,
@@ -31,9 +35,10 @@ export const Route = createFileRoute("/providers/$providerId")({
 
 function ProviderProfilePage() {
   const { providerId } = Route.useParams();
-  const { provider, isLoading, error } = useProvider(providerId);
+  const { userId } = useApp();
+  const { provider, isLoading, error } = useProvider(providerId, !!userId);
   return (
-    <AppShell>
+    <AppShell publicPage>
       {isLoading ? (
         <LoadingState label="Loading provider…" />
       ) : error ? (
@@ -54,7 +59,7 @@ function ProviderProfilePage() {
 
 function ProviderProfile({ provider }: { provider: Provider }) {
   const { schedule, isFavorite, toggleFavorite, userId, parentId } = useApp();
-  const parents = useParents();
+  const parents = useParents(!!userId);
   const qc = useQueryClient();
   const isOwner = !!userId && provider.ownerId === userId;
   const usedThem = !!parentId && provider.pastFamilies.includes(parentId);
@@ -62,9 +67,17 @@ function ProviderProfile({ provider }: { provider: Provider }) {
   async function toggleUsed() {
     if (!parentId) return;
     const { error } = usedThem
-      ? await supabase.from("provider_past_families").delete().match({ provider_id: provider.id, parent_id: parentId })
-      : await supabase.from("provider_past_families").insert({ provider_id: provider.id, parent_id: parentId });
-    if (error) { toast.error(error.message); return; }
+      ? await supabase
+          .from("provider_past_families")
+          .delete()
+          .match({ provider_id: provider.id, parent_id: parentId })
+      : await supabase
+          .from("provider_past_families")
+          .insert({ provider_id: provider.id, parent_id: parentId });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     qc.invalidateQueries({ queryKey: QK.providers });
   }
   const fav = isFavorite(provider.id);
@@ -74,9 +87,9 @@ function ProviderProfile({ provider }: { provider: Provider }) {
 
   const avg = (key: "experience" | "values" | "communication" | "safety") =>
     provider.reviews.length
-      ? (
-          provider.reviews.reduce((s, r) => s + r.scores[key], 0) / provider.reviews.length
-        ).toFixed(1)
+      ? (provider.reviews.reduce((s, r) => s + r.scores[key], 0) / provider.reviews.length).toFixed(
+          1,
+        )
       : "—";
 
   const overallFor = (r: Review) =>
@@ -94,6 +107,8 @@ function ProviderProfile({ provider }: { provider: Provider }) {
           ← Back to providers
         </Link>
 
+        <RequestCare provider={provider} />
+
         <div className="mt-4 grid gap-6 lg:grid-cols-12">
           <div className="min-w-0 space-y-6 lg:col-span-8">
             <section className="overflow-hidden rounded-3xl bg-surface ring-1 ring-line sm:rounded-[28px]">
@@ -105,10 +120,17 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                       <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                         {provider.name}
                       </h1>
-                      <VerifiedBadge verified={provider.verified} />
+                      {provider.listingOrigin === "external" ? (
+                        <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
+                          External listing
+                        </span>
+                      ) : (
+                        <VerifiedBadge verified={provider.verified} />
+                      )}
                     </div>
                     <p className="mt-1 text-sm text-ink-soft">
-                      {provider.careType} · {provider.neighborhood} · {distanceLabel(provider.distance)}
+                      {provider.careType} · {provider.neighborhood} ·{" "}
+                      {distanceLabel(provider.distance)}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} />
@@ -125,14 +147,18 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                     <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden">
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          provider.dailyRate === null ? "bg-clay-soft text-clay" : "bg-primary-soft text-primary-ink"
+                          provider.dailyRate === null
+                            ? "bg-clay-soft text-clay"
+                            : "bg-primary-soft text-primary-ink"
                         }`}
                       >
                         {priceLabel(provider)}
                       </span>
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          provider.schedule ? "bg-background text-ink-soft" : "bg-clay-soft text-clay"
+                          provider.schedule
+                            ? "bg-background text-ink-soft"
+                            : "bg-clay-soft text-clay"
                         }`}
                       >
                         {provider.scheduleSummary}
@@ -151,7 +177,9 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                     <button
                       onClick={() => toggleFavorite(provider.id)}
                       className={`chip flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:flex-none ${
-                        fav ? "bg-clay-soft text-clay" : "border border-line text-ink-soft hover:border-primary"
+                        fav
+                          ? "bg-clay-soft text-clay"
+                          : "border border-line text-ink-soft hover:border-primary"
                       }`}
                     >
                       {fav ? "♥ In favorites" : "♡ Add to favorites"}
@@ -166,6 +194,58 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 </div>
 
                 <p className="mt-5 max-w-[68ch] text-ink-soft text-pretty">{provider.bio}</p>
+                {provider.listingOrigin === "external" ? (
+                  <div className="mt-5 rounded-2xl bg-leaf-soft p-4 text-sm text-ink-soft">
+                    <p>
+                      Contact this provider directly to confirm current availability, pricing, and
+                      terms. CareConnect does not book care with this provider.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      {provider.contactUrl ? (
+                        <a
+                          href={provider.contactUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-primary-ink underline"
+                        >
+                          Contact or request a tour ↗
+                        </a>
+                      ) : null}
+                      {provider.websiteUrl ? (
+                        <a
+                          href={provider.websiteUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold text-primary-ink underline"
+                        >
+                          Official website ↗
+                        </a>
+                      ) : null}
+                      {provider.contactPhone ? (
+                        <a
+                          href={`tel:${provider.contactPhone}`}
+                          className="font-semibold text-primary-ink underline"
+                        >
+                          {provider.contactPhone}
+                        </a>
+                      ) : null}
+                    </div>
+                    {provider.sourceUrl ? (
+                      <p className="mt-3 text-xs">
+                        Source:{" "}
+                        <a
+                          href={provider.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline"
+                        >
+                          provider website ↗
+                        </a>{" "}
+                        · Checked {provider.checkedOn}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className="mt-5 flex flex-wrap gap-1.5">
                   {provider.languages.map((l) => (
@@ -180,7 +260,10 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               </div>
             </section>
 
-            <section id="compare" className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
+            <section
+              id="compare"
+              className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
+            >
               <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">
                 Compare schedule
               </span>
@@ -199,7 +282,9 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-leaf-soft px-4 py-3">
                     <p className="text-sm font-medium text-leaf-ink">
                       {covered} of your {covered + gaps} needed blocks are covered
-                      {gaps > 0 ? ` — ${gaps} gap${gaps === 1 ? "" : "s"} to fill.` : " — a full match."}
+                      {gaps > 0
+                        ? ` — ${gaps} gap${gaps === 1 ? "" : "s"} to fill.`
+                        : " — a full match."}
                     </p>
                     <Link
                       to="/schedule"
@@ -215,7 +300,6 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 </p>
               )}
             </section>
-
 
             <section
               id="reviews"
@@ -327,54 +411,65 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               {!isOwner ? <ReviewForm provider={provider} /> : null}
             </section>
 
-            <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-display text-2xl font-bold tracking-tight">Past families</h2>
-                {!isOwner ? (
-                  <button
-                    onClick={toggleUsed}
-                    className={`chip rounded-full px-4 py-2 text-sm font-semibold ${
-                      usedThem ? "bg-leaf-soft text-leaf-ink" : "border border-line text-ink-soft hover:border-primary"
-                    }`}
-                  >
-                    {usedThem ? "✓ We've used this provider" : "We've used this provider"}
-                  </button>
-                ) : null}
-              </div>
-              {provider.pastFamilies.length === 0 ? (
-                <p className="mt-3 text-sm text-ink-soft">No past families listed yet.</p>
-              ) : (
-                <ul className="mt-4 space-y-3">
-                  {provider.pastFamilies.map((pid) => {
-                    const parent = parents.find((x) => x.id === pid);
-                    if (!parent) return null;
-                    const isMe = pid === parentId;
-                    return (
-                      <li
-                        key={pid}
-                        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background p-4"
-                      >
-                        <div>
-                          <Link
-                            to="/parents/$parentId"
-                            params={{ parentId: pid }}
-                            className="font-semibold hover:text-primary-ink"
-                          >
-                            {parent.name}
-                          </Link>
-                          <p className="text-sm text-ink-soft">
-                            {[parent.neighborhood, parent.children.map((c) => `${c.name} (${c.age ?? "?"})`).join(", ")]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </p>
-                        </div>
-                        {isMe ? <span className="text-sm font-semibold text-ink-faint">You</span> : null}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
+            {parentId ? (
+              <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="font-display text-2xl font-bold tracking-tight">Past families</h2>
+                  {!isOwner ? (
+                    <button
+                      onClick={toggleUsed}
+                      className={`chip rounded-full px-4 py-2 text-sm font-semibold ${
+                        usedThem
+                          ? "bg-leaf-soft text-leaf-ink"
+                          : "border border-line text-ink-soft hover:border-primary"
+                      }`}
+                    >
+                      {usedThem ? "✓ We've used this provider" : "We've used this provider"}
+                    </button>
+                  ) : null}
+                </div>
+                {provider.pastFamilies.length === 0 ? (
+                  <p className="mt-3 text-sm text-ink-soft">No past families listed yet.</p>
+                ) : (
+                  <ul className="mt-4 space-y-3">
+                    {provider.pastFamilies.map((pid) => {
+                      const parent = parents.find((x) => x.id === pid);
+                      if (!parent) return null;
+                      const isMe = pid === parentId;
+                      return (
+                        <li
+                          key={pid}
+                          className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background p-4"
+                        >
+                          <div>
+                            <Link
+                              to="/parents/$parentId"
+                              params={{ parentId: pid }}
+                              className="font-semibold hover:text-primary-ink"
+                            >
+                              {parent.name}
+                            </Link>
+                            <p className="text-sm text-ink-soft">
+                              {[
+                                parent.neighborhood,
+                                parent.children
+                                  .map((c) => `${c.name} (${c.age ?? "?"})`)
+                                  .join(", "),
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          </div>
+                          {isMe ? (
+                            <span className="text-sm font-semibold text-ink-faint">You</span>
+                          ) : null}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </section>
+            ) : null}
           </div>
 
           <aside className="min-w-0 space-y-6 lg:col-span-4">
@@ -397,10 +492,10 @@ function ProviderProfile({ provider }: { provider: Provider }) {
             </section>
 
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
-              <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Hours</p>
-              <p
-                className={`mt-1 font-semibold ${provider.schedule ? "" : "text-clay"}`}
-              >
+              <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+                Care availability
+              </p>
+              <p className={`mt-1 font-semibold ${provider.schedule ? "" : "text-clay"}`}>
                 {provider.scheduleSummary}
               </p>
               <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">
@@ -453,8 +548,7 @@ function ReviewForm({ provider }: { provider: Provider }) {
   const [text, setText] = useState(mine?.text ?? "");
   const [busy, setBusy] = useState(false);
 
-  const overall =
-    (scores.experience + scores.values + scores.communication + scores.safety) / 4;
+  const overall = (scores.experience + scores.values + scores.communication + scores.safety) / 4;
 
   if (!parentId) return null;
 
@@ -475,7 +569,10 @@ function ReviewForm({ provider }: { provider: Provider }) {
       { onConflict: "provider_id,parent_id" },
     );
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success(mine ? "Review updated" : "Review posted");
     setOpen(false);
     qc.invalidateQueries({ queryKey: QK.providers });
@@ -486,7 +583,10 @@ function ReviewForm({ provider }: { provider: Provider }) {
     setBusy(true);
     const { error } = await supabase.from("reviews").delete().eq("id", mine.id);
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     toast.success("Review deleted");
     setOpen(false);
     setText("");
@@ -525,7 +625,9 @@ function ReviewForm({ provider }: { provider: Provider }) {
         ))}
       </div>
       <div className="flex flex-wrap items-center gap-2 rounded-xl bg-surface px-3 py-2 text-sm ring-1 ring-line">
-        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">Overall</span>
+        <span className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+          Overall
+        </span>
         <Stars value={overall} size="sm" />
         <span className="font-semibold text-ink">{overall.toFixed(1)}</span>
         <span className="text-ink-faint">out of 5</span>
@@ -544,11 +646,20 @@ function ReviewForm({ provider }: { provider: Provider }) {
         >
           {mine ? "Save review" : "Post review"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="rounded-full px-4 py-2 text-sm font-semibold text-ink-soft"
+        >
           Cancel
         </button>
         {mine ? (
-          <button type="button" disabled={busy} onClick={remove} className="ml-auto text-sm font-semibold text-clay">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={remove}
+            className="ml-auto text-sm font-semibold text-clay"
+          >
             Delete review
           </button>
         ) : null}

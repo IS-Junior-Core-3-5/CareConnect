@@ -54,9 +54,18 @@ export function ProviderCard({ provider }: { provider: Provider }) {
   return (
     <article className="card-lift grid gap-4 rounded-3xl bg-surface p-4 ring-1 ring-line sm:grid-cols-[168px_minmax(0,1fr)]">
       <div className="relative">
-        <ProviderPhoto provider={provider} className="aspect-[16/10] w-full rounded-2xl sm:aspect-square" />
+        <ProviderPhoto
+          provider={provider}
+          className="aspect-[16/10] w-full rounded-2xl sm:aspect-square"
+        />
         <span className="absolute left-2 top-2">
-          <VerifiedBadge verified={provider.verified} />
+          {provider.listingOrigin === "external" ? (
+            <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
+              External listing
+            </span>
+          ) : (
+            <VerifiedBadge verified={provider.verified} />
+          )}
         </span>
       </div>
       <div className="flex min-w-0 flex-col">
@@ -97,7 +106,10 @@ export function ProviderCard({ provider }: { provider: Provider }) {
             {provider.scheduleSummary}
           </span>
           {provider.languages.map((l) => (
-            <span key={l} className="rounded-full bg-background px-2.5 py-1 text-xs font-medium text-ink-soft">
+            <span
+              key={l}
+              className="rounded-full bg-background px-2.5 py-1 text-xs font-medium text-ink-soft"
+            >
               {l}
             </span>
           ))}
@@ -111,18 +123,22 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           >
             View profile
           </Link>
-          <Link
-            to="/providers/$providerId"
-            params={{ providerId: provider.id }}
-            hash="compare"
-            className="whitespace-nowrap rounded-full border border-line px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink sm:px-4"
-          >
-            <span className="sm:hidden">Compare</span>
-            <span className="hidden sm:inline">Compare schedule</span>
-          </Link>
+          {provider.schedule ? (
+            <Link
+              to="/providers/$providerId"
+              params={{ providerId: provider.id }}
+              hash="compare"
+              className="whitespace-nowrap rounded-full border border-line px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink sm:px-4"
+            >
+              <span className="sm:hidden">Compare</span>
+              <span className="hidden sm:inline">Compare schedule</span>
+            </Link>
+          ) : null}
           <button
             onClick={() => toggleFavorite(provider.id)}
-            aria-label={fav ? `Remove ${provider.name} from favorites` : `Add ${provider.name} to favorites`}
+            aria-label={
+              fav ? `Remove ${provider.name} from favorites` : `Add ${provider.name} to favorites`
+            }
             className={`ml-auto rounded-full p-2 text-lg transition-colors ${
               fav ? "text-clay" : "text-ink-faint hover:text-clay"
             }`}

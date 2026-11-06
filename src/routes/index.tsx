@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ScheduleGrid } from "@/components/ScheduleGrid";
@@ -19,7 +19,8 @@ export const Route = createFileRoute("/")({
       { property: "og:title", content: "Sign in — CareConnect" },
       {
         property: "og:description",
-        content: "Sign in or create a CareConnect parent account and save your weekly care schedule.",
+        content:
+          "Sign in or create a CareConnect parent account and save your weekly care schedule.",
       },
     ],
   }),
@@ -69,9 +70,14 @@ function AuthPage() {
             Find care that <span className="italic text-primary">fits your week</span>.
           </h1>
           <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
-            CareConnect matches you with trusted, background-checked caregivers — then lines up their
-            availability with yours, so the schedule just clicks.
+            Explore local childcare, preschool, and babysitting options in Provo and Orem.
           </p>
+          <Link
+            to="/providers"
+            className="mt-4 inline-block font-semibold text-primary-ink underline"
+          >
+            Browse providers
+          </Link>
         </section>
 
         <section className="min-w-0 lg:col-span-7">
@@ -301,7 +307,12 @@ function SignupForm({ onDone }: { onDone: () => void }) {
           <label className={label} htmlFor="lang">
             Language preference
           </label>
-          <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className={field}>
+          <select
+            id="lang"
+            value={lang}
+            onChange={(e) => setLang(e.target.value)}
+            className={field}
+          >
             {langOptions.map((l) => (
               <option key={l}>{l}</option>
             ))}
@@ -335,7 +346,9 @@ function SignupForm({ onDone }: { onDone: () => void }) {
                 <input
                   value={k.name}
                   onChange={(e) =>
-                    setKids((prev) => prev.map((v, idx) => (idx === i ? { ...v, name: e.target.value } : v)))
+                    setKids((prev) =>
+                      prev.map((v, idx) => (idx === i ? { ...v, name: e.target.value } : v)),
+                    )
                   }
                   className={field}
                   placeholder={`Child ${i + 1} name`}
@@ -347,7 +360,9 @@ function SignupForm({ onDone }: { onDone: () => void }) {
                   max={17}
                   value={k.age}
                   onChange={(e) =>
-                    setKids((prev) => prev.map((v, idx) => (idx === i ? { ...v, age: e.target.value } : v)))
+                    setKids((prev) =>
+                      prev.map((v, idx) => (idx === i ? { ...v, age: e.target.value } : v)),
+                    )
                   }
                   className="w-24 rounded-2xl bg-background px-3 py-2 text-sm outline-none ring-1 ring-line focus:ring-2 focus:ring-primary"
                   aria-label={`Age of child ${i + 1}`}
@@ -367,7 +382,9 @@ function SignupForm({ onDone }: { onDone: () => void }) {
           schedule={draft}
           editable
           onToggle={(d, t) =>
-            setDraft((prev) => prev.map((row, di) => (di === d ? row.map((v, ti) => (ti === t ? !v : v)) : row)))
+            setDraft((prev) =>
+              prev.map((row, di) => (di === d ? row.map((v, ti) => (ti === t ? !v : v)) : row)),
+            )
           }
         />
       </div>

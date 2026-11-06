@@ -26,10 +26,34 @@ export const Route = createFileRoute("/home")({
 });
 
 const tiles = [
-  { to: "/schedule", n: "01", title: "My schedule", sub: "The hours you need covered", cls: "bg-primary text-primary-soft" },
-  { to: "/providers", n: "02", title: "Trusted providers", sub: "Filter by fit and price", cls: "bg-leaf text-white" },
-  { to: "/favorites", n: "03", title: "My favorites", sub: "Shortlist & compare", cls: "bg-sun text-ink" },
-  { to: "/listing", n: "04", title: "My listing", sub: "Offer care to families", cls: "bg-surface ring-1 ring-line" },
+  {
+    to: "/schedule",
+    n: "01",
+    title: "My schedule",
+    sub: "The hours you need covered",
+    cls: "bg-primary text-primary-soft",
+  },
+  {
+    to: "/providers",
+    n: "02",
+    title: "Provo and Orem providers",
+    sub: "Explore local listings",
+    cls: "bg-leaf text-white",
+  },
+  {
+    to: "/favorites",
+    n: "03",
+    title: "My favorites",
+    sub: "Shortlist & compare",
+    cls: "bg-sun text-ink",
+  },
+  {
+    to: "/listing",
+    n: "04",
+    title: "My listing",
+    sub: "Offer care to families",
+    cls: "bg-surface ring-1 ring-line",
+  },
 ] as const;
 
 function HomePage() {
@@ -43,8 +67,8 @@ function HomePage() {
       <section className="grid gap-8 py-10 lg:grid-cols-12 lg:items-center">
         <div className="min-w-0 lg:col-span-7">
           <span className="inline-flex items-center gap-2 rounded-full bg-sun-soft px-3 py-1.5 text-xs font-semibold text-ink-soft">
-            <span className="size-1.5 rounded-full bg-sun" /> {providers.filter((p) => p.verified).length} verified
-            providers near you
+            <span className="size-1.5 rounded-full bg-sun" />{" "}
+            {providers.filter((p) => p.verified).length} verified providers near you
           </span>
           <h1 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.02] tracking-tight text-balance">
             Good afternoon, <span className="italic text-primary">{parentName.split(" ")[0]}</span>.
@@ -73,7 +97,6 @@ function HomePage() {
               Search
             </button>
           </form>
-
         </div>
 
         <div className="min-w-0 lg:col-span-5">
@@ -93,7 +116,6 @@ function HomePage() {
 
       <AiRecommendations />
       <AiChat />
-
     </AppShell>
   );
 }
