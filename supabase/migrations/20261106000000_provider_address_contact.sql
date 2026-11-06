@@ -107,7 +107,7 @@ returns table (
   is_favorite boolean,
   my_confirmed_bookings int
 )
-language sql stable security invoker set search_path = public as $
+language sql stable security invoker set search_path = public as $func$
   with me    as (select my_parent_id() as id),
        need  as (select day_of_week, block from parent_availability where parent_id = (select id from me)),
        plang as (select language_id from parent_languages where parent_id = (select id from me))
@@ -136,7 +136,7 @@ language sql stable security invoker set search_path = public as $
          coalesce((select rt.confirmed_bookings from rebook_tracking rt
                     where rt.parent_id = (select id from me) and rt.provider_id = s.id), 0)
   from public.provider_summary s;
-$;
+$func$;
 
 revoke execute on function public.provider_match_features() from public, anon;
 grant execute on function public.provider_match_features() to authenticated;
