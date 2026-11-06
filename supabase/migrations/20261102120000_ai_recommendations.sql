@@ -39,7 +39,7 @@ returns table (
   daily_rate           numeric,
   daily_rate_max       numeric,
   pricing_notes        text[],
-  neighborhood         text,
+  address              text,
   distance_miles       numeric,
   verified             boolean,
   schedule_available   boolean,
@@ -62,7 +62,7 @@ language sql stable security invoker set search_path = public as $$
        plang as (select language_id from parent_languages where parent_id = (select id from me))
   select s.id, s.name, s.care_type, s.blurb, s.bio, s.daily_rate, s.daily_rate_max,
          array(select n.note from provider_pricing_notes n where n.provider_id = s.id order by n.sort_order),
-         s.neighborhood, s.distance_miles, s.verified, s.schedule_available, s.schedule_summary,
+         s.address, s.distance_miles, s.verified, s.schedule_available, s.schedule_summary,
          s.rating, s.review_count,
          array(select left(r.body, 200) from reviews r where r.provider_id = s.id and r.body is not null
                 order by r.reviewed_on desc limit 3),
