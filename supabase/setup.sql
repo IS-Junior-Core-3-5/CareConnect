@@ -48,6 +48,8 @@ create table providers (
   bio                 text,
   daily_rate          numeric(8,2) check (daily_rate >= 0),       -- Must: price. NULL = pricing unavailable (BR 10)
   daily_rate_max      numeric(8,2) check (daily_rate_max >= daily_rate),
+  address             text,
+  phone               text,
   neighborhood        text,
   distance_miles      numeric(5,2),                     -- demo value until map/geo is built
   latitude            numeric(9,6),                     -- Could: map
@@ -493,9 +495,9 @@ grant  update (name, neighborhood, blurb) on parents to authenticated;
 
 -- Providers: owners can't mark themselves verified or change the owner
 revoke insert, update on providers from authenticated;
-grant  insert (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles,
+grant  insert (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone, neighborhood, distance_miles,
                latitude, longitude, schedule_available, schedule_summary, photo_key, owner_id) on providers to authenticated;
-grant  update (name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles,
+grant  update (name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone, neighborhood, distance_miles,
                latitude, longitude, schedule_available, schedule_summary, photo_key) on providers to authenticated;
 
 -- ---------------------------------------------------------------------

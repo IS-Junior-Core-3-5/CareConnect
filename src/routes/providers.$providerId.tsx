@@ -108,7 +108,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                       <VerifiedBadge verified={provider.verified} />
                     </div>
                     <p className="mt-1 text-sm text-ink-soft">
-                      {provider.careType} · {provider.neighborhood} · {distanceLabel(provider.distance)}
+                      {provider.careType} · {provider.address || provider.neighborhood} · {distanceLabel(provider.distance)}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} />
@@ -418,10 +418,19 @@ function ProviderProfile({ provider }: { provider: Provider }) {
             </section>
 
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
-              <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Location</p>
+              <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Contact</p>
+              {provider.phone ? (
+                <a className="mt-1 block font-semibold text-primary-ink hover:underline" href={`tel:${provider.phone.replace(/[^+\d]/g, "")}`}>
+                  {provider.phone}
+                </a>
+              ) : (
+                <p className="mt-1 text-sm text-ink-soft">Phone not provided</p>
+              )}
+              <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">Location</p>
               <p className="mt-1 font-semibold">
-                {provider.neighborhood} · {distanceLabel(provider.distance)}
+                {provider.address || provider.neighborhood || "Address not provided"}
               </p>
+              <p className="mt-1 text-sm text-ink-soft">{distanceLabel(provider.distance)}</p>
               <div className="mt-3 grid h-40 place-items-center rounded-2xl bg-leaf-soft">
                 <span className="font-mono text-xs uppercase tracking-[0.15em] text-leaf-ink">
                   Map placeholder

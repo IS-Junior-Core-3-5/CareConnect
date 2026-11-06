@@ -39,6 +39,8 @@ export type Provider = {
   dailyRate: number | null;
   dailyRateMax: number | null;
   pricingNotes: string[];
+  address: string;
+  phone: string;
   neighborhood: string;
   /** null = distance unknown */
   distance: number | null;
