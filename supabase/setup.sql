@@ -48,7 +48,8 @@ create table providers (
   bio                 text,
   daily_rate          numeric(8,2) check (daily_rate >= 0),       -- Must: price. NULL = pricing unavailable (BR 10)
   daily_rate_max      numeric(8,2) check (daily_rate_max >= daily_rate),
-  neighborhood        text,
+  address             text,
+  phone               text,
   distance_miles      numeric(5,2),                     -- demo value until map/geo is built
   latitude            numeric(9,6),                     -- Could: map
   longitude           numeric(9,6),
@@ -175,7 +176,6 @@ create table favorites (
 -- ---------------------------------------------------------------------
 create index on providers (care_type);
 create index on providers (daily_rate);
-create index on providers (neighborhood);
 create index on reviews (provider_id);
 create index on children (parent_id);
 
@@ -268,7 +268,7 @@ insert into parent_languages (parent_id, language_id) select 'p-nina', id from l
 insert into parent_availability (parent_id, day_of_week, block) values ('p-nina', 1, 'Morning');
 insert into parent_availability (parent_id, day_of_week, block) values ('p-nina', 2, 'Morning');
 insert into parent_availability (parent_id, day_of_week, block) values ('p-nina', 3, 'Morning');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('maya-okafor', 'Maya Okafor', 'Sitter', 'Full-day sitter with six years of infant and toddler experience.', 'I''ve cared for families in Maplewood since 2018, mostly full-day weekday care for infants and toddlers. My days run on a gentle rhythm: outdoor time in the morning, lunch and nap, then art or music in the afternoon. I handle school pickup and drop-off for older siblings too.', 190, 240, 'Maplewood', 1.2, true, true, 'Mon–Fri · 7am–6pm', 'maya');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('maya-okafor', 'Maya Okafor', 'Sitter', 'Full-day sitter with six years of infant and toddler experience.', 'I''ve cared for families in Maplewood since 2018, mostly full-day weekday care for infants and toddlers. My days run on a gentle rhythm: outdoor time in the morning, lunch and nap, then art or music in the afternoon. I handle school pickup and drop-off for older siblings too.', 190, 240, 1.2, true, true, 'Mon–Fri · 7am–6pm', 'maya');
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('maya-okafor', 'Full day (7am – 6pm): $190', 0);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('maya-okafor', 'Two children: $240', 1);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('maya-okafor', 'Evening add-on after 6pm: $28/hr', 2);
@@ -292,7 +292,7 @@ insert into provider_past_families (provider_id, parent_id) values ('maya-okafor
 insert into provider_past_families (provider_id, parent_id) values ('maya-okafor', 'p-nina');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('maya-okafor', 'p-jordan', 'Maya has been with us for two years. She sends a short note every afternoon about naps and meals — I never have to ask.', 5, 5, 5, 5, '2026-03-01');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('maya-okafor', 'p-nina', 'Calm with a fussy newborn and unfailingly punctual. She reorganized our whole nap routine in a week.', 5, 4, 5, 5, '2026-01-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('daniel-reyes', 'Daniel Reyes', 'Sitter', 'After-school care and homework help for school-age kids.', 'Former middle-school teacher, now doing after-school care three afternoons a week. I pick up from Riverside Elementary, we do homework first, then a walk to the park or a board game. I keep a reading log for each kid.', 110, null, 'Riverside', 2.8, true, true, 'Tue, Thu, Fri · 3pm–7pm', 'daniel');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('daniel-reyes', 'Daniel Reyes', 'Sitter', 'After-school care and homework help for school-age kids.', 'Former middle-school teacher, now doing after-school care three afternoons a week. I pick up from Riverside Elementary, we do homework first, then a walk to the park or a board game. I keep a reading log for each kid.', 110, null, 2.8, true, true, 'Tue, Thu, Fri · 3pm–7pm', 'daniel');
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('daniel-reyes', 'Afternoon block (3pm – 7pm): $110', 0);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('daniel-reyes', 'Sibling rate: +$35', 1);
 insert into provider_photos (provider_id, photo_key, sort_order) values ('daniel-reyes', 'daniel', 0);
@@ -309,7 +309,7 @@ insert into provider_availability (provider_id, day_of_week, block) values ('dan
 insert into provider_availability (provider_id, day_of_week, block) values ('daniel-reyes', 4, 'Evening');
 insert into provider_past_families (provider_id, parent_id) values ('daniel-reyes', 'p-luis');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('daniel-reyes', 'p-luis', 'Mateo''s reading went up two levels. Daniel switches to Spanish at home with him, which we love.', 5, 5, 4, 5, '2026-02-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('sunny-meadows', 'Sunny Meadows Daycare', 'Daycare', 'Licensed neighborhood daycare with meals and a fenced play yard.', 'A ten-child home daycare in Oak Hill, run by Priya Nair and one assistant. Meals and snacks are included and made in-house. Ages one through ten, with a separate quiet room for nappers.', 145, null, 'Oak Hill', 3.5, true, true, 'Mon–Sat · 8am–5pm', 'sunny');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('sunny-meadows', 'Sunny Meadows Daycare', 'Daycare', 'Licensed neighborhood daycare with meals and a fenced play yard.', 'A ten-child home daycare in Oak Hill, run by Priya Nair and one assistant. Meals and snacks are included and made in-house. Ages one through ten, with a separate quiet room for nappers.', 145, null, 3.5, true, true, 'Mon–Sat · 8am–5pm', 'sunny');
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('sunny-meadows', 'Full day (8am – 5pm): $145', 0);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('sunny-meadows', 'Meals and snacks included', 1);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('sunny-meadows', 'Half day: $85', 2);
@@ -335,7 +335,7 @@ insert into provider_past_families (provider_id, parent_id) values ('sunny-meado
 insert into provider_past_families (provider_id, parent_id) values ('sunny-meadows', 'p-jordan');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('sunny-meadows', 'p-luis', 'Sofia asks to go on Saturdays. The meals alone are worth the rate.', 5, 5, 5, 5, '2026-03-01');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('sunny-meadows', 'p-jordan', 'Very organized. Monthly newsletter, clear sick-day policy, no surprises on the invoice.', 5, 4, 5, 5, '2025-12-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('little-lantern', 'Little Lantern Preschool', 'Preschool', 'Play-based preschool mornings for ages three to five.', 'A morning preschool program built around play, outdoor time, and early literacy. Two teachers per eight children. Parents join for a Friday sing-along once a month.', 96, null, 'Larkspur', 4.1, true, true, 'Mon–Fri · 8:30am–12:30pm', 'lantern');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('little-lantern', 'Little Lantern Preschool', 'Preschool', 'Play-based preschool mornings for ages three to five.', 'A morning preschool program built around play, outdoor time, and early literacy. Two teachers per eight children. Parents join for a Friday sing-along once a month.', 96, null, 4.1, true, true, 'Mon–Fri · 8:30am–12:30pm', 'lantern');
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('little-lantern', 'Morning session (8:30am – 12:30pm): $96', 0);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('little-lantern', 'Billed monthly, 4-week terms', 1);
 insert into provider_photos (provider_id, photo_key, sort_order) values ('little-lantern', 'lantern', 0);
@@ -350,7 +350,7 @@ insert into provider_availability (provider_id, day_of_week, block) values ('lit
 insert into provider_availability (provider_id, day_of_week, block) values ('little-lantern', 4, 'Morning');
 insert into provider_past_families (provider_id, parent_id) values ('little-lantern', 'p-nina');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('little-lantern', 'p-nina', 'Warm teachers and a genuinely calm room. Anya cried for two days and then never again.', 4, 5, 5, 5, '2026-02-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('grace-lindqvist', 'Grace Lindqvist', 'Family Friend', 'Retired teacher offering weekend and evening care for neighbors.', 'Retired after thirty years in first grade. I watch a few neighborhood kids on evenings and weekends — mostly dinner, a book, and bedtime. I don''t take on full-time placements.', null, null, 'Maplewood', 0.9, false, true, 'Fri evening, Sat–Sun', 'grace');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('grace-lindqvist', 'Grace Lindqvist', 'Family Friend', 'Retired teacher offering weekend and evening care for neighbors.', 'Retired after thirty years in first grade. I watch a few neighborhood kids on evenings and weekends — mostly dinner, a book, and bedtime. I don''t take on full-time placements.', null, null, 0.9, false, true, 'Fri evening, Sat–Sun', 'grace');
 insert into provider_photos (provider_id, photo_key, sort_order) values ('grace-lindqvist', 'grace', 0);
 insert into provider_credentials (provider_id, name, verified) values ('grace-lindqvist', 'Pediatric CPR (self-reported)', false);
 insert into provider_languages (provider_id, language_id) select 'grace-lindqvist', id from languages where name = 'English';
@@ -363,7 +363,7 @@ insert into provider_availability (provider_id, day_of_week, block) values ('gra
 insert into provider_availability (provider_id, day_of_week, block) values ('grace-lindqvist', 6, 'Evening');
 insert into provider_past_families (provider_id, parent_id) values ('grace-lindqvist', 'p-amara');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('grace-lindqvist', 'p-amara', 'Grace is the reason I can take Saturday shifts. Kofi adores her.', 5, 5, 4, 4, '2026-01-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('harborview-kids', 'Harborview Kids Center', 'Daycare', 'Large center with extended hours for shift-working parents.', 'A 60-child center near the hospital district with extended hours, including evenings. Separate infant, toddler, and preschool rooms, each with its own lead teacher.', 132, 168, 'Riverside', 5.4, true, true, 'Mon–Fri · 6:30am–9pm', 'harborview');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('harborview-kids', 'Harborview Kids Center', 'Daycare', 'Large center with extended hours for shift-working parents.', 'A 60-child center near the hospital district with extended hours, including evenings. Separate infant, toddler, and preschool rooms, each with its own lead teacher.', 132, 168, 5.4, true, true, 'Mon–Fri · 6:30am–9pm', 'harborview');
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('harborview-kids', 'Standard day (6:30am – 6pm): $132', 0);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('harborview-kids', 'Extended day to 9pm: $168', 1);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('harborview-kids', 'Infant room: +$20/day', 2);
@@ -390,11 +390,11 @@ insert into provider_availability (provider_id, day_of_week, block) values ('har
 insert into provider_availability (provider_id, day_of_week, block) values ('harborview-kids', 4, 'Evening');
 insert into provider_past_families (provider_id, parent_id) values ('harborview-kids', 'p-amara');
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('harborview-kids', 'p-amara', 'The late pickup is a lifesaver on night shifts. It''s a big place, so you have to ask for details.', 4, 4, 3, 5, '2026-03-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('tomas-albright', 'Tomás Albright', 'Sitter', 'Occasional date-night and weekend sitter.', 'I sit for a handful of families on weekends, mostly evenings. New to CareConnect — schedule still being set up.', 85, null, 'Oak Hill', 3.1, false, false, 'Schedule unavailable', null);
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('tomas-albright', 'Tomás Albright', 'Sitter', 'Occasional date-night and weekend sitter.', 'I sit for a handful of families on weekends, mostly evenings. New to CareConnect — schedule still being set up.', 85, null, 3.1, false, false, 'Schedule unavailable', null);
 insert into provider_pricing_notes (provider_id, note, sort_order) values ('tomas-albright', 'Evening block (5pm – 11pm): $85', 0);
 insert into provider_languages (provider_id, language_id) select 'tomas-albright', id from languages where name = 'English';
 insert into reviews (provider_id, parent_id, body, score_experience, score_values, score_communication, score_safety, reviewed_on) values ('tomas-albright', 'p-nina', 'Friendly and on time for a last-minute evening.', 4, 4, 4, 4, '2025-11-01');
-insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles, verified, schedule_available, schedule_summary, photo_key) values ('willow-bend', 'Willow Bend Preschool Co-op', 'Preschool', 'Parent co-op preschool — families share teaching shifts.', 'A co-op: every family takes one classroom shift per month, which keeps tuition low. Mixed-age room, heavy on outdoor play, rain or shine. Membership is by term.', null, null, 'Larkspur', 4.8, true, true, 'Mon, Wed, Fri · 9am–12pm', 'willow');
+insert into providers (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, distance_miles, verified, schedule_available, schedule_summary, photo_key) values('willow-bend', 'Willow Bend Preschool Co-op', 'Preschool', 'Parent co-op preschool — families share teaching shifts.', 'A co-op: every family takes one classroom shift per month, which keeps tuition low. Mixed-age room, heavy on outdoor play, rain or shine. Membership is by term.', null, null, 4.8, true, true, 'Mon, Wed, Fri · 9am–12pm', 'willow');
 insert into provider_photos (provider_id, photo_key, sort_order) values ('willow-bend', 'willow', 0);
 insert into provider_credentials (provider_id, name, verified) values ('willow-bend', 'State preschool license #PS-0922', true);
 insert into provider_languages (provider_id, language_id) select 'willow-bend', id from languages where name = 'English';
@@ -493,9 +493,9 @@ grant  update (name, neighborhood, blurb) on parents to authenticated;
 
 -- Providers: owners can't mark themselves verified or change the owner
 revoke insert, update on providers from authenticated;
-grant  insert (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles,
+grant  insert (id, name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone, distance_miles,
                latitude, longitude, schedule_available, schedule_summary, photo_key, owner_id) on providers to authenticated;
-grant  update (name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood, distance_miles,
+grant  update (name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone, distance_miles,
                latitude, longitude, schedule_available, schedule_summary, photo_key) on providers to authenticated;
 
 -- ---------------------------------------------------------------------

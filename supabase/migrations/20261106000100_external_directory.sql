@@ -4,7 +4,6 @@ alter table public.providers add column if not exists listing_origin text not nu
 alter table public.providers add column if not exists is_public boolean not null default true;
 alter table public.providers add column if not exists website_url text;
 alter table public.providers add column if not exists contact_url text;
-alter table public.providers add column if not exists contact_phone text;
 alter table public.providers add column if not exists source_url text;
 alter table public.providers add column if not exists checked_on date;
 
@@ -20,9 +19,9 @@ create policy "visible provider listings" on public.providers
   using (is_public);
 
 insert into public.providers
-  (id, name, care_type, blurb, bio, neighborhood, distance_miles, verified,
+  (id, name, care_type, blurb, bio, address, distance_miles, verified,
    schedule_available, schedule_summary, photo_key, listing_origin, website_url,
-   contact_url, contact_phone, source_url, checked_on)
+   contact_url, phone, source_url, checked_on)
 values
   ('guardian-angel-babysitting-utah', 'Guardian Angel Babysitting', 'Sitter',
    'Babysitting service that lists Provo among its Utah service areas.',
@@ -33,13 +32,13 @@ values
   ('les-petits-provo', 'Les Petits Childcare & Preschool', 'Daycare',
    'Childcare and preschool at 795 West Center Street in Provo.',
    'Les Petits invites families to call or text for information and in-person tours. Confirm current enrollment and terms directly with the business.',
-   'Provo', null, false, false, null, null, 'external',
+   '795 West Center Street, Provo, UT', null, false, false, null, null, 'external',
    'https://lespetitsprovo.com/', 'https://lespetitsprovo.com/contact-us',
    '801-360-0827', 'https://lespetitsprovo.com/contact-us', '2026-11-06'),
   ('kids-village-orem', 'Kids Village', 'Preschool',
    'Private preschool in Orem with an official tour request page.',
    'Kids Village offers preschool programs in Orem. Families can request a tour and confirm current enrollment and terms with the school.',
-   'Orem', null, false, false, null, null, 'external',
+   'Orem, UT', null, false, false, null, null, 'external',
    'https://kidsvillage.com/', 'https://kidsvillage.com/schedule-a-tour/',
    '801-235-9999', 'https://kidsvillage.com/', '2026-11-06')
 on conflict (id) do nothing;

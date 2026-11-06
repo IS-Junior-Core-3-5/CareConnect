@@ -259,7 +259,7 @@ function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved
         ) : null}
       </div>
       <p className="mt-1 text-xs text-ink-soft">
-        {p.careType} · {p.neighborhood} · {priceLabel(p)}
+        {p.careType} · {p.address} · {priceLabel(p)}
       </p>
       {p.reviewCount ? (
         <RatingSummary

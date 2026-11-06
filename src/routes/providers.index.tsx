@@ -52,7 +52,7 @@ function ProvidersPage() {
     const filtered = providers.filter((p) => {
       if (
         query &&
-        ![p.name, p.careType, p.neighborhood, p.blurb, p.bio, ...p.languages]
+        ![p.name, p.careType, p.address, p.phone, p.blurb, p.bio, ...p.languages]
           .join(" ")
           .toLowerCase()
           .includes(query)
@@ -144,7 +144,7 @@ function ProvidersPage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             aria-label="Search trusted providers"
-            placeholder="Search providers by name, care type, or neighborhood"
+            placeholder="Search providers by name, care type, or address"
             className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
           />
         </label>

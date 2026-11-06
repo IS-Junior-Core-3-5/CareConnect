@@ -69,9 +69,8 @@ function ListingForm({ existing }: { existing: Provider | null }) {
   const [rate, setRate] = useState(existing?.dailyRate?.toString() ?? "");
   const [rateMax, setRateMax] = useState(existing?.dailyRateMax?.toString() ?? "");
   const [pricingNotes, setPricingNotes] = useState(existing?.pricingNotes.join("\n") ?? "");
-  const [neighborhood, setNeighborhood] = useState(
-    existing?.neighborhood ?? me?.neighborhood ?? "",
-  );
+  const [address, setAddress] = useState(existing?.address ?? "");
+  const [phone, setPhone] = useState(existing?.phone ?? "");
   const [distance, setDistance] = useState(existing?.distance?.toString() ?? "");
   const [languages, setLanguages] = useState<string[]>(existing?.languages ?? ["English"]);
   const [otherLang, setOtherLang] = useState("");
@@ -109,7 +108,8 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         bio: bio.trim() || null,
         daily_rate: dailyRate,
         daily_rate_max: dailyRateMax,
-        neighborhood: neighborhood.trim() || null,
+        address: address.trim() || null,
+        phone: phone.trim() || null,
         distance_miles: distance === "" ? null : Number(distance),
         schedule_available: hasSchedule,
         schedule_summary: hasSchedule ? scheduleSummary.trim() || null : null,
@@ -341,16 +341,37 @@ function ListingForm({ existing }: { existing: Provider | null }) {
               </select>
             </div>
             <div>
-              <label className={label} htmlFor="l-hood">
-                Neighborhood
+              <label className={label} htmlFor="l-address">
+                Address
               </label>
               <input
-                id="l-hood"
-                value={neighborhood}
-                onChange={(e) => setNeighborhood(e.target.value)}
+                id="l-address"
+                required
+                autoComplete="street-address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
                 className={field}
+                placeholder="Street address, city, state, ZIP"
               />
             </div>
+          </div>
+          <div>
+            <label className={label} htmlFor="l-phone">
+              Contact phone
+            </label>
+            <input
+              id="l-phone"
+              type="tel"
+              autoComplete="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className={field}
+              placeholder="(555) 555-5555"
+            />
+            <p className="mt-1 text-[11px] text-ink-faint">
+              Your address and phone number appear on your public provider profile.
+            </p>
           </div>
           <div>
             <label className={label} htmlFor="l-blurb">

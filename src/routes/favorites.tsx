@@ -89,7 +89,7 @@ function FavoritesPage() {
                       <div>
                         <h2 className="font-display text-lg font-bold leading-tight">{p.name}</h2>
                         <p className="text-sm text-ink-soft">
-                          {p.careType} · {p.neighborhood}
+                          {p.careType} · {p.address}
                         </p>
                       </div>
                       <VerifiedBadge verified={p.verified} />
@@ -190,7 +190,7 @@ function FavoritesPage() {
                       ["Verified", (p: (typeof chosen)[number]) => (p.verified ? "Yes" : "No")],
                       [
                         "Location",
-                        (p: (typeof chosen)[number]) => `${p.neighborhood} · ${distanceLabel(p.distance)}`,
+                        (p: (typeof chosen)[number]) => `${p.address} · ${distanceLabel(p.distance)}`,
                       ],
                     ] as const
                   ).map(([label, fn]) => (

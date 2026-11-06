@@ -32,7 +32,6 @@ export type Provider = {
   listingOrigin: "owned" | "external" | "sample";
   websiteUrl: string | null;
   contactUrl: string | null;
-  contactPhone: string | null;
   sourceUrl: string | null;
   checkedOn: string | null;
   name: string;
@@ -45,7 +44,8 @@ export type Provider = {
   dailyRate: number | null;
   dailyRateMax: number | null;
   pricingNotes: string[];
-  neighborhood: string;
+  address: string;
+  phone: string;
   /** null = distance unknown */
   distance: number | null;
   rating: number;

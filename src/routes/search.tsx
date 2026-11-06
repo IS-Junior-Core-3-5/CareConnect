@@ -33,7 +33,7 @@ function SearchPage() {
 
   const matchedProviders = term
     ? providers.filter((p) =>
-        [p.name, p.careType, p.blurb, p.bio, p.neighborhood, ...p.languages]
+        [p.name, p.careType, p.address, p.phone, p.blurb, p.bio, ...p.languages]
           .join(" ")
           .toLowerCase()
           .includes(term),
@@ -60,7 +60,7 @@ function SearchPage() {
 
         {term && total === 0 ? (
           <div className="mt-6 rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
-            Nothing matched “{q}”. Try a neighborhood, a care type, or a caregiver's name.
+            Nothing matched “{q}”. Try an address, a care type, or a caregiver's name.
           </div>
         ) : null}
 

@@ -132,7 +132,7 @@ Weigh, roughly in this order:
 3. Language: shared_languages.
 4. Trust: verified, verified vs self-reported credentials, rating, review_count, review_snippets,
    the parent's own past reviews and my_confirmed_bookings (they already used this provider).
-5. Cost: daily_rate / daily_rate_max / pricing_notes (null daily_rate = pricing unavailable), distance, same neighborhood.
+5. Cost: daily_rate / daily_rate_max / pricing_notes (null daily_rate = pricing unavailable), distance, provider address.
 Favorites signal interest, not quality.
 
 For each pick write:

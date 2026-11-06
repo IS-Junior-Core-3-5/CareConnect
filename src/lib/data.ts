@@ -24,8 +24,8 @@ export const QK = {
 type Row = Record<string, any>;
 
 const PROVIDER_SELECT = `
-  id, owner_id, listing_origin, is_public, website_url, contact_url, contact_phone, source_url, checked_on,
-  name, care_type, blurb, bio, daily_rate, daily_rate_max, neighborhood,
+  id, owner_id, listing_origin, website_url, contact_url, source_url, checked_on,
+  name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone,
   distance_miles, verified, schedule_available, schedule_summary, photo_key,
   provider_pricing_notes(note, sort_order),
   provider_photos(photo_key, sort_order),
@@ -74,7 +74,6 @@ function mapProvider(r: Row): Provider {
     listingOrigin: r.listing_origin ?? "owned",
     websiteUrl: r.website_url ?? null,
     contactUrl: r.contact_url ?? null,
-    contactPhone: r.contact_phone ?? null,
     sourceUrl: r.source_url ?? null,
     checkedOn: r.checked_on ?? null,
     name: r.name,
@@ -86,7 +85,8 @@ function mapProvider(r: Row): Provider {
     dailyRate: num(r.daily_rate),
     dailyRateMax: num(r.daily_rate_max),
     pricingNotes: [...(r.provider_pricing_notes ?? [])].sort(bySort).map((n: Row) => n.note),
-    neighborhood: r.neighborhood ?? "",
+    address: r.address ?? "",
+    phone: r.phone ?? "",
     distance: num(r.distance_miles),
     rating: Math.round(avg * 10) / 10,
     reviewCount: reviews.length,
