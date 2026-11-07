@@ -1,10 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { AiChat } from "@/components/AiChat";
-import { AiRecommendations } from "@/components/AiRecommendations";
 import { AppShell } from "@/components/NavBar";
 import { useApp } from "@/lib/app-state";
-import { useProviders } from "@/lib/data";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -12,13 +9,12 @@ export const Route = createFileRoute("/home")({
       { title: "Home — CareConnect" },
       {
         name: "description",
-        content:
-          "Your CareConnect home: search providers and parents, and jump to your schedule, favorites, and provider listing.",
+        content: "Search care providers and open your schedule, favorites, or listing.",
       },
       { property: "og:title", content: "Home — CareConnect" },
       {
         property: "og:description",
-        content: "Search care, check your weekly schedule, and see how providers line up with it.",
+        content: "Search care providers and open your CareConnect links.",
       },
     ],
   }),
@@ -58,64 +54,46 @@ const tiles = [
 
 function HomePage() {
   const navigate = useNavigate();
-  const { parentName, favorites } = useApp();
-  const providers = useProviders();
+  const { favorites } = useApp();
   const [q, setQ] = useState("");
 
   return (
     <AppShell>
-      <section className="grid gap-8 py-10 lg:grid-cols-12 lg:items-center">
-        <div className="min-w-0 lg:col-span-7">
-          <span className="inline-flex items-center gap-2 rounded-full bg-sun-soft px-3 py-1.5 text-xs font-semibold text-ink-soft">
-            <span className="size-1.5 rounded-full bg-sun" />{" "}
-            {providers.filter((p) => p.verified).length} verified providers near you
-          </span>
-          <h1 className="mt-5 font-display text-4xl sm:text-5xl font-bold leading-[1.02] tracking-tight text-balance">
-            Good afternoon, <span className="italic text-primary">{parentName.split(" ")[0]}</span>.
-          </h1>
-          <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
-            Search caregivers and other parents at once.
-          </p>
-
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate({ to: "/search", search: { q } });
-            }}
-            className="mt-6 flex flex-col gap-2 rounded-3xl bg-surface p-2 ring-1 ring-line sm:flex-row sm:items-center"
-          >
-            <div className="flex flex-1 items-center gap-3 rounded-2xl bg-background px-4 py-3">
-              <span className="text-ink-faint">⌕</span>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
-                placeholder="Search providers or parents"
-              />
-            </div>
-            <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink">
-              Search
-            </button>
-          </form>
-        </div>
-
-        <div className="min-w-0 lg:col-span-5">
-          <div className="grid grid-cols-2 gap-3">
-            {tiles.map((t) => (
-              <Link key={t.to} to={t.to} className={`card-lift rounded-3xl p-5 ${t.cls}`}>
-                <span className="font-mono text-xs">{t.n}</span>
-                <p className="mt-6 font-display text-2xl font-bold leading-tight">{t.title}</p>
-                <p className="mt-1 text-sm">
-                  {t.to === "/favorites" ? `${favorites.length} saved` : t.sub}
-                </p>
-              </Link>
-            ))}
+      <section className="mx-auto max-w-4xl space-y-6 py-10 sm:py-14">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            navigate({ to: "/search", search: { q } });
+          }}
+          className="flex flex-col gap-2 rounded-3xl bg-surface p-2 ring-1 ring-line sm:flex-row sm:items-center"
+        >
+          <div className="flex flex-1 items-center gap-3 rounded-2xl bg-background px-4 py-3">
+            <span className="text-ink-faint" aria-hidden="true">⌕</span>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="w-full bg-transparent text-sm outline-none placeholder:text-ink-faint"
+              placeholder="Search providers or parents"
+              aria-label="Search providers or parents"
+            />
           </div>
+          <button className="rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink">
+            Search
+          </button>
+        </form>
+
+        <div className="grid grid-cols-2 gap-3">
+          {tiles.map((t) => (
+            <Link key={t.to} to={t.to} className={`card-lift rounded-3xl p-5 ${t.cls}`}>
+              <span className="font-mono text-xs">{t.n}</span>
+              <p className="mt-6 font-display text-2xl font-bold leading-tight">{t.title}</p>
+              <p className="mt-1 text-sm">
+                {t.to === "/favorites" ? `${favorites.length} saved` : t.sub}
+              </p>
+            </Link>
+          ))}
         </div>
       </section>
-
-      <AiRecommendations />
-      <AiChat />
     </AppShell>
   );
 }
