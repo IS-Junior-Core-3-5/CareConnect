@@ -5,7 +5,7 @@ import { useApp } from "@/lib/app-state";
 
 const links = [
   { to: "/home", label: "Home" },
-
+  { to: "/home", hash: "recommendations", label: "Recommendations" },
   { to: "/schedule", label: "Schedule" },
   { to: "/providers", label: "Providers" },
   { to: "/favorites", label: "Favorites" },
