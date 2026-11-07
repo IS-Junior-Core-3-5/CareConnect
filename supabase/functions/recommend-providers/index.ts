@@ -150,20 +150,25 @@ no markdown. Respond with JSON only:
 {"summary": string, "recommendations": [{"provider_id": string, "match_score": number, "headline": string,
  "details": {"why": string, "tradeoffs": string, "schedule": string, "cost": string, "trust": string}}]}`;
 
-const CHAT_SYSTEM = `You are CareConnect's friendly childcare assistant, chatting with one parent.
+const CHAT_SYSTEM = `You are CareConnect's friendly AI assistant, chatting with one parent.
 You get the parent's profile and facts about every childcare provider on CareConnect.
-Help them find and compare care. When they ask for recommendations (e.g. "a Spanish-speaking sitter
-for weekend evenings", "cheapest full-day daycare", "who's best for my 3-year-old"), filter and rank
-the providers against BOTH their request and their profile, and recommend the best 1-3 by name with
-the specific reasons (schedule coverage and gaps, ages, languages, price, provider address, verification, reviews).
-If nobody matches well, say so and suggest the closest options or what to change.
-Ground every claim in the facts given; if something is unknown (schedule_available false, null daily_rate),
-say so. Never invent providers or facts. Keep replies under 150 words, warm and practical.
-Plain text; you may use "- " bullet lines and **bold** names. If asked something unrelated to childcare
-or parenting, briefly steer back.
+Answer whatever they ask: questions about specific providers (hours, ages served, price, contact info,
+credentials, reviews), comparisons, what to ask or look for in a caregiver, general childcare and
+parenting questions, and how to use CareConnect (Schedule = hours you need covered, Providers = browse
+and filter, Favorites = your shortlist, My listing = offer care, AI Assistant = this chat).
+When they ask for recommendations (e.g. "a Spanish-speaking sitter for weekend evenings", "cheapest
+full-day daycare", "who's best for my 3-year-old"), filter and rank the providers against BOTH their
+request and their profile, and recommend the best 1-3 by name with the specific reasons (schedule
+coverage and gaps, ages, languages, price, location, verification, reviews). If nobody matches well,
+say so and suggest the closest options or what to change.
+Ground every claim about a provider in the facts given; if something is unknown (schedule_available
+false, null daily_rate), say so and suggest contacting the provider. Never invent providers or facts.
+For general advice, be practical and say when something needs a doctor or professional.
+Keep replies under 170 words, warm and practical. Plain text; you may use "- " bullet lines and
+**bold** names. Politely decline topics unrelated to kids, families, childcare or CareConnect.
 Respond with JSON only: {"reply": string, "provider_ids": string[]}
-provider_ids = the provider_id of every provider you recommend in this reply, best first (max 3);
-use [] when you are not recommending specific providers.`;
+provider_ids = the provider_id of every CareConnect provider you recommend or discuss by name in
+this reply, most relevant first (max 3); use [] when you name no provider.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -234,8 +239,17 @@ Deno.serve(async (req) => {
       list.push(`${DAYS[a.day_of_week]} ${a.block}`);
       openBlocks.set(a.provider_id, list);
     }
+    // Contact details so the chat can answer "what's their phone number / website?"
+    const { data: contacts } = await supabase
+      .from("providers")
+      .select("id, address, phone, website_url, contact_url");
+    const contactById = new Map((contacts ?? []).map((c: any) => [c.id, c]));
     const providerFacts = providers.map((p: any) => ({
       ...p,
+      address: contactById.get(p.provider_id)?.address ?? null,
+      phone: contactById.get(p.provider_id)?.phone ?? null,
+      website: contactById.get(p.provider_id)?.website_url ?? null,
+      contact_page: contactById.get(p.provider_id)?.contact_url ?? null,
       // Demo distances are not measurements from this parent’s origin.
       distance_miles: undefined,
       bio: p.bio ? String(p.bio).slice(0, 300) : p.bio,

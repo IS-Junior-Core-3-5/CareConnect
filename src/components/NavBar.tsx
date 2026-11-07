@@ -1,4 +1,5 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { AskAiLauncher } from "@/components/AiChat";
 import { useEffect, useState } from "react";
 import { useApp } from "@/lib/app-state";
 
@@ -108,6 +109,7 @@ export function AppShell({
 }) {
   const { authLoading, session, meLoading, me } = useApp();
   const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   useEffect(() => {
     if (!publicPage && !authLoading && !session) navigate({ to: "/" });
@@ -141,6 +143,7 @@ export function AppShell({
       )}
       <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-12">{body}</main>
       <PageFooter />
+      {session && me && pathname !== "/assistant" ? <AskAiLauncher /> : null}
     </div>
   );
 }

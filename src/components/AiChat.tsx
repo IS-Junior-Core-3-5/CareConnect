@@ -23,16 +23,24 @@ type Msg = {
 };
 
 const STARTERS = [
-  "Recommend a provider that covers my whole schedule",
-  "Best full-day daycare under $150/day?",
-  "Find a Spanish-speaking sitter for evenings",
-  "Who's best for my kids' ages?",
+  "Which provider fits my schedule best?",
+  "Best full-day daycare for my kids' ages?",
   "Compare my favorites",
+  "What should I ask before booking a sitter?",
+  "How does CareConnect work?",
 ];
 
 const chatKey = (parentId: string | null) => ["ai_chat", parentId] as const;
 
-export function AiChat({ page = false }: { page?: boolean }) {
+/** variant: "section" on Home, "page" on /assistant, "panel" inside the floating Ask AI window. */
+export function AiChat({
+  page = false,
+  variant = page ? "page" : "section",
+}: {
+  page?: boolean;
+  variant?: "section" | "page" | "panel";
+}) {
+  const panel = variant === "panel";
   const { parentId, isFavorite, toggleFavorite } = useApp();
   const providers = useProviders();
   const qc = useQueryClient();
@@ -111,18 +119,29 @@ export function AiChat({ page = false }: { page?: boolean }) {
   };
 
   return (
-    <section className={page ? "py-8" : "py-6"} id="ai-chat">
-      <div className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+    <section
+      className={panel ? "flex h-full flex-col" : variant === "page" ? "py-8" : "py-6"}
+      id={panel ? undefined : "ai-chat"}
+    >
+      <div
+        className={
+          panel
+            ? "flex h-full flex-col p-4"
+            : "rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-8"
+        }
+      >
+        <div className={`flex flex-wrap items-end justify-between gap-3 ${panel ? "hidden" : ""}`}>
           <div>
             <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">AI assistant</span>
-            {page ? (
-              <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">Ask for a recommendation</h1>
+            {variant === "page" ? (
+              <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">Chat with CareConnect AI</h1>
             ) : (
-              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Chat about your care options</h2>
+              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Chat with CareConnect AI</h2>
             )}
-            <p className="mt-1 max-w-[52ch] text-sm text-ink-soft text-pretty">
-              Ask for exactly what you need, like "a verified sitter for Saturday mornings near me". The AI checks your schedule, kids' ages and languages against every provider and shows its picks.
+            <p className="mt-1 max-w-[56ch] text-sm text-ink-soft text-pretty">
+              Ask anything: questions about providers, costs, schedules or parenting, or ask for a
+              specific recommendation. The AI knows your schedule, kids' ages, languages and every
+              provider, and remembers the conversation.
             </p>
           </div>
           {msgs.length ? (
@@ -138,7 +157,7 @@ export function AiChat({ page = false }: { page?: boolean }) {
 
         <div
           ref={listRef}
-          className={`mt-5 flex ${page ? "h-[60vh] min-h-[360px]" : "max-h-[60vh] min-h-[220px]"} flex-col gap-3 overflow-y-auto rounded-2xl bg-background p-3 ring-1 ring-line sm:p-4`}
+          className={`flex ${panel ? "min-h-0 flex-1" : variant === "page" ? "mt-5 h-[60vh] min-h-[360px]" : "mt-5 max-h-[60vh] min-h-[220px]"} flex-col gap-3 overflow-y-auto rounded-2xl bg-background p-3 ring-1 ring-line sm:p-4`}
         >
           {isLoading ? <p className="text-sm text-ink-soft">Loading…</p> : null}
           {!isLoading && shown.length === 0 ? (
@@ -164,7 +183,7 @@ export function AiChat({ page = false }: { page?: boolean }) {
             return (
               <div key={m.id} className={`flex flex-col gap-2 ${m.role === "user" ? "items-end" : "items-start"}`}>
                 <p
-                  className={`max-w-[92%] sm:max-w-[85%] whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm text-pretty ${
+                  className={`max-w-[92%] ${panel ? "" : "sm:max-w-[85%]"} whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm text-pretty ${
                     m.role === "user"
                       ? "rounded-br-md bg-primary text-primary-soft"
                       : `rounded-bl-md bg-surface text-ink ring-1 ring-line ${m.pending ? "animate-pulse text-ink-soft" : ""}`
@@ -173,7 +192,7 @@ export function AiChat({ page = false }: { page?: boolean }) {
                   {m.role === "assistant" ? renderBold(m.content) : m.content}
                 </p>
                 {picks.length ? (
-                  <div className="grid w-full gap-2 sm:max-w-[85%] sm:grid-cols-2 xl:grid-cols-3">
+                  <div className={`grid w-full gap-2 ${panel ? "" : "sm:max-w-[85%] sm:grid-cols-2 xl:grid-cols-3"}`}>
                     {picks.map((p, i) => (
                       <PickCard
                         key={p.id}
@@ -208,7 +227,7 @@ export function AiChat({ page = false }: { page?: boolean }) {
             }}
             rows={1}
             maxLength={2000}
-            placeholder="Ask for a recommendation…"
+            placeholder="Ask a question…"
             className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-ink-faint"
           />
           <button
@@ -219,7 +238,18 @@ export function AiChat({ page = false }: { page?: boolean }) {
             Send
           </button>
         </form>
-        <p className="mt-2 text-xs text-ink-faint">AI answers can be wrong. Check each provider's profile.</p>
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <p className="text-xs text-ink-faint">AI answers can be wrong. Check each provider's profile.</p>
+          {panel && msgs.length ? (
+            <button
+              onClick={() => clear.mutate()}
+              disabled={clear.isPending || send.isPending}
+              className="shrink-0 text-xs font-semibold text-ink-soft underline-offset-2 hover:text-primary-ink hover:underline disabled:opacity-50"
+            >
+              Clear chat
+            </button>
+          ) : null}
+        </div>
       </div>
     </section>
   );
@@ -259,7 +289,7 @@ function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved
         ) : null}
       </div>
       <p className="mt-1 text-xs text-ink-soft">
-        {p.careType} · {p.address} · {priceLabel(p)}
+        {[p.careType, p.address, priceLabel(p)].filter(Boolean).join(" · ")}
       </p>
       {p.reviewCount ? (
         <RatingSummary
@@ -289,5 +319,60 @@ function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved
         </button>
       </div>
     </div>
+  );
+}
+
+/** Floating "Ask AI" button + chat window, shown on every signed-in page except /assistant. */
+export function AskAiLauncher() {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+  return (
+    <>
+      {open ? (
+        <div
+          role="dialog"
+          aria-label="Chat with CareConnect AI"
+          className="fixed inset-x-2 bottom-2 top-16 z-50 flex flex-col overflow-hidden rounded-3xl bg-surface shadow-2xl ring-1 ring-line sm:inset-x-auto sm:bottom-24 sm:right-5 sm:top-auto sm:h-[min(640px,calc(100vh-8rem))] sm:w-[420px]"
+        >
+          <div className="flex items-center justify-between border-b border-line px-4 py-3">
+            <div>
+              <p className="font-display text-lg font-bold leading-tight">CareConnect AI</p>
+              <p className="text-xs text-ink-soft">Ask questions or for recommendations</p>
+            </div>
+            <div className="flex items-center gap-1">
+              <Link
+                to="/assistant"
+                onClick={() => setOpen(false)}
+                className="rounded-full px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-background hover:text-ink"
+              >
+                Full page
+              </Link>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close chat"
+                className="grid size-8 place-items-center rounded-full text-lg text-ink-soft hover:bg-background hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div className="min-h-0 flex-1">
+            <AiChat variant="panel" />
+          </div>
+        </div>
+      ) : null}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`fixed bottom-5 right-5 z-50 items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-primary-soft shadow-lg transition-colors hover:bg-primary-ink ${open ? "hidden sm:flex" : "flex"}`}
+      >
+        <span aria-hidden>✦</span> {open ? "Close" : "Ask AI"}
+      </button>
+    </>
   );
 }
