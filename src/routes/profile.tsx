@@ -73,7 +73,16 @@ function ProfileBody() {
     if (profileError) { setBusy(false); toast.error(profileError.message); return; }
     const { error: addressError } = await supabase
       .from("parent_private_addresses")
-      .upsert({ parent_id: me!.parentId, address: address.trim() || null }, { onConflict: "parent_id" });
+      .upsert(
+        {
+          parent_id: me!.parentId,
+          address: address.trim() || null,
+          ...(address.trim() !== me!.address.trim()
+            ? { latitude: null, longitude: null, geocoded_at: null }
+            : {}),
+        },
+        { onConflict: "parent_id" },
+      );
     setBusy(false);
     if (addressError) { toast.error(addressError.message); return; }
     toast.success("Profile saved");

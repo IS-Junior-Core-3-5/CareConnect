@@ -1,10 +1,12 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
 import { CARE_TYPES, overlapCount, type CareType } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProvidersQuery } from "@/lib/data";
+import { supabase } from "@/integrations/supabase/client";
 import { ErrorState, LoadingState } from "@/components/NavBar";
 
 export const Route = createFileRoute("/providers/")({
@@ -27,7 +29,7 @@ export const Route = createFileRoute("/providers/")({
 });
 
 function ProvidersPage() {
-  const { schedule, userId } = useApp();
+  const { schedule, userId, me } = useApp();
   const providersQuery = useProvidersQuery(!!userId);
   const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
   const [types, setTypes] = useState<CareType[]>([]);
@@ -37,13 +39,34 @@ function ProvidersPage() {
   const [matchesSchedule, setMatchesSchedule] = useState(false);
   const [sort, setSort] = useState("match");
   const [searchTerm, setSearchTerm] = useState("");
+  const [maxDistance, setMaxDistance] = useState("any");
+  const distanceProviders = useMemo(
+    () => providers.map((p) => ({ id: p.id, address: p.address })),
+    [providers],
+  );
+  const providerAddressKey = distanceProviders.map((p) => `${p.id}:${p.address}`).join("|");
+  const distanceQuery = useQuery({
+    queryKey: ["provider-distances", me?.parentId, me?.address, providerAddressKey],
+    enabled: maxDistance !== "any" && !!me?.address && distanceProviders.length > 0,
+    staleTime: 60 * 60 * 1000,
+    retry: false,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("provider-distances", {
+        body: { providers: distanceProviders },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      return data.distances as Record<string, number | null>;
+    },
+  });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilters =
     types.length +
     (maxPrice < 250 ? 1 : 0) +
     (minRating > 0 ? 1 : 0) +
     (verifiedOnly ? 1 : 0) +
-    (matchesSchedule ? 1 : 0);
+    (matchesSchedule ? 1 : 0) +
+    (maxDistance !== "any" ? 1 : 0);
 
   const results = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -61,6 +84,10 @@ function ProvidersPage() {
       if (p.dailyRate !== null && maxPrice < 250 && p.dailyRate > maxPrice) return false;
       if (p.rating < minRating) return false;
       if (verifiedOnly && !p.verified) return false;
+      if (maxDistance !== "any") {
+        const miles = distanceQuery.data?.[p.id];
+        if (miles === null || miles === undefined || miles > Number(maxDistance)) return false;
+      }
       if (matchesSchedule) {
         if (!p.schedule) return false;
         if (overlapCount(schedule, p.schedule) === 0) return false;
@@ -87,6 +114,8 @@ function ProvidersPage() {
     minRating,
     verifiedOnly,
     matchesSchedule,
+    maxDistance,
+    distanceQuery.data,
     sort,
     schedule,
   ]);
@@ -100,6 +129,7 @@ function ProvidersPage() {
     setVerifiedOnly(false);
     setMatchesSchedule(false);
     setSearchTerm("");
+    setMaxDistance("any");
   }
 
   return (
@@ -241,6 +271,42 @@ function ProvidersPage() {
                 </div>
               </div>
 
+              <div>
+                <label
+                  htmlFor="provider-distance"
+                  className="mb-2 block text-xs font-semibold uppercase tracking-wider text-ink-faint"
+                >
+                  Distance from your address
+                </label>
+                <select
+                  id="provider-distance"
+                  value={maxDistance}
+                  onChange={(e) => setMaxDistance(e.target.value)}
+                  disabled={!me?.address}
+                  className="w-full rounded-xl border border-line bg-background px-3 py-2 text-sm disabled:opacity-60"
+                >
+                  <option value="any">Any distance</option>
+                  <option value="5">Within 5 miles</option>
+                  <option value="10">Within 10 miles</option>
+                  <option value="25">Within 25 miles</option>
+                  <option value="50">Within 50 miles</option>
+                </select>
+                <p className="mt-1 text-[11px] text-ink-faint">
+                  Approximate straight-line distance. On first use, your saved address is sent to the U.S. Census Geocoder; coordinates are stored privately.
+                </p>
+                {!me?.address ? (
+                  <p className="mt-1 text-[11px] text-ink-faint">
+                    Sign in and add an address in <Link to="/profile" className="font-semibold text-primary-ink">your profile</Link> to use this filter.
+                  </p>
+                ) : null}
+                {maxDistance !== "any" && distanceQuery.isFetching ? (
+                  <p className="mt-2 text-xs text-ink-soft">Calculating provider distances…</p>
+                ) : null}
+                {maxDistance !== "any" && distanceQuery.error ? (
+                  <p className="mt-2 text-xs text-clay">{distanceQuery.error.message}</p>
+                ) : null}
+              </div>
+
               <button
                 onClick={() => setVerifiedOnly((v) => !v)}
                 className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 ${
@@ -288,7 +354,7 @@ function ProvidersPage() {
           <div className="min-w-0 space-y-4 lg:col-span-9">
             {providersQuery.isLoading ? <LoadingState label="Loading providers…" /> : null}
             {providersQuery.error ? <ErrorState error={providersQuery.error} /> : null}
-            {empty && providers.length ? (
+            {empty && providers.length && !distanceQuery.isFetching && !distanceQuery.error ? (
               <div className="rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
                 {searchTerm.trim()
                   ? `No providers found for “${searchTerm.trim()}”. Try another search.`
@@ -296,7 +362,11 @@ function ProvidersPage() {
               </div>
             ) : null}
             {results.map((p) => (
-              <ProviderCard key={p.id} provider={p} />
+              <ProviderCard
+                key={p.id}
+                provider={p}
+                distanceMiles={distanceQuery.data?.[p.id] ?? undefined}
+              />
             ))}
           </div>
         </div>

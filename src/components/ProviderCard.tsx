@@ -57,7 +57,13 @@ export function ProviderPhoto({
   );
 }
 
-export function ProviderCard({ provider }: { provider: Provider }) {
+export function ProviderCard({
+  provider,
+  distanceMiles,
+}: {
+  provider: Provider;
+  distanceMiles?: number;
+}) {
   const { isFavorite, toggleFavorite } = useApp();
   const fav = isFavorite(provider.id);
 
@@ -98,6 +104,9 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} size="sm" />
           {provider.reviewCount ? <span className="text-ink-faint">·</span> : null}
           <span className="text-ink-soft">{provider.address}</span>
+          {distanceMiles !== undefined ? (
+            <span className="font-medium text-primary-ink">{distanceMiles.toFixed(1)} mi away</span>
+          ) : null}
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
