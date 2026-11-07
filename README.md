@@ -120,7 +120,7 @@ Other actions that also save and survive a refresh: editing your schedule (**Sch
 
 ## AI Assistant and AI Preferences
 
-- **AI chat** (`/assistant`, the Home page, and the **Ask AI** button on every signed-in page): ask questions or for specific recommendations. Replies show cards for the providers mentioned. History is stored in `ai_chat_messages` (each parent sees only their own).
+- **AI chat** (on the Home page and the **Ask AI** button in the bottom-left corner of every signed-in page): ask questions or for specific recommendations. Replies show cards for the providers mentioned. History is stored in `ai_chat_messages` (each parent sees only their own).
 - **AI preferences** (`/preferences`, linked from **Profile**): an in-depth, private profile the AI uses for both the chat and the Home page recommendations. It covers care type, setting and arrangement, start date, budget range and how firm it is, preferred cities and max distance, transportation, must-haves and dealbreakers, teaching approach, caregiver languages, kids' needs and diet, communication, ranked priorities, free-form notes, and answer length. Stored in `parent_preferences`, one row per parent, with row-level security so only the owner can read or edit it.
 - Both run through the `recommend-providers` Edge Function (Google Gemini). Must-haves and dealbreakers are treated as hard filters, and priorities set the weighting.
 

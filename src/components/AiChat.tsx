@@ -32,7 +32,7 @@ const STARTERS = [
 
 const chatKey = (parentId: string | null) => ["ai_chat", parentId] as const;
 
-/** variant: "section" on Home, "page" on /assistant, "panel" inside the floating Ask AI window. */
+/** variant: "section" on Home, "panel" inside the floating Ask AI window ("page" = full-page layout, currently unused). */
 export function AiChat({
   page = false,
   variant = page ? "page" : "section",
@@ -335,7 +335,7 @@ function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved
   );
 }
 
-/** Floating "Ask AI" button + chat window, shown on every signed-in page except /assistant. */
+/** Floating "Ask AI" button + chat window (bottom-left), shown on every signed-in page except /preferences. */
 export function AskAiLauncher() {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -350,7 +350,7 @@ export function AskAiLauncher() {
         <div
           role="dialog"
           aria-label="Chat with CareConnect AI"
-          className="fixed inset-x-2 bottom-2 top-16 z-50 flex flex-col overflow-hidden rounded-3xl bg-surface shadow-2xl ring-1 ring-line sm:inset-x-auto sm:bottom-24 sm:right-5 sm:top-auto sm:h-[min(640px,calc(100vh-8rem))] sm:w-[420px]"
+          className="fixed inset-x-2 bottom-2 top-16 z-50 flex flex-col overflow-hidden rounded-3xl bg-surface shadow-2xl ring-1 ring-line sm:inset-x-auto sm:bottom-24 sm:left-5 sm:top-auto sm:h-[min(640px,calc(100vh-8rem))] sm:w-[420px]"
         >
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <div>
@@ -358,13 +358,6 @@ export function AskAiLauncher() {
               <p className="text-xs text-ink-soft">Ask questions or for recommendations</p>
             </div>
             <div className="flex items-center gap-1">
-              <Link
-                to="/assistant"
-                onClick={() => setOpen(false)}
-                className="rounded-full px-3 py-1.5 text-xs font-semibold text-ink-soft hover:bg-background hover:text-ink"
-              >
-                Full page
-              </Link>
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close chat"
@@ -382,7 +375,7 @@ export function AskAiLauncher() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className={`fixed bottom-5 right-5 z-50 items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-primary-soft shadow-lg transition-colors hover:bg-primary-ink ${open ? "hidden sm:flex" : "flex"}`}
+        className={`fixed bottom-5 left-5 z-50 items-center gap-2 rounded-full bg-primary px-5 py-3.5 text-sm font-semibold text-primary-soft shadow-lg transition-colors hover:bg-primary-ink ${open ? "hidden sm:flex" : "flex"}`}
       >
         <span aria-hidden>✦</span> {open ? "Close" : "Ask AI"}
       </button>

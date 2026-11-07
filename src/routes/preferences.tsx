@@ -446,7 +446,7 @@ function PreferencesBody() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3">
           <p className="hidden text-sm text-ink-soft sm:block">Saved preferences are used by AI recommendations and the AI chat.</p>
           <div className="ml-auto flex items-center gap-2">
-            <Link to="/assistant" className="rounded-full px-4 py-2.5 text-sm font-semibold text-ink-soft hover:text-ink">
+            <Link to="/home" hash="ai-chat" className="rounded-full px-4 py-2.5 text-sm font-semibold text-ink-soft hover:text-ink">
               Open AI chat
             </Link>
             <button disabled={saving} className={btn}>
