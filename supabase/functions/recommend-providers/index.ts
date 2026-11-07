@@ -132,7 +132,7 @@ Weigh, roughly in this order:
 3. Language: shared_languages.
 4. Trust: verified, verified vs self-reported credentials, rating, review_count, review_snippets,
    the parent's own past reviews and my_confirmed_bookings (they already used this provider).
-5. Cost: daily_rate / daily_rate_max / pricing_notes (null daily_rate = pricing unavailable), distance, provider address.
+5. Cost: daily_rate / daily_rate_max / pricing_notes (null daily_rate = pricing unavailable), provider address.
 Favorites signal interest, not quality.
 
 For each pick write:
@@ -155,7 +155,7 @@ You get the parent's profile and facts about every childcare provider on CareCon
 Help them find and compare care. When they ask for recommendations (e.g. "a Spanish-speaking sitter
 for weekend evenings", "cheapest full-day daycare", "who's best for my 3-year-old"), filter and rank
 the providers against BOTH their request and their profile, and recommend the best 1-3 by name with
-the specific reasons (schedule coverage and gaps, ages, languages, price, distance, verification, reviews).
+the specific reasons (schedule coverage and gaps, ages, languages, price, provider address, verification, reviews).
 If nobody matches well, say so and suggest the closest options or what to change.
 Ground every claim in the facts given; if something is unknown (schedule_available false, null daily_rate),
 say so. Never invent providers or facts. Keep replies under 150 words, warm and practical.
@@ -236,6 +236,8 @@ Deno.serve(async (req) => {
     }
     const providerFacts = providers.map((p: any) => ({
       ...p,
+      // Demo distances are not measurements from this parent’s origin.
+      distance_miles: undefined,
       bio: p.bio ? String(p.bio).slice(0, 300) : p.bio,
       open_blocks: p.schedule_available ? (openBlocks.get(p.provider_id) ?? []) : "unknown",
     }));

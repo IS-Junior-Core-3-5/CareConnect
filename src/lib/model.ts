@@ -1,3 +1,5 @@
+import type { ExternalProfile } from "@/lib/external-profiles";
+
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 export const BLOCKS = ["Morning", "Afternoon", "Evening"] as const;
 export const BLOCK_HOURS: Record<Block, string> = {
@@ -30,6 +32,7 @@ export type Provider = {
   id: string;
   ownerId: string | null;
   listingOrigin: "owned" | "external" | "sample";
+  externalProfile: ExternalProfile | null;
   websiteUrl: string | null;
   contactUrl: string | null;
   sourceUrl: string | null;
@@ -105,10 +108,6 @@ export function priceLabel(p: Pick<Provider, "dailyRate" | "dailyRateMax">) {
   if (p.dailyRate === null) return "Pricing unavailable";
   if (p.dailyRateMax) return `$${p.dailyRate}–$${p.dailyRateMax}/day`;
   return `$${p.dailyRate}/day`;
-}
-
-export function distanceLabel(d: number | null) {
-  return d === null ? "Distance unknown" : `${d} mi away`;
 }
 
 export function overlapCount(a: Schedule, b: Schedule) {

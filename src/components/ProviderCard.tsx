@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { photoFor } from "@/components/photos";
 import { RatingSummary } from "@/components/StarRating";
-import { distanceLabel, priceLabel, type Provider } from "@/lib/model";
+import { priceLabel, type Provider } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 
 export function VerifiedBadge({ verified }: { verified: boolean }) {
@@ -16,6 +16,16 @@ export function VerifiedBadge({ verified }: { verified: boolean }) {
   );
 }
 
+export function ProviderListingBadge({ provider }: { provider: Provider }) {
+  return provider.listingOrigin === "external" ? (
+    <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
+      External listing
+    </span>
+  ) : (
+    <VerifiedBadge verified={provider.verified} />
+  );
+}
+
 export function ProviderPhoto({
   provider,
   className = "",
@@ -23,7 +33,7 @@ export function ProviderPhoto({
   provider: Provider;
   className?: string;
 }) {
-  const src = photoFor(provider.photo);
+  const src = provider.listingOrigin === "external" ? null : photoFor(provider.photo);
   if (!src)
     return (
       <div
@@ -59,13 +69,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           className="aspect-[16/10] w-full rounded-2xl sm:aspect-square"
         />
         <span className="absolute left-2 top-2">
-          {provider.listingOrigin === "external" ? (
-            <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
-              External listing
-            </span>
-          ) : (
-            <VerifiedBadge verified={provider.verified} />
-          )}
+          <ProviderListingBadge provider={provider} />
         </span>
       </div>
       <div className="flex min-w-0 flex-col">
@@ -87,7 +91,6 @@ export function ProviderCard({ provider }: { provider: Provider }) {
                 priceLabel(provider)
               )}
             </p>
-            <p className="text-xs text-ink-faint sm:mt-1">{distanceLabel(provider.distance)}</p>
           </div>
         </div>
 
@@ -123,7 +126,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
           >
             View profile
           </Link>
-          {provider.schedule ? (
+          {provider.schedule || provider.externalProfile?.hours.kind === "published" ? (
             <Link
               to="/providers/$providerId"
               params={{ providerId: provider.id }}

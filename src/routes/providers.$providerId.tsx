@@ -4,12 +4,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { RequestCare } from "@/components/CareBookings";
 import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
-import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
+import { ProviderListingBadge, ProviderPhoto } from "@/components/ProviderCard";
+import {
+  ExternalLocation,
+  OfficialLink,
+  PublishedSchedule,
+  SourceNote,
+} from "@/components/ExternalProfileDetails";
 import { ScheduleCompare } from "@/components/ScheduleGrid";
 import { RatingSummary, Stars, StarInput } from "@/components/StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  distanceLabel,
   gapCount,
   overlapCount,
   priceLabel,
@@ -81,6 +86,8 @@ function ProviderProfile({ provider }: { provider: Provider }) {
     qc.invalidateQueries({ queryKey: QK.providers });
   }
   const fav = isFavorite(provider.id);
+  const external = provider.listingOrigin === "external";
+  const details = provider.externalProfile;
 
   const covered = provider.schedule ? overlapCount(schedule, provider.schedule) : 0;
   const gaps = provider.schedule ? gapCount(schedule, provider.schedule) : 0;
@@ -112,7 +119,12 @@ function ProviderProfile({ provider }: { provider: Provider }) {
         <div className="mt-4 grid gap-6 lg:grid-cols-12">
           <div className="min-w-0 space-y-6 lg:col-span-8">
             <section className="overflow-hidden rounded-3xl bg-surface ring-1 ring-line sm:rounded-[28px]">
-              <ProviderPhoto provider={provider} className="h-56 w-full rounded-none sm:h-80" />
+              <ProviderPhoto
+                provider={provider}
+                className={
+                  external ? "h-32 w-full rounded-none" : "h-56 w-full rounded-none sm:h-80"
+                }
+              />
               <div className="p-5 sm:p-6">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -120,16 +132,10 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                       <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
                         {provider.name}
                       </h1>
-                      {provider.listingOrigin === "external" ? (
-                        <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
-                          External listing
-                        </span>
-                      ) : (
-                        <VerifiedBadge verified={provider.verified} />
-                      )}
+                      <ProviderListingBadge provider={provider} />
                     </div>
                     <p className="mt-1 text-sm text-ink-soft">
-                      {provider.careType} · {provider.address} · {distanceLabel(provider.distance)}
+                      {[provider.careType, provider.address].filter(Boolean).join(" · ")}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} />
@@ -193,7 +199,13 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 </div>
 
                 <p className="mt-5 max-w-[68ch] text-ink-soft text-pretty">{provider.bio}</p>
-                {provider.listingOrigin === "external" ? (
+                {details?.photos ? (
+                  <div className="mt-4">
+                    <OfficialLink href={details.photos.url}>{details.photos.label}</OfficialLink>
+                    <SourceNote {...details.photos} />
+                  </div>
+                ) : null}
+                {external ? (
                   <div className="mt-5 rounded-2xl bg-leaf-soft p-4 text-sm text-ink-soft">
                     <p>
                       Contact this provider directly to confirm current availability, pricing, and
@@ -207,7 +219,10 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                           rel="noopener noreferrer"
                           className="font-semibold text-primary-ink underline"
                         >
-                          Contact or request a tour ↗
+                          {details && "serviceArea" in details.location
+                            ? "Request a sitter"
+                            : "Contact or request a tour"}{" "}
+                          ↗
                         </a>
                       ) : null}
                       {provider.websiteUrl ? (
@@ -261,7 +276,14 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               <h2 className="mt-1 font-display text-2xl font-bold tracking-tight">
                 Your week vs. {provider.name}
               </h2>
-              {provider.schedule ? (
+              {details ? (
+                <PublishedSchedule
+                  hours={details.hours}
+                  schedule={schedule}
+                  signedIn={!!parentId}
+                  contactUrl={provider.contactUrl}
+                />
+              ) : provider.schedule ? (
                 <>
                   <div className="mt-5">
                     <ScheduleCompare
@@ -296,15 +318,24 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               id="reviews"
               className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
             >
+              {details?.reviews ? (
+                <div className="mb-5 rounded-2xl bg-background p-4">
+                  <h2 className="mb-2 font-display text-xl font-bold">External reviews</h2>
+                  <OfficialLink href={details.reviews.url}>{details.reviews.label}</OfficialLink>
+                  <SourceNote {...details.reviews} />
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h2 className="font-display text-2xl font-bold tracking-tight">
-                    Ratings & reviews
+                    CareConnect reviews
                   </h2>
                   <p className="mt-1 text-sm text-ink-soft">
-                    {provider.reviewCount
-                      ? `Rated by ${provider.reviewCount} ${provider.reviewCount === 1 ? "family" : "families"} who used ${provider.name}.`
-                      : `No ratings yet — be the first family to rate ${provider.name}.`}
+                    {!userId
+                      ? "Sign in to read or write CareConnect reviews."
+                      : provider.reviewCount
+                        ? `Rated by ${provider.reviewCount} ${provider.reviewCount === 1 ? "family" : "families"} who used ${provider.name}.`
+                        : `No ratings yet — be the first family to rate ${provider.name}.`}
                   </p>
                 </div>
               </div>
@@ -344,24 +375,26 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 </div>
               ) : null}
 
-              <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {(
-                  [
-                    ["Experience", "experience"],
-                    ["Values", "values"],
-                    ["Communication", "communication"],
-                    ["Safety", "safety"],
-                  ] as const
-                ).map(([label, key]) => (
-                  <div key={key} className="rounded-2xl bg-background p-4">
-                    <p className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
-                      {label}
-                    </p>
-                    <p className="mt-1 font-display text-2xl font-bold">{avg(key)}</p>
-                    <Stars value={Number(avg(key)) || 0} size="sm" className="mt-1" />
-                  </div>
-                ))}
-              </div>
+              {provider.reviewCount ? (
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {(
+                    [
+                      ["Experience", "experience"],
+                      ["Values", "values"],
+                      ["Communication", "communication"],
+                      ["Safety", "safety"],
+                    ] as const
+                  ).map(([label, key]) => (
+                    <div key={key} className="rounded-2xl bg-background p-4">
+                      <p className="font-mono text-[11px] uppercase tracking-wider text-ink-faint">
+                        {label}
+                      </p>
+                      <p className="mt-1 font-display text-2xl font-bold">{avg(key)}</p>
+                      <Stars value={Number(avg(key)) || 0} size="sm" className="mt-1" />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               <div className="mt-5 space-y-4">
                 {provider.reviews.map((r) => (
@@ -466,7 +499,12 @@ function ProviderProfile({ provider }: { provider: Provider }) {
           <aside className="min-w-0 space-y-6 lg:col-span-4">
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Pricing</p>
-              {provider.dailyRate === null ? (
+              {details?.pricing ? (
+                <div className="mt-2 text-sm">
+                  <OfficialLink href={details.pricing.url}>{details.pricing.label}</OfficialLink>
+                  <SourceNote {...details.pricing} />
+                </div>
+              ) : provider.dailyRate === null ? (
                 <p className="mt-2 rounded-2xl bg-clay-soft px-3 py-2 text-sm font-semibold text-clay">
                   Pricing unavailable
                 </p>
@@ -484,23 +522,35 @@ function ProviderProfile({ provider }: { provider: Provider }) {
 
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">
-                Care availability
+                {external ? "Schedule information" : "Care availability"}
               </p>
               <p className={`mt-1 font-semibold ${provider.schedule ? "" : "text-clay"}`}>
                 {provider.scheduleSummary}
               </p>
-              <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">
-                Licenses & certifications
-              </p>
-              {provider.licenses.length ? (
-                <ul className="mt-2 space-y-1.5 text-sm text-ink-soft">
-                  {provider.licenses.map((l, i) => (
-                    <li key={i}>· {l}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-2 text-sm text-ink-soft">None on file.</p>
-              )}
+              {details?.training ? (
+                <div className="mt-4">
+                  <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">
+                    Provider-reported training
+                  </p>
+                  <p className="mt-2 text-sm text-ink-soft">{details.training.text}</p>
+                  <SourceNote {...details.training} />
+                </div>
+              ) : !external ? (
+                <>
+                  <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">
+                    Licenses & certifications
+                  </p>
+                  {provider.licenses.length ? (
+                    <ul className="mt-2 space-y-1.5 text-sm text-ink-soft">
+                      {provider.licenses.map((license) => (
+                        <li key={license}>· {license}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-ink-soft">None on file.</p>
+                  )}
+                </>
+              ) : null}
             </section>
 
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
@@ -518,13 +568,11 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">
                 Location
               </p>
-              <p className="mt-1 font-semibold">{provider.address || "Address not provided"}</p>
-              <p className="mt-1 text-sm text-ink-soft">{distanceLabel(provider.distance)}</p>
-              <div className="mt-3 grid h-40 place-items-center rounded-2xl bg-leaf-soft">
-                <span className="font-mono text-xs uppercase tracking-[0.15em] text-leaf-ink">
-                  Map placeholder
-                </span>
-              </div>
+              {details ? (
+                <ExternalLocation provider={provider} location={details.location} />
+              ) : (
+                <p className="mt-1 font-semibold">{provider.address || "Address not provided"}</p>
+              )}
             </section>
           </aside>
         </div>
