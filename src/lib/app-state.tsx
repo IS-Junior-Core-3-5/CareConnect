@@ -31,7 +31,7 @@ type Me = {
   parentId: string;
   name: string;
   email: string;
-  neighborhood: string;
+  address: string;
   blurb: string;
   languages: string[];
   children: Child[];
@@ -75,7 +75,7 @@ async function fetchMe(email: string): Promise<Me | null> {
   const { data: p, error } = await supabase
     .from("parents")
     .select(
-      `id, name, neighborhood, blurb,
+      `id, name, blurb,
        children(id, name, age),
        parent_languages(languages(name)),
        parent_availability(day_of_week, block)`,
@@ -84,6 +84,12 @@ async function fetchMe(email: string): Promise<Me | null> {
     .maybeSingle();
   if (error) throw error;
   if (!p) return null;
+  const { data: privateAddress, error: addressError } = await supabase
+    .from("parent_private_addresses")
+    .select("address")
+    .eq("parent_id", p.id)
+    .maybeSingle();
+  if (addressError) throw addressError;
   const fav = await supabase
     .from("favorites")
     .select("provider_id, created_at")
@@ -94,7 +100,7 @@ async function fetchMe(email: string): Promise<Me | null> {
     parentId: p.id,
     name: p.name,
     email,
-    neighborhood: p.neighborhood ?? "",
+    address: privateAddress?.address ?? "",
     blurb: p.blurb ?? "",
     languages: (p.parent_languages ?? []).map((l: Row) => l.languages?.name).filter(Boolean),
     children: [...(p.children ?? [])].sort((a: Row, b: Row) => a.id - b.id),

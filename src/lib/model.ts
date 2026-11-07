@@ -68,7 +68,6 @@ export type Child = { id: number; name: string; age: number | null };
 export type Parent = {
   id: string;
   name: string;
-  neighborhood: string;
   /** Comma-separated, for display */
   language: string;
   languages: string[];

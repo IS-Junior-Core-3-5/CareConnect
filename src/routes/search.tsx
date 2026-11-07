@@ -41,7 +41,7 @@ function SearchPage() {
     : [];
   const matchedParents = term
     ? parents.filter((p) =>
-        [p.name, p.neighborhood, p.blurb, p.language].join(" ").toLowerCase().includes(term),
+        [p.name, p.blurb, p.language].join(" ").toLowerCase().includes(term),
       )
     : [];
   const total = matchedProviders.length + matchedParents.length;

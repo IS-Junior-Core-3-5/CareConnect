@@ -41,7 +41,7 @@ function ProfileBody() {
   const qc = useQueryClient();
 
   const [name, setName] = useState("");
-  const [neighborhood, setNeighborhood] = useState("");
+  const [address, setAddress] = useState("");
   const [blurb, setBlurb] = useState("");
   const [busy, setBusy] = useState(false);
   const [kidName, setKidName] = useState("");
@@ -52,7 +52,7 @@ function ProfileBody() {
   useEffect(() => {
     if (!me) return;
     setName(me.name);
-    setNeighborhood(me.neighborhood);
+    setAddress(me.address);
     setBlurb(me.blurb);
   }, [me]);
 
@@ -66,12 +66,16 @@ function ProfileBody() {
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase
+    const { error: profileError } = await supabase
       .from("parents")
-      .update({ name: name.trim(), neighborhood: neighborhood.trim() || null, blurb: blurb.trim() || null })
+      .update({ name: name.trim(), blurb: blurb.trim() || null })
       .eq("id", me!.parentId);
+    if (profileError) { setBusy(false); toast.error(profileError.message); return; }
+    const { error: addressError } = await supabase
+      .from("parent_private_addresses")
+      .upsert({ parent_id: me!.parentId, address: address.trim() || null }, { onConflict: "parent_id" });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
+    if (addressError) { toast.error(addressError.message); return; }
     toast.success("Profile saved");
     refreshAll();
   }
@@ -109,7 +113,7 @@ function ProfileBody() {
       <section className="py-10">
         <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">Personal profile</span>
         <h1 className="mt-1 font-display text-4xl sm:text-5xl font-bold tracking-tight">{me.name}</h1>
-        <p className="mt-2 text-ink-soft">{[me.email, me.neighborhood].filter(Boolean).join(" · ")}</p>
+        <p className="mt-2 text-ink-soft">{me.email}</p>
       </section>
       <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <div className="space-y-4">
@@ -122,15 +126,20 @@ function ProfileBody() {
               <input id="p-name" required value={name} onChange={(e) => setName(e.target.value)} className={field} />
             </div>
             <div>
-              <label className={label} htmlFor="p-hood">
-                Neighborhood
+              <label className={label} htmlFor="p-address">
+                Address
               </label>
               <input
-                id="p-hood"
-                value={neighborhood}
-                onChange={(e) => setNeighborhood(e.target.value)}
+                id="p-address"
+                autoComplete="street-address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
                 className={field}
+                placeholder="Street address, city, state, ZIP"
               />
+              <p className="mt-1 text-xs text-ink-faint">
+                This address is private to your account.
+              </p>
             </div>
             <div>
               <label className={label} htmlFor="p-blurb">

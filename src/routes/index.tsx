@@ -192,7 +192,7 @@ function SignupForm({ onDone }: { onDone: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [neighborhood, setNeighborhood] = useState("");
+  const [address, setAddress] = useState("");
   const [lang, setLang] = useState("English");
   const [kids, setKids] = useState<{ name: string; age: string }[]>([{ name: "", age: "3" }]);
   const [draft, setDraft] = useState<Schedule>(emptySchedule);
@@ -219,7 +219,7 @@ function SignupForm({ onDone }: { onDone: () => void }) {
         // The database turns this into your parent profile, children and schedule.
         data: {
           name: name.trim(),
-          neighborhood: neighborhood.trim(),
+          address: address.trim(),
           language: lang,
           children: kids.map((k, i) => ({ name: k.name.trim() || `Child ${i + 1}`, age: k.age })),
           schedule: scheduleToRows(draft).map((r) => [r.day_of_week, r.block]),
@@ -261,16 +261,20 @@ function SignupForm({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div>
-          <label className={label} htmlFor="neighborhood">
-            Neighborhood
+          <label className={label} htmlFor="signup-address">
+            Address
           </label>
           <input
-            id="neighborhood"
-            value={neighborhood}
-            onChange={(e) => setNeighborhood(e.target.value)}
+            id="signup-address"
+            autoComplete="street-address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
             className={field}
-            placeholder="Maplewood"
+            placeholder="Street address, city, state, ZIP"
           />
+          <p className="mt-1 text-xs text-ink-faint">
+            Your address is private to your account.
+          </p>
         </div>
         <div>
           <label className={label} htmlFor="signup-email">

@@ -475,7 +475,6 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                             </Link>
                             <p className="text-sm text-ink-soft">
                               {[
-                                parent.neighborhood,
                                 parent.children
                                   .map((c) => `${c.name} (${c.age ?? "?"})`)
                                   .join(", "),

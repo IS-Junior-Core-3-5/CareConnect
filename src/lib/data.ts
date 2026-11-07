@@ -135,7 +135,7 @@ export async function fetchParents(): Promise<Parent[]> {
   const { data, error } = await supabase
     .from("parents")
     .select(
-      `id, name, neighborhood, blurb,
+      `id, name, blurb,
        children(id, name, age),
        parent_languages(languages(name)),
        parent_availability(day_of_week, block)`,
@@ -147,7 +147,6 @@ export async function fetchParents(): Promise<Parent[]> {
     return {
       id: r.id,
       name: r.name,
-      neighborhood: r.neighborhood ?? "",
       blurb: r.blurb ?? "",
       languages,
       language: languages.join(", "),

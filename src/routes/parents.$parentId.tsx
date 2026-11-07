@@ -56,7 +56,7 @@ function ParentPage() {
           </span>
           <h1 className="mt-4 font-display text-3xl sm:text-4xl font-bold tracking-tight">{parent.name}</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            {[parent.neighborhood, parent.language && `Speaks ${parent.language}`].filter(Boolean).join(" · ")}
+            {[parent.language && `Speaks ${parent.language}`].filter(Boolean).join(" · ")}
           </p>
           {parent.blurb ? <p className="mt-4 text-ink-soft text-pretty">{parent.blurb}</p> : null}
           {parent.children.length ? (
