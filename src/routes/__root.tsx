@@ -83,13 +83,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       {
         name: "description",
         content:
-          "Explore child care listings in Provo and Orem and contact external providers directly about current terms.",
+          "Explore child care listings in Utah County and contact external providers directly about current terms.",
       },
       { property: "og:title", content: "CareConnect — child care matched to your week" },
       {
         property: "og:description",
         content:
-          "Explore child care listings in Provo and Orem and contact external providers directly about current terms.",
+          "Explore child care listings in Utah County and contact external providers directly about current terms.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

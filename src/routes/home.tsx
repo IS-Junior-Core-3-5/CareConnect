@@ -36,7 +36,7 @@ const tiles = [
   {
     to: "/providers",
     n: "02",
-    title: "Provo and Orem providers",
+    title: "Utah County providers",
     sub: "Explore local listings",
     cls: "bg-leaf text-white",
   },

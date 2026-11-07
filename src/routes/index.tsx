@@ -70,7 +70,7 @@ function AuthPage() {
             Find care that <span className="italic text-primary">fits your week</span>.
           </h1>
           <p className="mt-4 max-w-[46ch] text-lg text-ink-soft text-pretty">
-            Explore local childcare, preschool, and babysitting options in Provo and Orem.
+            Explore local childcare, preschool, and babysitting options in Utah County.
           </p>
           <Link
             to="/providers"

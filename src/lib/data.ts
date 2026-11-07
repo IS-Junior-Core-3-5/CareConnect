@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getExternalProfile } from "@/lib/external-profiles";
 import { supabase } from "@/integrations/supabase/client";
 import {
   formatDate,
@@ -68,36 +69,50 @@ function mapProvider(r: Row): Provider {
       ) / reviews.length
     : 0;
   const photos = [...(r.provider_photos ?? [])].sort(bySort).map((p: Row) => p.photo_key as string);
+  const external = r.listing_origin === "external";
+  const externalProfile = external ? getExternalProfile(r.id) : null;
+  const publishedHours = externalProfile?.hours;
   return {
     id: r.id,
     ownerId: r.owner_id ?? null,
     listingOrigin: r.listing_origin ?? "owned",
+    externalProfile,
     websiteUrl: r.website_url ?? null,
-    contactUrl: r.contact_url ?? null,
+    contactUrl: externalProfile?.contactUrl ?? r.contact_url ?? null,
     sourceUrl: r.source_url ?? null,
     checkedOn: r.checked_on ?? null,
     name: r.name,
     careType: r.care_type as CareType,
-    photo: r.photo_key ?? photos[0] ?? null,
-    gallery: photos,
+    photo: external ? null : (r.photo_key ?? photos[0] ?? null),
+    gallery: external ? [] : photos,
     blurb: r.blurb ?? "",
     bio: r.bio ?? "",
     dailyRate: num(r.daily_rate),
     dailyRateMax: num(r.daily_rate_max),
     pricingNotes: [...(r.provider_pricing_notes ?? [])].sort(bySort).map((n: Row) => n.note),
-    address: r.address ?? "",
+    address:
+      externalProfile && "address" in externalProfile.location
+        ? externalProfile.location.address
+        : (r.address ?? ""),
     phone: r.phone ?? "",
     distance: num(r.distance_miles),
     rating: Math.round(avg * 10) / 10,
     reviewCount: reviews.length,
-    verified: !!r.verified,
+    verified: !external && !!r.verified,
     licenses: (r.provider_credentials ?? []).map((c: Row) => c.name),
     languages: (r.provider_languages ?? [])
       .map((l: Row) => l.languages?.name)
       .filter(Boolean)
       .sort(),
-    schedule: r.schedule_available ? scheduleFromRows(r.provider_availability ?? []) : null,
-    scheduleSummary: r.schedule_available ? (r.schedule_summary ?? "") : "Availability unknown",
+    schedule:
+      !external && r.schedule_available ? scheduleFromRows(r.provider_availability ?? []) : null,
+    scheduleSummary:
+      publishedHours?.kind === "published"
+        ? `${publishedHours.label}: ${publishedHours.summary}`
+        : (publishedHours?.summary ??
+          (!external && r.schedule_available
+            ? (r.schedule_summary ?? "")
+            : "Availability unknown")),
     pastFamilies: (r.provider_past_families ?? []).map((f: Row) => f.parent_id),
     reviews,
   };

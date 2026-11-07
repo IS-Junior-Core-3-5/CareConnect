@@ -10,13 +10,13 @@ import { ErrorState, LoadingState } from "@/components/NavBar";
 export const Route = createFileRoute("/providers/")({
   head: () => ({
     meta: [
-      { title: "Provo and Orem providers — CareConnect" },
+      { title: "Utah County providers — CareConnect" },
       {
         name: "description",
         content:
-          "Browse childcare, preschool, and sitter listings for Provo and Orem. Confirm current availability and terms directly with external providers.",
+          "Browse childcare, preschool, and sitter listings in Utah County. Confirm current availability and terms directly with external providers.",
       },
-      { property: "og:title", content: "Provo and Orem providers — CareConnect" },
+      { property: "og:title", content: "Utah County providers — CareConnect" },
       {
         property: "og:description",
         content: "Explore local childcare, preschool, and sitter listings.",
@@ -31,7 +31,6 @@ function ProvidersPage() {
   const providersQuery = useProvidersQuery(!!userId);
   const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
   const [types, setTypes] = useState<CareType[]>([]);
-  const [distance, setDistance] = useState(99);
   const [maxPrice, setMaxPrice] = useState(250);
   const [minRating, setMinRating] = useState(0);
   const [verifiedOnly, setVerifiedOnly] = useState(false);
@@ -41,7 +40,6 @@ function ProvidersPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const activeFilters =
     types.length +
-    (distance < 99 ? 1 : 0) +
     (maxPrice < 250 ? 1 : 0) +
     (minRating > 0 ? 1 : 0) +
     (verifiedOnly ? 1 : 0) +
@@ -60,7 +58,6 @@ function ProvidersPage() {
         return false;
       }
       if (types.length && !types.includes(p.careType)) return false;
-      if (distance < 99 && (p.distance === null || p.distance > distance)) return false;
       if (p.dailyRate !== null && maxPrice < 250 && p.dailyRate > maxPrice) return false;
       if (p.rating < minRating) return false;
       if (verifiedOnly && !p.verified) return false;
@@ -71,9 +68,7 @@ function ProvidersPage() {
       return true;
     });
     const sorted = [...filtered];
-    if (sort === "distance")
-      sorted.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-    else if (sort === "rating")
+    if (sort === "rating")
       sorted.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
     else if (sort === "price")
       sorted.sort((a, b) => (a.dailyRate ?? Infinity) - (b.dailyRate ?? Infinity));
@@ -88,7 +83,6 @@ function ProvidersPage() {
     providers,
     searchTerm,
     types,
-    distance,
     maxPrice,
     minRating,
     verifiedOnly,
@@ -101,7 +95,6 @@ function ProvidersPage() {
 
   function reset() {
     setTypes([]);
-    setDistance(99);
     setMaxPrice(250);
     setMinRating(0);
     setVerifiedOnly(false);
@@ -115,7 +108,7 @@ function ProvidersPage() {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-              Providers in Provo and Orem
+              Providers in Utah County
             </h1>
             <p className="mt-1 text-sm text-ink-soft">
               {results.length} {results.length === 1 ? "result" : "results"} · filters update
@@ -129,7 +122,6 @@ function ProvidersPage() {
             aria-label="Sort results"
           >
             <option value="match">Best schedule fit</option>
-            <option value="distance">Nearest</option>
             <option value="rating">Top rated</option>
             <option value="price">Lowest price</option>
           </select>
@@ -200,30 +192,6 @@ function ProvidersPage() {
                         className="size-4 rounded accent-[oklch(0.672_0.152_41.5)]"
                       />
                       {t}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-                  Distance
-                </p>
-                <div className="space-y-1.5">
-                  {[
-                    { v: 2, l: "Within 2 mi" },
-                    { v: 5, l: "Within 5 mi" },
-                    { v: 99, l: "Any distance" },
-                  ].map((d) => (
-                    <label key={d.v} className="flex items-center gap-2.5 text-sm">
-                      <input
-                        type="radio"
-                        name="dist"
-                        checked={distance === d.v}
-                        onChange={() => setDistance(d.v)}
-                        className="size-4 accent-[oklch(0.672_0.152_41.5)]"
-                      />
-                      {d.l}
                     </label>
                   ))}
                 </div>
@@ -324,10 +292,10 @@ function ProvidersPage() {
               <div className="rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
                 {searchTerm.trim()
                   ? `No providers found for “${searchTerm.trim()}”. Try another search.`
-                  : "No providers match the selected criteria. Showing the default provider list below."}
+                  : "No providers match the selected criteria. Try changing your filters."}
               </div>
             ) : null}
-            {(empty && !searchTerm.trim() ? providers : results).map((p) => (
+            {results.map((p) => (
               <ProviderCard key={p.id} provider={p} />
             ))}
           </div>

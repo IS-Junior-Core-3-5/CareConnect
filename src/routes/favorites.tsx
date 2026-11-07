@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
-import { ProviderPhoto, VerifiedBadge } from "@/components/ProviderCard";
+import { ProviderPhoto, ProviderListingBadge } from "@/components/ProviderCard";
 import { RatingSummary, Stars } from "@/components/StarRating";
-import { distanceLabel, overlapCount, priceLabel } from "@/lib/model";
+import { overlapCount, priceLabel } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
@@ -47,7 +47,9 @@ function FavoritesPage() {
       <section className="py-8">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">My favorites</h1>
+            <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight">
+              My favorites
+            </h1>
             <p className="mt-1 text-sm text-ink-soft">
               {saved.length} saved · select 2–3 to compare side by side
             </p>
@@ -64,7 +66,9 @@ function FavoritesPage() {
         {saved.length === 0 ? (
           <div className="rounded-3xl bg-surface p-8 text-center ring-1 ring-line">
             <p className="font-display text-2xl font-bold">Nothing saved yet</p>
-            <p className="mt-2 text-sm text-ink-soft">Tap the heart on any provider to shortlist them.</p>
+            <p className="mt-2 text-sm text-ink-soft">
+              Tap the heart on any provider to shortlist them.
+            </p>
             <Link
               to="/providers"
               className="mt-5 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-soft"
@@ -92,7 +96,7 @@ function FavoritesPage() {
                           {p.careType} · {p.address}
                         </p>
                       </div>
-                      <VerifiedBadge verified={p.verified} />
+                      <ProviderListingBadge provider={p} />
                     </div>
                     <p className="mt-2 text-sm font-semibold">
                       {p.dailyRate === null ? (
@@ -118,7 +122,9 @@ function FavoritesPage() {
                       <button
                         onClick={() => toggleSelect(p.id)}
                         className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
-                          picked ? "bg-primary text-primary-soft" : "border border-line text-ink-soft"
+                          picked
+                            ? "bg-primary text-primary-soft"
+                            : "border border-line text-ink-soft"
                         }`}
                       >
                         {picked ? "Selected" : "Select"}
@@ -144,7 +150,10 @@ function FavoritesPage() {
           <section className="mt-8 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
             <div className="flex items-center justify-between gap-3">
               <h2 className="font-display text-2xl font-bold tracking-tight">Side by side</h2>
-              <button onClick={() => setComparing(false)} className="text-sm font-semibold text-primary-ink">
+              <button
+                onClick={() => setComparing(false)}
+                className="text-sm font-semibold text-primary-ink"
+              >
                 Close
               </button>
             </div>
@@ -170,7 +179,9 @@ function FavoritesPage() {
                       [
                         "Matches you",
                         (p: (typeof chosen)[number]) =>
-                          p.schedule ? `${overlapCount(schedule, p.schedule)} blocks` : "Schedule unavailable",
+                          p.schedule
+                            ? `${overlapCount(schedule, p.schedule)} blocks`
+                            : "Schedule unavailable",
                       ],
                       [
                         "Rating",
@@ -190,7 +201,7 @@ function FavoritesPage() {
                       ["Verified", (p: (typeof chosen)[number]) => (p.verified ? "Yes" : "No")],
                       [
                         "Location",
-                        (p: (typeof chosen)[number]) => `${p.address} · ${distanceLabel(p.distance)}`,
+                        (p: (typeof chosen)[number]) => p.address || "Address not provided",
                       ],
                     ] as const
                   ).map(([label, fn]) => (
