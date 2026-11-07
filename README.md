@@ -118,6 +118,14 @@ The vertical slice is the **Add to favorites** button: UI → Supabase `favorite
 
 Other actions that also save and survive a refresh: editing your schedule (**Schedule** page), editing your profile and children (**Profile** page), writing a review on a provider's profile, and creating a provider listing on **My listing**.
 
+## AI Assistant and AI Preferences
+
+- **AI chat** (`/assistant`, the Home page, and the **Ask AI** button on every signed-in page): ask questions or for specific recommendations. Replies show cards for the providers mentioned. History is stored in `ai_chat_messages` (each parent sees only their own).
+- **AI preferences** (`/preferences`, linked from **Profile**): an in-depth, private profile the AI uses for both the chat and the Home page recommendations. It covers care type, setting and arrangement, start date, budget range and how firm it is, preferred cities and max distance, transportation, must-haves and dealbreakers, teaching approach, caregiver languages, kids' needs and diet, communication, ranked priorities, free-form notes, and answer length. Stored in `parent_preferences`, one row per parent, with row-level security so only the owner can read or edit it.
+- Both run through the `recommend-providers` Edge Function (Google Gemini). Must-haves and dealbreakers are treated as hard filters, and priorities set the weighting.
+
+**Verify:** sign in → **Profile → AI preferences** → pick e.g. Preschool, Montessori, Lindon, priority "Teaching approach" first, answer style Short → **Save preferences** → open **Ask AI** → ask "Based on my preferences, which provider should I look at first?" The reply should be short and pick a provider that matches (e.g. a Montessori preschool in Lindon), with a provider card. In Supabase, `select * from parent_preferences;` shows the saved row.
+
 ## OKR 2: Rebooking Tracker
 
 **Goal:** show whether families keep coming back to the same provider.

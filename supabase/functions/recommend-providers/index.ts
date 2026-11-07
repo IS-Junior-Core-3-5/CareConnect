@@ -135,6 +135,14 @@ Weigh, roughly in this order:
 5. Cost: daily_rate / daily_rate_max / pricing_notes (null daily_rate = pricing unavailable), provider address.
 Favorites signal interest, not quality.
 
+PARENT PROFILE.preferences (if saved) is what the parent told us in depth. Use it:
+- must_haves and dealbreakers are hard filters: never pick a provider that clearly breaks one; if a must-have
+  is unknown for a provider, you may still pick it but say it needs checking in tradeoffs.
+- priorities is ordered, most important first: weigh the factors in that order instead of the default order above.
+- care_types, care_settings, arrangement, budget_min/budget_max (+ budget_flexibility), preferred_cities,
+  max_distance_miles, approaches, languages_wanted, child_needs, diet, communication and notes_for_ai all
+  shape fit; mention the ones that matter in why/tradeoffs.
+
 For each pick write:
 - headline: one sentence (max 20 words), the main reason this is a fit.
 - details.why: 2-4 sentences, why this provider fits THIS family, citing specific facts.
@@ -164,7 +172,13 @@ say so and suggest the closest options or what to change.
 Ground every claim about a provider in the facts given; if something is unknown (schedule_available
 false, null daily_rate), say so and suggest contacting the provider. Never invent providers or facts.
 For general advice, be practical and say when something needs a doctor or professional.
-Keep replies under 170 words, warm and practical. Plain text; you may use "- " bullet lines and
+Keep replies warm and practical. Length: follow ANSWER STYLE in the context (Short = under 80 words,
+Balanced = under 170 words, Detailed = up to 300 words).
+PARENT PROFILE.preferences (if saved) is what the parent told us in depth: treat must_haves and
+dealbreakers as hard filters, weigh factors in the order of priorities, respect budget, cities, distance,
+approaches, languages, child_needs and diet, and follow notes_for_ai. Say which preference a pick meets
+or misses. If they have no preferences saved and ask for recommendations, you may suggest filling in
+AI preferences (Profile > AI preferences) for better picks. Plain text; you may use "- " bullet lines and
 **bold** names. Politely decline topics unrelated to kids, families, childcare or CareConnect.
 Respond with JSON only: {"reply": string, "provider_ids": string[]}
 provider_ids = the provider_id of every CareConnect provider you recommend or discuss by name in
@@ -218,6 +232,25 @@ Deno.serve(async (req) => {
     if (fErr) return json({ error: fErr.message }, 500);
     if (!providers?.length) return json({ summary: "", recommendations: [] });
 
+    // In-depth preferences the parent saved on /preferences (private, may be missing)
+    const { data: prefRow } = await supabase
+      .from("parent_preferences")
+      .select("*")
+      .eq("parent_id", parent.id)
+      .maybeSingle();
+    const preferences = prefRow
+      ? Object.fromEntries(
+          Object.entries(prefRow).filter(
+            ([k, v]) =>
+              !["parent_id", "updated_at"].includes(k) &&
+              v !== null &&
+              v !== false &&
+              !(Array.isArray(v) && v.length === 0),
+          ),
+        )
+      : null;
+    const answerStyle: string = prefRow?.ai_answer_style ?? "Balanced";
+
     const profile = {
       neighborhood: parent.neighborhood,
       about: parent.blurb,
@@ -227,6 +260,7 @@ Deno.serve(async (req) => {
         (a: any) => `${DAYS[a.day_of_week]} ${a.block}`,
       ),
       my_past_reviews: parent.reviews ?? [],
+      preferences: preferences ?? "none saved yet",
     };
 
     // Every provider's open blocks, so specific asks ("weekend evenings") can be checked
@@ -243,7 +277,7 @@ Deno.serve(async (req) => {
     const { data: contacts } = await supabase
       .from("providers")
       .select("id, address, phone, website_url, contact_url");
-    const contactById = new Map((contacts ?? []).map((c: any) => [c.id, c]));
+    const contactById = new Map<string, any>((contacts ?? []).map((c: any) => [c.id, c]));
     const providerFacts = providers.map((p: any) => ({
       ...p,
       address: contactById.get(p.provider_id)?.address ?? null,
@@ -271,7 +305,10 @@ Deno.serve(async (req) => {
         parts: [{ text: h.content }],
       }));
       const contents: GeminiContent[] = [
-        { role: "user", parts: [{ text: `${context}\n\n(Context only. The chat starts next.)` }] },
+        {
+          role: "user",
+          parts: [{ text: `${context}\n\nANSWER STYLE: ${answerStyle}\n\n(Context only. The chat starts next.)` }],
+        },
         { role: "model", parts: [{ text: "Got it. How can I help with childcare today?" }] },
         ...past,
         { role: "user", parts: [{ text: message }] },

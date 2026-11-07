@@ -141,7 +141,11 @@ export function AiChat({
             <p className="mt-1 max-w-[56ch] text-sm text-ink-soft text-pretty">
               Ask anything: questions about providers, costs, schedules or parenting, or ask for a
               specific recommendation. The AI knows your schedule, kids' ages, languages and every
-              provider, and remembers the conversation.
+              provider, and remembers the conversation.{" "}
+              <Link to="/preferences" className="font-semibold text-primary-ink underline-offset-2 hover:underline">
+                Set your AI preferences
+              </Link>{" "}
+              for better answers.
             </p>
           </div>
           {msgs.length ? (
@@ -163,6 +167,15 @@ export function AiChat({
           {!isLoading && shown.length === 0 ? (
             <div className="m-auto max-w-md text-center">
               <p className="text-sm text-ink-soft">Start with a question, or tap one:</p>
+              {panel ? (
+                <p className="mt-1 text-xs text-ink-faint">
+                  Tip:{" "}
+                  <Link to="/preferences" className="font-semibold text-primary-ink hover:underline">
+                    set your AI preferences
+                  </Link>{" "}
+                  for better picks.
+                </p>
+              ) : null}
               <div className="mt-3 flex flex-wrap justify-center gap-2">
                 {STARTERS.map((s) => (
                   <button

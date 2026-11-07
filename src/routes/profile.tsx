@@ -225,6 +225,10 @@ function ProfileBody() {
               <p className="mt-1 text-sm">{favorites.length} saved</p>
             </Link>
           </div>
+          <Link to="/preferences" className="card-lift rounded-3xl bg-leaf p-5 text-white">
+            <p className="font-display text-2xl font-bold">AI preferences</p>
+            <p className="mt-1 text-sm">Budget, must-haves, approach, kids' needs and more, so the AI's picks fit your family.</p>
+          </Link>
           <Link to="/listing" className="card-lift rounded-3xl bg-surface p-5 ring-1 ring-line">
             <p className="font-display text-2xl font-bold">Offer care?</p>
             <p className="mt-1 text-sm text-ink-soft">Create or edit your provider listing.</p>

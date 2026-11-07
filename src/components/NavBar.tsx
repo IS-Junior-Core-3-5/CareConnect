@@ -143,7 +143,7 @@ export function AppShell({
       )}
       <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-12">{body}</main>
       <PageFooter />
-      {session && me && pathname !== "/assistant" ? <AskAiLauncher /> : null}
+      {session && me && pathname !== "/assistant" && pathname !== "/preferences" ? <AskAiLauncher /> : null}
     </div>
   );
 }
