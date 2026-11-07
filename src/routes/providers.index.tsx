@@ -54,7 +54,10 @@ function ProvidersPage() {
       const { data, error } = await supabase.functions.invoke("provider-distances", {
         body: { providers: distanceProviders },
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        const responseBody = await (error as { context?: Response }).context?.json?.().catch(() => null);
+        throw new Error(responseBody?.error ?? error.message);
+      }
       if (data?.error) throw new Error(data.error);
       return data.distances as Record<string, number | null>;
     },
