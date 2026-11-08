@@ -15,13 +15,14 @@ export type ExternalProfile = {
   photos?: LinkFact;
   contactUrl?: string;
   reviews?: LinkFact;
-  pricing?: LinkFact;
+  pricing?: Sourced & { summary: string; detail: string; linkLabel: string };
   hours: PublishedHours | (Sourced & { kind: "variable"; summary: string });
   location: Sourced & ({ address: string } | { serviceArea: string });
   training?: Sourced & { text: string };
 };
 
 const checkedOn = "2026-11-06";
+const pricingCheckedOn = "2026-11-07";
 const lesPetits = "https://lespetitsprovo.com/";
 const kidsVillage = "https://kidsvillage.com/";
 const kidsEnrollment = "https://kidsvillage.com/2026-27-registration/";
@@ -35,10 +36,11 @@ const weekdays = [0, 1, 2, 3, 4];
 const profiles: Readonly<Record<string, ExternalProfile>> = {
   "montessori-learning-center-lindon": {
     pricing: {
-      label: "View published monthly tuition",
-      url: montessori + "tuition/",
+      summary: "Monthly tuition",
+      detail: "Monthly rates vary by program and days per week.",
+      linkLabel: "View published monthly tuition",
       sourceUrl: montessori + "tuition/",
-      checkedOn,
+      checkedOn: pricingCheckedOn,
     },
     photos: {
       label: "View official school gallery",
@@ -75,6 +77,14 @@ const profiles: Readonly<Record<string, ExternalProfile>> = {
     },
   },
   "way-to-grow-american-fork": {
+    pricing: {
+      summary: "Full-time, part-time, or drop-in",
+      detail:
+        "Rates vary by age group. Drop-in care has a daily rate. Call or email the center for amounts.",
+      linkLabel: "See tuition and drop-in details",
+      sourceUrl: wayToGrow + "faq/",
+      checkedOn: pricingCheckedOn,
+    },
     reviews: {
       label: "Read provider-hosted parent testimonials",
       url: wayToGrow + "#:~:text=What%20Parents%20Say%20About%20Us",
@@ -104,6 +114,14 @@ const profiles: Readonly<Record<string, ExternalProfile>> = {
     },
   },
   "les-petits-provo": {
+    pricing: {
+      summary: "Monthly tuition",
+      detail:
+        "Tuition includes meals and snacks. Les Petits says it accepts Utah DWS childcare assistance.",
+      linkLabel: "View published tuition",
+      sourceUrl: lesPetits + "daycare-tuition",
+      checkedOn: pricingCheckedOn,
+    },
     photos: {
       label: "View official gallery and virtual tour",
       url: lesPetits + "#:~:text=Photo%20Gallery",
@@ -124,6 +142,14 @@ const profiles: Readonly<Record<string, ExternalProfile>> = {
     location: { address: "795 W Center St, Provo, UT 84601", sourceUrl: lesPetits, checkedOn },
   },
   "kids-village-orem": {
+    pricing: {
+      summary: "Tuition by program",
+      detail:
+        "Tuition varies with the number of days and the session length. The school lists a separate registration fee.",
+      linkLabel: "View enrollment and tuition",
+      sourceUrl: kidsEnrollment,
+      checkedOn: pricingCheckedOn,
+    },
     photos: {
       label: "View official school photos",
       url: kidsVillage,
@@ -154,6 +180,14 @@ const profiles: Readonly<Record<string, ExternalProfile>> = {
     },
   },
   "guardian-angel-babysitting-utah": {
+    pricing: {
+      summary: "Hourly babysitting",
+      detail:
+        "A four-hour minimum applies. The provider lists a reservation deposit and accepts major credit cards.",
+      linkLabel: "View rates and reservation terms",
+      sourceUrl: "https://www.guardianangelbaby.com/sitter/index",
+      checkedOn: pricingCheckedOn,
+    },
     contactUrl: "https://www.guardianangelbaby.com/sitter/index",
     photos: {
       label: "View photos on the provider site",

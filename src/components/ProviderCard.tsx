@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { photoFor } from "@/components/photos";
+import { illustrationFor, photoFor } from "@/components/photos";
 import { RatingSummary } from "@/components/StarRating";
 import { priceLabel, type Provider } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
@@ -33,27 +33,22 @@ export function ProviderPhoto({
   provider: Provider;
   className?: string;
 }) {
-  const src = provider.listingOrigin === "external" ? null : photoFor(provider.photo);
-  if (!src)
-    return (
-      <div
-        className={`grid place-items-center rounded-2xl bg-primary-soft ${className}`}
-        aria-label={`${provider.name} has no photo`}
-      >
-        <span className="font-display text-3xl font-bold text-primary-ink">
-          {provider.name.slice(0, 1)}
-        </span>
-      </div>
-    );
+  const photo = provider.listingOrigin === "external" ? null : photoFor(provider.photo);
   return (
-    <img
-      src={src}
-      alt={provider.name}
-      loading="lazy"
-      width={816}
-      height={816}
-      className={`object-cover ${className}`}
-    />
+    <div className={`relative overflow-hidden bg-primary-soft ${className}`}>
+      <img
+        src={photo ?? illustrationFor(provider)}
+        alt={photo ? provider.name : ""}
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 size-full object-cover"
+      />
+      {!photo ? (
+        <span className="absolute bottom-2 right-2 rounded-full bg-surface px-2 py-1 text-xs font-semibold text-ink-soft">
+          Illustration
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -89,15 +84,9 @@ export function ProviderCard({
             </div>
             <p className="mt-0.5 text-sm text-ink-soft">{provider.blurb}</p>
           </div>
-          <div className="flex shrink-0 items-baseline gap-2 sm:block sm:text-right">
-            <p className="font-display text-xl font-bold leading-none">
-              {provider.dailyRate === null ? (
-                <span className="text-sm font-semibold text-ink-faint">Pricing unavailable</span>
-              ) : (
-                priceLabel(provider)
-              )}
-            </p>
-          </div>
+          <p className="max-w-48 text-sm font-semibold text-primary-ink sm:text-right">
+            {priceLabel(provider)}
+          </p>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">

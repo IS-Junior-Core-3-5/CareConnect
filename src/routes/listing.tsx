@@ -294,7 +294,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
       </h1>
       <p className="mt-1 max-w-[60ch] text-sm text-ink-soft">
         Parents search and filter by these details. Leave the price empty if you'd rather not list
-        one — it will show as "Pricing unavailable".
+        one — it will show as "Ask provider for rates".
         {existing ? (
           <>
             {" "}

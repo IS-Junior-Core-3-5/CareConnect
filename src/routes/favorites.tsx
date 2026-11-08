@@ -98,13 +98,7 @@ function FavoritesPage() {
                       </div>
                       <ProviderListingBadge provider={p} />
                     </div>
-                    <p className="mt-2 text-sm font-semibold">
-                      {p.dailyRate === null ? (
-                        <span className="text-ink-faint">Pricing unavailable</span>
-                      ) : (
-                        priceLabel(p)
-                      )}
-                    </p>
+                    <p className="mt-2 text-sm font-semibold">{priceLabel(p)}</p>
                     <RatingSummary
                       rating={p.rating}
                       reviewCount={p.reviewCount}
