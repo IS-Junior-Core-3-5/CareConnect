@@ -249,7 +249,7 @@ function ProvidersPage() {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-ink-faint">
-                  Providers without pricing are always shown.
+                  Listings without a daily rate are included in this price filter.
                 </p>
               </div>
 

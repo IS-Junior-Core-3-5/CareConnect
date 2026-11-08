@@ -103,9 +103,11 @@ export function scheduleCount(s: Schedule) {
   return s.flat().filter(Boolean).length;
 }
 
-export function priceLabel(p: Pick<Provider, "dailyRate" | "dailyRateMax">) {
-  if (p.dailyRate === null) return "Pricing unavailable";
-  if (p.dailyRateMax) return `$${p.dailyRate}–$${p.dailyRateMax}/day`;
+export function priceLabel(p: Pick<Provider, "dailyRate" | "dailyRateMax" | "externalProfile">) {
+  if (p.externalProfile?.pricing) return p.externalProfile.pricing.summary;
+  if (p.dailyRate === null) return "Ask provider for rates";
+  if (p.dailyRateMax !== null && p.dailyRateMax !== p.dailyRate)
+    return `$${p.dailyRate}–$${p.dailyRateMax}/day`;
   return `$${p.dailyRate}/day`;
 }
 

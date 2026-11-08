@@ -1,3 +1,9 @@
+import guardianAngelArt from "@/assets/provider-artwork/guardian-angel.jpg";
+import kidsVillageArt from "@/assets/provider-artwork/kids-village.jpg";
+import lesPetitsArt from "@/assets/provider-artwork/les-petits.jpg";
+import montessoriArt from "@/assets/provider-artwork/montessori.jpg";
+import wayToGrowArt from "@/assets/provider-artwork/way-to-grow.jpg";
+import type { CareType, Provider } from "@/lib/model";
 import maya from "@/assets/maya.jpg";
 import daniel from "@/assets/daniel.jpg";
 import sunny from "@/assets/sunny.jpg";
@@ -18,4 +24,26 @@ export const photos: Record<string, string> = {
 
 export function photoFor(key: string | null) {
   return key ? (photos[key] ?? null) : null;
+}
+
+const externalArtwork: Readonly<Record<string, string>> = {
+  "les-petits-provo": lesPetitsArt,
+  "kids-village-orem": kidsVillageArt,
+  "guardian-angel-babysitting-utah": guardianAngelArt,
+  "montessori-learning-center-lindon": montessoriArt,
+  "way-to-grow-american-fork": wayToGrowArt,
+};
+
+const categoryArtwork: Record<CareType, string> = {
+  Daycare: lesPetitsArt,
+  Preschool: kidsVillageArt,
+  Sitter: guardianAngelArt,
+  "Family Friend": guardianAngelArt,
+};
+
+export function illustrationFor(provider: Pick<Provider, "id" | "listingOrigin" | "careType">) {
+  if (provider.listingOrigin === "external" && Object.hasOwn(externalArtwork, provider.id)) {
+    return externalArtwork[provider.id];
+  }
+  return categoryArtwork[provider.careType];
 }

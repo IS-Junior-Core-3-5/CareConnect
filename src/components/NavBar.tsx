@@ -33,7 +33,6 @@ export function NavBar() {
             <Link
               key={l.label}
               to={l.to}
-              hash={"hash" in l ? l.hash : undefined}
               activeOptions={{ includeHash: true }}
               className="chip rounded-full px-3 py-2 hover:text-ink"
               activeProps={{ className: "text-ink bg-surface" }}
@@ -72,7 +71,6 @@ export function NavBar() {
               <Link
                 key={l.label}
                 to={l.to}
-                hash={"hash" in l ? l.hash : undefined}
                 activeOptions={{ includeHash: true }}
                 onClick={() => setOpen(false)}
                 className="rounded-2xl bg-background px-3 py-2 text-sm font-medium text-ink-soft"

@@ -15,6 +15,7 @@ import { ScheduleCompare } from "@/components/ScheduleGrid";
 import { RatingSummary, Stars, StarInput } from "@/components/StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import {
+  formatDate,
   gapCount,
   overlapCount,
   priceLabel,
@@ -122,7 +123,9 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               <ProviderPhoto
                 provider={provider}
                 className={
-                  external ? "h-32 w-full rounded-none" : "h-56 w-full rounded-none sm:h-80"
+                  external
+                    ? "aspect-[16/9] w-full rounded-none lg:aspect-auto lg:h-72"
+                    : "h-56 w-full rounded-none sm:h-80"
                 }
               />
               <div className="p-5 sm:p-6">
@@ -152,7 +155,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                     <div className="mt-3 flex flex-wrap gap-1.5 lg:hidden">
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          provider.dailyRate === null
+                          provider.dailyRate === null && !details?.pricing
                             ? "bg-clay-soft text-clay"
                             : "bg-primary-soft text-primary-ink"
                         }`}
@@ -500,12 +503,20 @@ function ProviderProfile({ provider }: { provider: Provider }) {
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Pricing</p>
               {details?.pricing ? (
                 <div className="mt-2 text-sm">
-                  <OfficialLink href={details.pricing.url}>{details.pricing.label}</OfficialLink>
-                  <SourceNote {...details.pricing} />
+                  <p className="font-semibold">{details.pricing.summary}</p>
+                  <p className="mt-1 text-ink-soft">{details.pricing.detail}</p>
+                  <p className="mt-2">
+                    <OfficialLink href={details.pricing.sourceUrl}>
+                      {details.pricing.linkLabel}
+                    </OfficialLink>
+                  </p>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    Checked {formatDate(details.pricing.checkedOn)}
+                  </p>
                 </div>
               ) : provider.dailyRate === null ? (
                 <p className="mt-2 rounded-2xl bg-clay-soft px-3 py-2 text-sm font-semibold text-clay">
-                  Pricing unavailable
+                  {priceLabel(provider)}
                 </p>
               ) : (
                 <>

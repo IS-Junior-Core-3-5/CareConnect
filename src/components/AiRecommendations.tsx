@@ -6,6 +6,7 @@ import { RatingSummary } from "@/components/StarRating";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
+import { priceLabel } from "@/lib/model";
 
 /**
  * AI recommendations: Google Gemini (via the recommend-providers Edge Function) analyzes the
@@ -119,11 +120,7 @@ export function AiRecommendations() {
                 name={p?.name ?? r.provider_id}
                 rating={p?.rating ?? 0}
                 reviewCount={p?.reviewCount ?? 0}
-                meta={
-                  p
-                    ? `${p.careType} · ${p.address} · ${p.dailyRate != null ? `${p.dailyRate}/day` : "Pricing unavailable"}`
-                    : ""
-                }
+                meta={p ? [p.careType, p.address, priceLabel(p)].filter(Boolean).join(" · ") : ""}
               />
             );
           })}
