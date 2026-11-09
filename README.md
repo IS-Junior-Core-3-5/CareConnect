@@ -50,6 +50,9 @@ Dated care requests that a provider confirms or declines, and the rebooking trac
 ### Level 0 Data Flow Diagram
 ![Level 0 Data Flow Diagram](/docs/Level_0_Data_Flow_Diagram.svg)
 
+### Level 1 Data Flow Diagram
+![Level 1 Data Flow Diagram](/docs/Level_1_Data_Flow_Diagram.png)
+
 ## How to Get It Running
 
 ### Option A — Use the hosted app (no setup)
