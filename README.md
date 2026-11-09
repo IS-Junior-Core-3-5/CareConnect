@@ -45,6 +45,10 @@ Dated care requests that a provider confirms or declines, and the rebooking trac
 | Authentication | Supabase Auth (email + password) | Sign-up, login, and password reset with no extra service. New sign-ups automatically get a parent profile through a database trigger. |
 | Hosting / workflow | Lovable (build + hosting), GitHub (source of truth) | Pushing to `main` syncs to Lovable and anyone on the team can publish. Everyone can work in the Lovable editor or locally in GitHub. |
 
+## Data Flow Diagram
+
+![Level 0 Data Flow Diagram](/docs/Data_Flow_Diagram.png)
+
 ## How to Get It Running
 
 ### Option A — Use the hosted app (no setup)
