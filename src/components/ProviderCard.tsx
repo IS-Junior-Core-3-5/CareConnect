@@ -1,7 +1,9 @@
+import { useState } from "react";
+import { providerPhotoUrl } from "@/lib/provider-photo";
 import { Link } from "@tanstack/react-router";
-import { illustrationFor, photoFor } from "@/components/photos";
+import { demoPhotoFor, hasDemoWordmark, illustrationFor, photoFor } from "@/components/photos";
 import { RatingSummary } from "@/components/StarRating";
-import { priceLabel, type Provider } from "@/lib/model";
+import { priceLabel, providerDisplayAddress, type Provider } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 
 export function VerifiedBadge({ verified }: { verified: boolean }) {
@@ -17,6 +19,7 @@ export function VerifiedBadge({ verified }: { verified: boolean }) {
 }
 
 export function ProviderListingBadge({ provider }: { provider: Provider }) {
+  if (provider.isDemo) return null;
   return provider.listingOrigin === "external" ? (
     <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
       External listing
@@ -26,6 +29,13 @@ export function ProviderListingBadge({ provider }: { provider: Provider }) {
   );
 }
 
+const photoBrand = {
+  Daycare: { label: "Childcare center", color: "text-amber-200" },
+  Preschool: { label: "Early learning", color: "text-emerald-200" },
+  Sitter: { label: "Babysitting", color: "text-sky-200" },
+  "Family Friend": { label: "Backup care", color: "text-rose-200" },
+};
+
 export function ProviderPhoto({
   provider,
   className = "",
@@ -33,16 +43,50 @@ export function ProviderPhoto({
   provider: Provider;
   className?: string;
 }) {
-  const photo = provider.listingOrigin === "external" ? null : photoFor(provider.photo);
+  const [failedPhotos, setFailedPhotos] = useState<string[]>([]);
+  const uploaded = provider.profilePhotoPath ? providerPhotoUrl(provider.profilePhotoPath) : null;
+  const demoPhoto = demoPhotoFor(provider);
+  const photo =
+    provider.listingOrigin === "external"
+      ? null
+      : [uploaded, demoPhoto, photoFor(provider.photo)].find(
+          (url) => url && !failedPhotos.includes(url),
+        );
+  const generatedDemoPhoto = !!photo && photo === demoPhoto;
+  const wordmark = generatedDemoPhoto && hasDemoWordmark(provider.id);
+  const brand = photoBrand[provider.careType];
+
   return (
-    <div className={`relative overflow-hidden bg-primary-soft ${className}`}>
+    <div
+      className={`relative isolate overflow-hidden ${wordmark ? "bg-[#fbf1db]" : "bg-primary-soft"} ${className}`}
+    >
       <img
         src={photo ?? illustrationFor(provider)}
-        alt={photo ? provider.name : ""}
+        alt={photo && photo !== demoPhoto ? provider.name : ""}
+        onError={photo ? () => setFailedPhotos((failed) => [...failed, photo]) : undefined}
         loading="lazy"
         decoding="async"
-        className="absolute inset-0 size-full object-cover"
+        className={
+          wordmark
+            ? "absolute inset-x-0 top-0 h-[calc(100%-1.25rem)] w-full object-contain"
+            : "absolute inset-0 size-full object-cover"
+        }
       />
+      {generatedDemoPhoto ? (
+        <div
+          aria-hidden="true"
+          className={`absolute inset-x-0 bottom-0 px-2.5 text-white ${wordmark ? "flex h-5 items-center justify-center bg-stone-900" : "bg-gradient-to-t from-black/90 via-black/65 to-transparent pb-2 pt-5"}`}
+        >
+          {wordmark ? null : (
+            <span className="block text-xs leading-tight font-semibold">{provider.name}</span>
+          )}
+          <span
+            className={`block text-[9px] leading-tight font-semibold uppercase tracking-wide ${brand.color}`}
+          >
+            {brand.label}
+          </span>
+        </div>
+      ) : null}
       {!photo ? (
         <span className="absolute bottom-2 right-2 rounded-full bg-surface px-2 py-1 text-xs font-semibold text-ink-soft">
           Illustration
@@ -55,23 +99,28 @@ export function ProviderPhoto({
 export function ProviderCard({
   provider,
   distanceMiles,
+  preview,
 }: {
   provider: Provider;
   distanceMiles?: number;
+  preview?: { favorite: boolean; toggle: (id: string) => void };
 }) {
   const { isFavorite, toggleFavorite } = useApp();
-  const fav = isFavorite(provider.id);
+  const fav = preview?.favorite ?? isFavorite(provider.id);
+  const search = preview ? { preview: true as const } : undefined;
 
   return (
     <article className="card-lift grid gap-4 rounded-3xl bg-surface p-4 ring-1 ring-line sm:grid-cols-[168px_minmax(0,1fr)]">
       <div className="relative">
         <ProviderPhoto
           provider={provider}
-          className="aspect-[16/10] w-full rounded-2xl sm:aspect-square"
+          className={`w-full rounded-2xl sm:aspect-square ${provider.isDemo ? "aspect-[4/3]" : "aspect-[16/10]"}`}
         />
-        <span className="absolute left-2 top-2">
-          <ProviderListingBadge provider={provider} />
-        </span>
+        {provider.isDemo ? null : (
+          <span className="absolute left-2 top-2">
+            <ProviderListingBadge provider={provider} />
+          </span>
+        )}
       </div>
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
@@ -92,7 +141,7 @@ export function ProviderCard({
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} size="sm" />
           {provider.reviewCount ? <span className="text-ink-faint">·</span> : null}
-          <span className="text-ink-soft">{provider.address}</span>
+          <span className="text-ink-soft">{providerDisplayAddress(provider)}</span>
           {distanceMiles !== undefined ? (
             <span className="font-medium text-primary-ink">{distanceMiles.toFixed(1)} mi away</span>
           ) : null}
@@ -120,6 +169,7 @@ export function ProviderCard({
           <Link
             to="/providers/$providerId"
             params={{ providerId: provider.id }}
+            search={search}
             className="whitespace-nowrap rounded-full bg-primary px-3.5 py-2 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink sm:px-4"
           >
             View profile
@@ -128,6 +178,7 @@ export function ProviderCard({
             <Link
               to="/providers/$providerId"
               params={{ providerId: provider.id }}
+              search={search}
               hash="compare"
               className="whitespace-nowrap rounded-full border border-line px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink sm:px-4"
             >
@@ -136,7 +187,7 @@ export function ProviderCard({
             </Link>
           ) : null}
           <button
-            onClick={() => toggleFavorite(provider.id)}
+            onClick={() => (preview?.toggle ?? toggleFavorite)(provider.id)}
             aria-label={
               fav ? `Remove ${provider.name} from favorites` : `Add ${provider.name} to favorites`
             }

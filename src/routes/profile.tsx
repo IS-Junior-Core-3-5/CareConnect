@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { CareBookings } from "@/components/CareBookings";
 import { AppShell } from "@/components/NavBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
@@ -266,6 +267,7 @@ function ProfileBody() {
           </form>
         </div>
       </div>
+      <CareBookings />
     </>
   );
 }

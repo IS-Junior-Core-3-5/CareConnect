@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/NavBar";
 import { ProviderPhoto, ProviderListingBadge } from "@/components/ProviderCard";
 import { RatingSummary, Stars } from "@/components/StarRating";
-import { overlapCount, priceLabel } from "@/lib/model";
+import { overlapCount, priceLabel, providerDisplayAddress } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
 import { useProviders } from "@/lib/data";
 
@@ -93,7 +93,7 @@ function FavoritesPage() {
                       <div>
                         <h2 className="font-display text-lg font-bold leading-tight">{p.name}</h2>
                         <p className="text-sm text-ink-soft">
-                          {p.careType} · {p.address}
+                          {p.careType} · {providerDisplayAddress(p)}
                         </p>
                       </div>
                       <ProviderListingBadge provider={p} />

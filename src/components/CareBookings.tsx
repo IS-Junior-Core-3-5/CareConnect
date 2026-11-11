@@ -18,26 +18,43 @@ type Booking = {
 
 const bookingKey = (userId: string | null) => ["care_bookings", userId] as const;
 
-export function RequestCare({ provider }: { provider: Provider }) {
+export function RequestCare({
+  provider,
+  practice = false,
+}: {
+  provider: Provider;
+  practice?: boolean;
+}) {
   const { parentId, userId } = useApp();
   const qc = useQueryClient();
   const [date, setDate] = useState("");
   const [block, setBlock] = useState<Block>("Morning");
   const [busy, setBusy] = useState(false);
+  const [practiceRequest, setPracticeRequest] = useState<{
+    date: string;
+    block: Block;
+    status: "Pending" | "Confirmed";
+  } | null>(null);
   if (
-    !parentId ||
-    provider.listingOrigin !== "owned" ||
-    !provider.ownerId ||
-    provider.ownerId === userId ||
-    !provider.schedule
+    !provider.schedule ||
+    (!practice &&
+      (!parentId ||
+        provider.listingOrigin !== "owned" ||
+        !provider.ownerId ||
+        provider.ownerId === userId))
   )
     return null;
 
   async function request(e: FormEvent) {
     e.preventDefault();
-    if (!parentId || !date) return;
+    if (!date || date < localToday) return;
     const d = (new Date(`${date}T00:00:00`).getDay() + 6) % 7;
-    if (!BLOCKS.some((_, t) => provider.schedule?.[d]?.[t])) return;
+    if (!provider.schedule?.[d]?.[BLOCKS.indexOf(block)]) return;
+    if (practice) {
+      setPracticeRequest({ date, block, status: "Pending" });
+      return;
+    }
+    if (!parentId) return;
     setBusy(true);
     const { error } = await supabase.from("care_bookings").insert({
       parent_id: parentId,
@@ -74,9 +91,13 @@ export function RequestCare({ provider }: { provider: Provider }) {
       onSubmit={request}
       className="mt-6 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
     >
-      <h2 className="font-display text-2xl font-bold">Request a care block</h2>
+      <h2 className="font-display text-2xl font-bold">
+        {practice ? "Practice a care request" : "Request a care block"}
+      </h2>
       <p className="mt-1 text-sm text-ink-soft">
-        The provider will confirm or decline your request.
+        {practice
+          ? "Try both sides of a request here. This is a simulation."
+          : "The provider will confirm or decline your request."}
       </p>
       <div className="mt-4 grid grid-cols-2 items-end gap-3 sm:flex sm:flex-wrap">
         <label className="text-sm font-medium">
@@ -109,9 +130,25 @@ export function RequestCare({ provider }: { provider: Provider }) {
           disabled={busy || dayUnavailable}
           className="col-span-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-soft disabled:opacity-50 sm:col-span-1"
         >
-          {busy ? "Sending…" : "Send request"}
+          {busy ? "Sending…" : practice ? "Try request" : "Send request"}
         </button>
       </div>
+      {practiceRequest ? (
+        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm" aria-live="polite">
+          <p>
+            {formatDate(practiceRequest.date)} · {practiceRequest.block} · {practiceRequest.status}
+          </p>
+          {practiceRequest.status === "Pending" ? (
+            <button
+              type="button"
+              className="font-semibold text-primary-ink underline"
+              onClick={() => setPracticeRequest({ ...practiceRequest, status: "Confirmed" })}
+            >
+              Confirm as provider
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {dayUnavailable && dayIndex !== null ? (
         <p className="mt-3 text-sm text-clay">
           This provider isn't available on {DAYS[dayIndex]}. Try another day.
