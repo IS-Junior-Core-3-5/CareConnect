@@ -72,6 +72,7 @@ function mapProvider(r: Row, preview = false): Provider {
   const external = r.listing_origin === "external";
   const externalProfile = external ? getExternalProfile(r.id) : null;
   const publishedHours = externalProfile?.hours;
+  const location = externalProfile?.location;
   return {
     id: r.id,
     ownerId: r.owner_id ?? null,
@@ -94,10 +95,11 @@ function mapProvider(r: Row, preview = false): Provider {
     dailyRate: num(r.daily_rate),
     dailyRateMax: num(r.daily_rate_max),
     pricingNotes: [...(r.provider_pricing_notes ?? [])].sort(bySort).map((n: Row) => n.note),
-    address:
-      externalProfile && "address" in externalProfile.location
-        ? externalProfile.location.address
-        : (r.address ?? ""),
+    address: location
+      ? "address" in location
+        ? location.address
+        : location.serviceArea
+      : (r.address ?? ""),
     phone: r.phone ?? "",
     distance: num(r.distance_miles),
     rating: Math.round(avg * 10) / 10,

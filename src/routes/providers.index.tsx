@@ -52,7 +52,10 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [maxDistance, setMaxDistance] = useState("any");
   const distanceProviders = useMemo(
-    () => providers.map((p) => ({ id: p.id, address: p.address })),
+    () =>
+      providers
+        .filter((p) => !p.externalProfile || "address" in p.externalProfile.location)
+        .map((p) => ({ id: p.id, address: p.address })),
     [providers],
   );
   const providerAddressKey = distanceProviders.map((p) => `${p.id}:${p.address}`).join("|");
