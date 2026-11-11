@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { ImagePlus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, LoadingState } from "@/components/NavBar";
@@ -93,6 +94,9 @@ function ListingForm({ existing }: { existing: Provider | null }) {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const photoInput = useRef<HTMLInputElement>(null);
+  const dragDepth = useRef(0);
+  const [draggingPhoto, setDraggingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -108,17 +112,22 @@ function ListingForm({ existing }: { existing: Provider | null }) {
     return () => URL.revokeObjectURL(url);
   }, [newPhoto]);
 
-  function choosePhoto(file: File | undefined) {
-    if (!file) return;
+  function choosePhoto(files: FileList | null) {
+    if (busy || !files?.length) return;
+    const file = files[0];
+    if (files.length !== 1) {
+      setPhotoError("Choose one profile picture at a time.");
+      return;
+    }
     if (
       !providerPhotoExtensions.has(file.type) ||
       file.size > providerPhotoMaxBytes ||
       !file.size
     ) {
-      if (photoInput.current) photoInput.current.value = "";
-      toast.error("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+      setPhotoError("Choose a JPEG, PNG, or WebP image up to 5 MB.");
       return;
     }
+    setPhotoError("");
     setNewPhoto(file);
     setRemovePhoto(false);
   }
@@ -182,7 +191,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
       if (photoChanged) {
         setSavedPhoto(nextPhoto);
         setNewPhoto(null);
-        if (photoInput.current) photoInput.current.value = "";
+        setPhotoError("");
         setRemovePhoto(false);
         await deleteUnusedPhoto(savedPhoto);
       }
@@ -390,58 +399,108 @@ function ListingForm({ existing }: { existing: Provider | null }) {
             <label className={label} htmlFor="l-photo">
               Profile picture
             </label>
-            <div className="flex flex-wrap items-start gap-4">
+            <div
+              onDragEnter={(event) => {
+                if (!event.dataTransfer.types.includes("Files")) return;
+                event.preventDefault();
+                if (busy) return;
+                dragDepth.current += 1;
+                setDraggingPhoto(true);
+              }}
+              onDragOver={(event) => {
+                if (!event.dataTransfer.types.includes("Files")) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = busy ? "none" : "copy";
+              }}
+              onDragLeave={() => {
+                dragDepth.current = Math.max(0, dragDepth.current - 1);
+                if (dragDepth.current === 0) setDraggingPhoto(false);
+              }}
+              onDrop={(event) => {
+                if (!event.dataTransfer.types.includes("Files")) return;
+                event.preventDefault();
+                dragDepth.current = 0;
+                setDraggingPhoto(false);
+                choosePhoto(event.dataTransfer.files);
+              }}
+              className={`flex flex-wrap items-center gap-4 rounded-2xl border-2 border-dashed p-4 transition-colors ${
+                draggingPhoto && !busy
+                  ? "border-primary bg-primary-soft"
+                  : "border-line bg-background"
+              }`}
+            >
               {previewUrl ? (
                 <img
                   src={previewUrl}
                   alt="Listing picture preview"
-                  className="size-24 rounded-2xl object-cover"
+                  className="size-24 shrink-0 rounded-xl object-cover"
                 />
               ) : existing && !removePhoto ? (
-                <ProviderPhoto provider={existing} className="size-24 rounded-2xl" />
-              ) : null}
-              <div className="min-w-0 flex-1">
+                <ProviderPhoto provider={existing} className="size-24 shrink-0 rounded-xl" />
+              ) : (
+                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-surface text-primary-ink">
+                  <ImagePlus className="size-5" aria-hidden="true" />
+                </span>
+              )}
+              <div className="min-w-0 flex-1 basis-40">
+                <p className="text-sm font-semibold">Drag and drop a photo here</p>
+                <p id="l-photo-help" className="mt-1 text-xs text-ink-soft">
+                  One JPEG, PNG, or WebP up to 5 MB. Your photo becomes public when you save.
+                </p>
                 <input
                   id="l-photo"
                   ref={photoInput}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   disabled={busy}
-                  onChange={(e) => choosePhoto(e.target.files?.[0])}
+                  onChange={(event) => {
+                    choosePhoto(event.currentTarget.files);
+                    event.currentTarget.value = "";
+                  }}
                   aria-describedby="l-photo-help"
-                  className="block w-full text-sm text-ink-soft"
+                  hidden
                 />
-                <p id="l-photo-help" className="mt-2 text-xs text-ink-soft">
-                  JPEG, PNG, or WebP up to 5 MB. Your photo becomes public when you save.
-                </p>
-                {newPhoto || (savedPhoto && !removePhoto) ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="mt-2 text-sm font-semibold text-primary-ink hover:underline"
-                    onClick={() => {
-                      if (newPhoto) {
-                        setNewPhoto(null);
-                        if (photoInput.current) photoInput.current.value = "";
-                      } else {
-                        setRemovePhoto(true);
-                      }
-                    }}
-                  >
-                    {newPhoto ? "Discard selected photo" : "Remove uploaded photo"}
-                  </button>
-                ) : removePhoto ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="mt-2 text-sm font-semibold text-primary-ink hover:underline"
-                    onClick={() => setRemovePhoto(false)}
-                  >
-                    Keep uploaded photo
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => photoInput.current?.click()}
+                  aria-describedby="l-photo-help"
+                  className="mt-3 rounded-full border border-line bg-surface px-3.5 py-1.5 text-sm font-semibold text-primary-ink hover:border-primary disabled:opacity-50"
+                >
+                  {newPhoto || (savedPhoto && !removePhoto) ? "Change photo" : "Choose photo"}
+                </button>
               </div>
             </div>
+            {photoError ? (
+              <p role="alert" className="mt-2 text-sm text-clay">
+                {photoError}
+              </p>
+            ) : null}
+            {newPhoto || removePhoto ? (
+              <p role="status" className="mt-2 break-words text-xs text-ink-soft">
+                {newPhoto
+                  ? `Selected: ${newPhoto.name}. Save to publish it.`
+                  : "The uploaded photo will be removed when you save."}
+              </p>
+            ) : null}
+            {newPhoto || savedPhoto ? (
+              <button
+                type="button"
+                disabled={busy}
+                className="mt-2 text-sm font-semibold text-primary-ink hover:underline disabled:opacity-50"
+                onClick={() => {
+                  setPhotoError("");
+                  if (newPhoto) setNewPhoto(null);
+                  else setRemovePhoto(!removePhoto);
+                }}
+              >
+                {newPhoto
+                  ? "Discard selected photo"
+                  : removePhoto
+                    ? "Keep uploaded photo"
+                    : "Remove uploaded photo"}
+              </button>
+            ) : null}
           </div>
           <div>
             <label className={label} htmlFor="l-name">

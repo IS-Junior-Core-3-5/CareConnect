@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
@@ -34,6 +34,14 @@ function ProvidersPage() {
   return <ProviderDirectory key={preview ? "preview" : "directory"} preview={!!preview} />;
 }
 
+const defaultFilters = {
+  types: [] as CareType[],
+  maxPrice: 250,
+  minRating: 0,
+  matchesSchedule: false,
+  maxDistance: "any",
+};
+
 function ProviderDirectory({ preview }: { preview: boolean }) {
   const { schedule: savedSchedule, userId, me } = useApp();
   const directoryQuery = useProvidersQuery(!!userId, !preview);
@@ -43,14 +51,12 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
   const { favorites, toggle } = usePreviewFavorites(preview);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
-  const [types, setTypes] = useState<CareType[]>([]);
-  const [maxPrice, setMaxPrice] = useState(250);
-  const [minRating, setMinRating] = useState(0);
-  const [verifiedOnly, setVerifiedOnly] = useState(false);
-  const [matchesSchedule, setMatchesSchedule] = useState(false);
+  const [filters, setFilters] = useState(defaultFilters);
+  const [draft, setDraft] = useState(defaultFilters);
+  const { types, maxPrice, minRating, matchesSchedule } = filters;
+  const maxDistance = me?.address ? filters.maxDistance : "any";
   const [sort, setSort] = useState("match");
   const [searchTerm, setSearchTerm] = useState("");
-  const [maxDistance, setMaxDistance] = useState("any");
   const distanceProviders = useMemo(
     () =>
       providers
@@ -79,11 +85,11 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     },
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterToggle = useRef<HTMLButtonElement>(null);
   const activeFilters =
     types.length +
     (maxPrice < 250 ? 1 : 0) +
     (minRating > 0 ? 1 : 0) +
-    (verifiedOnly ? 1 : 0) +
     (matchesSchedule ? 1 : 0) +
     (maxDistance !== "any" ? 1 : 0) +
     (favoritesOnly ? 1 : 0);
@@ -104,7 +110,6 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
       if (types.length && !types.includes(p.careType)) return false;
       if (p.dailyRate !== null && maxPrice < 250 && p.dailyRate > maxPrice) return false;
       if (p.rating < minRating) return false;
-      if (verifiedOnly && !p.verified) return false;
       if (maxDistance !== "any") {
         const miles = distanceQuery.data?.[p.id];
         if (miles === null || miles === undefined || miles > Number(maxDistance)) return false;
@@ -135,7 +140,6 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     types,
     maxPrice,
     minRating,
-    verifiedOnly,
     matchesSchedule,
     maxDistance,
     distanceQuery.data,
@@ -144,16 +148,21 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
   ]);
 
   const empty = results.length === 0;
+  const distancePending = maxDistance !== "any" && distanceQuery.isFetching;
+  const distanceError = maxDistance !== "any" ? distanceQuery.error : null;
 
   function reset() {
-    setTypes([]);
-    setMaxPrice(250);
-    setMinRating(0);
-    setVerifiedOnly(false);
-    setMatchesSchedule(false);
+    setFilters(defaultFilters);
+    setDraft(defaultFilters);
     setSearchTerm("");
-    setMaxDistance("any");
     setFavoritesOnly(false);
+  }
+
+  function applyFilters(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFilters(me?.address ? draft : { ...draft, maxDistance: "any" });
+    setFiltersOpen(false);
+    if (filtersOpen) filterToggle.current?.focus();
   }
 
   return (
@@ -164,9 +173,10 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
             <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
               {preview ? "Provider directory preview" : "Providers in Utah County"}
             </h1>
-            <p className="mt-1 text-sm text-ink-soft">
-              {results.length} {results.length === 1 ? "result" : "results"} · filters update
-              instantly
+            <p className="mt-1 text-sm text-ink-soft" role="status">
+              {distancePending
+                ? "Calculating provider distances…"
+                : `${results.length} ${results.length === 1 ? "result" : "results"}`}
             </p>
             {preview || import.meta.env.VITE_CARECONNECT_DEMO === "true" ? (
               <p className="mt-1 text-xs text-ink-soft">
@@ -227,8 +237,10 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
             {/* Phones: filters collapse behind a button so results show first. */}
             <button
               type="button"
+              ref={filterToggle}
               onClick={() => setFiltersOpen((v) => !v)}
               aria-expanded={filtersOpen}
+              aria-controls="provider-filters"
               className="flex w-full items-center justify-between rounded-2xl bg-surface px-4 py-3 text-sm font-semibold ring-1 ring-line lg:hidden"
             >
               <span>
@@ -243,14 +255,21 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                 {filtersOpen ? "▲" : "▼"}
               </span>
             </button>
-            <div
+            <form
+              id="provider-filters"
+              aria-label="Provider filters"
+              onSubmit={applyFilters}
               className={`${filtersOpen ? "mt-3 block" : "hidden"} space-y-6 rounded-3xl bg-surface p-5 ring-1 ring-line lg:sticky lg:top-20 lg:mt-0 lg:block`}
             >
               <div className="flex items-center justify-between">
                 <span className="font-mono text-xs uppercase tracking-wider text-ink-faint">
                   Filters
                 </span>
-                <button onClick={reset} className="text-xs font-semibold text-primary-ink">
+                <button
+                  type="button"
+                  onClick={reset}
+                  className="text-xs font-semibold text-primary-ink"
+                >
                   Reset
                 </button>
               </div>
@@ -264,11 +283,14 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                     <label key={t} className="flex items-center gap-2.5 text-sm">
                       <input
                         type="checkbox"
-                        checked={types.includes(t)}
+                        checked={draft.types.includes(t)}
                         onChange={() =>
-                          setTypes((prev) =>
-                            prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t],
-                          )
+                          setDraft((prev) => ({
+                            ...prev,
+                            types: prev.types.includes(t)
+                              ? prev.types.filter((x) => x !== t)
+                              : [...prev.types, t],
+                          }))
                         }
                         className="size-4 rounded accent-[oklch(0.672_0.152_41.5)]"
                       />
@@ -288,12 +310,13 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                     min={80}
                     max={250}
                     step={5}
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                    aria-label="Max daily rate"
+                    value={draft.maxPrice}
+                    onChange={(e) => setDraft({ ...draft, maxPrice: Number(e.target.value) })}
                     className="w-full accent-[oklch(0.672_0.152_41.5)]"
                   />
                   <span className="font-mono text-sm text-ink-soft">
-                    {maxPrice >= 250 ? "Any" : `$${maxPrice}`}
+                    {draft.maxPrice >= 250 ? "Any" : `$${draft.maxPrice}`}
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-ink-faint">
@@ -309,9 +332,11 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                   {[0, 4.5, 4.8].map((r) => (
                     <button
                       key={r}
-                      onClick={() => setMinRating(r)}
+                      type="button"
+                      aria-pressed={draft.minRating === r}
+                      onClick={() => setDraft({ ...draft, minRating: r })}
                       className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        minRating === r
+                        draft.minRating === r
                           ? "bg-primary-soft text-primary-ink"
                           : "border border-line text-ink-soft hover:border-primary"
                       }`}
@@ -331,8 +356,8 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                 </label>
                 <select
                   id="provider-distance"
-                  value={maxDistance}
-                  onChange={(e) => setMaxDistance(e.target.value)}
+                  value={draft.maxDistance}
+                  onChange={(e) => setDraft({ ...draft, maxDistance: e.target.value })}
                   disabled={!me?.address}
                   className="w-full rounded-xl border border-line bg-background px-3 py-2 text-sm disabled:opacity-60"
                 >
@@ -355,38 +380,14 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                     to use this filter.
                   </p>
                 ) : null}
-                {maxDistance !== "any" && distanceQuery.isFetching ? (
-                  <p className="mt-2 text-xs text-ink-soft">Calculating provider distances…</p>
-                ) : null}
-                {maxDistance !== "any" && distanceQuery.error ? (
-                  <p className="mt-2 text-xs text-clay">{distanceQuery.error.message}</p>
-                ) : null}
               </div>
 
               <button
-                onClick={() => setVerifiedOnly((v) => !v)}
+                type="button"
+                aria-pressed={draft.matchesSchedule}
+                onClick={() => setDraft({ ...draft, matchesSchedule: !draft.matchesSchedule })}
                 className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 ${
-                  verifiedOnly ? "bg-leaf-soft" : "bg-background"
-                }`}
-              >
-                <span className="text-sm font-medium text-leaf-ink">Verified only</span>
-                <span
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full ${
-                    verifiedOnly ? "bg-leaf" : "bg-line"
-                  }`}
-                >
-                  <span
-                    className={`absolute size-4 rounded-full bg-white transition-all ${
-                      verifiedOnly ? "right-0.5" : "left-0.5"
-                    }`}
-                  />
-                </span>
-              </button>
-
-              <button
-                onClick={() => setMatchesSchedule((v) => !v)}
-                className={`flex w-full items-center justify-between rounded-2xl px-3 py-2.5 ${
-                  matchesSchedule ? "bg-primary-soft" : "bg-background"
+                  draft.matchesSchedule ? "bg-primary-soft" : "bg-background"
                 }`}
               >
                 <span className="text-left text-sm font-medium text-primary-ink">
@@ -394,23 +395,34 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                 </span>
                 <span
                   className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full ${
-                    matchesSchedule ? "bg-primary" : "bg-line"
+                    draft.matchesSchedule ? "bg-primary" : "bg-line"
                   }`}
                 >
                   <span
                     className={`absolute size-4 rounded-full bg-white transition-all ${
-                      matchesSchedule ? "right-0.5" : "left-0.5"
+                      draft.matchesSchedule ? "right-0.5" : "left-0.5"
                     }`}
                   />
                 </span>
               </button>
-            </div>
+              <button
+                type="submit"
+                className="w-full rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink"
+              >
+                Apply filters
+              </button>
+            </form>
           </aside>
 
           <div className="min-w-0 space-y-4 lg:col-span-9">
             {providersQuery.isLoading ? <LoadingState label="Loading providers…" /> : null}
             {providersQuery.error ? <ErrorState error={providersQuery.error} /> : null}
-            {empty && providers.length && !distanceQuery.isFetching && !distanceQuery.error ? (
+            {distanceError ? (
+              <p role="alert" className="rounded-3xl bg-clay-soft px-5 py-4 text-sm text-clay">
+                {distanceError.message}
+              </p>
+            ) : null}
+            {empty && providers.length && !distancePending && !distanceError ? (
               <div className="rounded-3xl bg-clay-soft px-5 py-4 text-sm font-medium text-clay">
                 {searchTerm.trim()
                   ? `No providers found for “${searchTerm.trim()}”. Try another search.`
@@ -422,7 +434,9 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                 key={p.id}
                 provider={p}
                 preview={preview ? { favorite: favorites.includes(p.id), toggle } : undefined}
-                distanceMiles={distanceQuery.data?.[p.id] ?? undefined}
+                distanceMiles={
+                  maxDistance === "any" ? undefined : (distanceQuery.data?.[p.id] ?? undefined)
+                }
               />
             ))}
           </div>
