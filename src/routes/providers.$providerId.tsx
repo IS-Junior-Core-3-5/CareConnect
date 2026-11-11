@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { RequestCare } from "@/components/CareBookings";
 import { AppShell, ErrorState, LoadingState } from "@/components/NavBar";
 import { ProviderListingBadge, ProviderPhoto } from "@/components/ProviderCard";
+import { demoActivityFor } from "@/components/photos";
 import {
   ExternalLocation,
   OfficialLink,
@@ -19,12 +20,18 @@ import {
   gapCount,
   overlapCount,
   priceLabel,
+  providerDisplayAddress,
   type Provider,
   type Review,
   type Scores,
 } from "@/lib/model";
+import {
+  previewSchedule,
+  supportsPracticeRequest,
+  usePreviewFavorites,
+} from "@/lib/provider-preview";
 import { useApp } from "@/lib/app-state";
-import { QK, useParents, useProvider } from "@/lib/data";
+import { QK, useParents, usePreviewProviders, useProvider } from "@/lib/data";
 
 export const Route = createFileRoute("/providers/$providerId")({
   head: () => ({
@@ -41,8 +48,13 @@ export const Route = createFileRoute("/providers/$providerId")({
 
 function ProviderProfilePage() {
   const { providerId } = Route.useParams();
+  const { preview } = Route.useSearch();
   const { userId } = useApp();
-  const { provider, isLoading, error } = useProvider(providerId, !!userId);
+  const live = useProvider(providerId, !!userId, !preview);
+  const previewQuery = usePreviewProviders(!!preview);
+  const { provider, isLoading, error } = preview
+    ? { ...previewQuery, provider: previewQuery.data?.find((p) => p.id === providerId) }
+    : live;
   return (
     <AppShell publicPage>
       {isLoading ? (
@@ -52,20 +64,22 @@ function ProviderProfilePage() {
       ) : !provider ? (
         <p className="py-16 text-center text-ink-soft">
           That provider isn't listed.{" "}
-          <Link to="/providers" className="font-semibold text-primary-ink">
+          <Link to="/providers" search={{ preview }} className="font-semibold text-primary-ink">
             Back to providers
           </Link>
         </p>
       ) : (
-        <ProviderProfile provider={provider} />
+        <ProviderProfile key={providerId} provider={provider} preview={!!preview} />
       )}
     </AppShell>
   );
 }
 
-function ProviderProfile({ provider }: { provider: Provider }) {
-  const { schedule, isFavorite, toggleFavorite, userId, parentId } = useApp();
-  const parents = useParents(!!userId);
+function ProviderProfile({ provider, preview }: { provider: Provider; preview: boolean }) {
+  const { schedule: savedSchedule, isFavorite, toggleFavorite, userId, parentId } = useApp();
+  const schedule = preview && !userId ? previewSchedule : savedSchedule;
+  const previewFavorites = usePreviewFavorites(preview);
+  const parents = useParents(!!userId && !preview);
   const qc = useQueryClient();
   const isOwner = !!userId && provider.ownerId === userId;
   const usedThem = !!parentId && provider.pastFamilies.includes(parentId);
@@ -86,8 +100,10 @@ function ProviderProfile({ provider }: { provider: Provider }) {
     }
     qc.invalidateQueries({ queryKey: QK.providers });
   }
-  const fav = isFavorite(provider.id);
+  const fav = preview ? previewFavorites.favorites.includes(provider.id) : isFavorite(provider.id);
+  const toggleSaved = preview ? previewFavorites.toggle : toggleFavorite;
   const external = provider.listingOrigin === "external";
+  const activity = demoActivityFor(provider);
   const details = provider.externalProfile;
 
   const covered = provider.schedule ? overlapCount(schedule, provider.schedule) : 0;
@@ -111,24 +127,34 @@ function ProviderProfile({ provider }: { provider: Provider }) {
   return (
     <>
       <div className="py-8">
-        <Link to="/providers" className="text-sm font-semibold text-primary-ink">
+        <Link
+          to="/providers"
+          search={preview ? { preview: true } : {}}
+          className="text-sm font-semibold text-primary-ink"
+        >
           ← Back to providers
         </Link>
 
-        <RequestCare provider={provider} />
+        {!preview || supportsPracticeRequest(provider.id) ? (
+          <RequestCare provider={provider} practice={preview} />
+        ) : null}
 
         <div className="mt-4 grid gap-6 lg:grid-cols-12">
           <div className="min-w-0 space-y-6 lg:col-span-8">
-            <section className="overflow-hidden rounded-3xl bg-surface ring-1 ring-line sm:rounded-[28px]">
+            <section
+              className={`overflow-hidden rounded-3xl bg-surface ring-1 ring-line sm:rounded-[28px] ${provider.isDemo ? "p-5 sm:flex sm:items-start sm:gap-6 sm:p-6" : ""}`}
+            >
               <ProviderPhoto
                 provider={provider}
                 className={
-                  external
-                    ? "aspect-[16/9] w-full rounded-none lg:aspect-auto lg:h-72"
-                    : "h-56 w-full rounded-none sm:h-80"
+                  provider.isDemo
+                    ? "aspect-[4/3] w-full shrink-0 rounded-2xl sm:aspect-square sm:w-44 lg:w-52"
+                    : external
+                      ? "aspect-[16/9] w-full rounded-none lg:aspect-auto lg:h-72"
+                      : "h-56 w-full rounded-none sm:h-80"
                 }
               />
-              <div className="p-5 sm:p-6">
+              <div className={provider.isDemo ? "mt-4 min-w-0 flex-1 sm:mt-0" : "p-5 sm:p-6"}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -138,8 +164,15 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                       <ProviderListingBadge provider={provider} />
                     </div>
                     <p className="mt-1 text-sm text-ink-soft">
-                      {[provider.careType, provider.address].filter(Boolean).join(" · ")}
+                      {[provider.careType, providerDisplayAddress(provider)]
+                        .filter(Boolean)
+                        .join(" · ")}
                     </p>
+                    {provider.isDemo ? (
+                      <p className="mt-1 text-xs text-ink-soft">
+                        Fictional profile with generated imagery.
+                      </p>
+                    ) : null}
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                       <RatingSummary rating={provider.rating} reviewCount={provider.reviewCount} />
                       {provider.reviewCount ? (
@@ -183,7 +216,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                       </Link>
                     ) : null}
                     <button
-                      onClick={() => toggleFavorite(provider.id)}
+                      onClick={() => toggleSaved(provider.id)}
                       className={`chip flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:flex-none ${
                         fav
                           ? "bg-clay-soft text-clay"
@@ -268,6 +301,21 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 </div>
               </div>
             </section>
+            {activity ? (
+              <figure className="overflow-hidden rounded-3xl bg-surface ring-1 ring-line">
+                <img
+                  src={activity.src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-video w-full object-cover"
+                />
+                <figcaption className="px-5 py-3 text-sm text-ink-soft">
+                  <span className="font-semibold text-ink">{provider.name}</span>
+                  <span> · {activity.caption} · Generated image</span>
+                </figcaption>
+              </figure>
+            ) : null}
 
             <section
               id="compare"
@@ -302,12 +350,16 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                         ? ` — ${gaps} gap${gaps === 1 ? "" : "s"} to fill.`
                         : " — a full match."}
                     </p>
-                    <Link
-                      to="/schedule"
-                      className="rounded-full bg-leaf px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-leaf-ink"
-                    >
-                      Open my schedule
-                    </Link>
+                    {preview && !userId ? (
+                      <span className="text-sm text-leaf-ink">Uses an example family schedule</span>
+                    ) : (
+                      <Link
+                        to="/schedule"
+                        className="rounded-full bg-leaf px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-leaf-ink"
+                      >
+                        Open my schedule
+                      </Link>
+                    )}
                   </div>
                 </>
               ) : (
@@ -319,6 +371,7 @@ function ProviderProfile({ provider }: { provider: Provider }) {
 
             <section
               id="reviews"
+              hidden={preview}
               className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
             >
               {details?.reviews ? (
@@ -435,10 +488,10 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                   </div>
                 ))}
               </div>
-              {!isOwner ? <ReviewForm provider={provider} /> : null}
+              {!preview && !isOwner ? <ReviewForm provider={provider} /> : null}
             </section>
 
-            {parentId ? (
+            {parentId && !preview ? (
               <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="font-display text-2xl font-bold tracking-tight">Past families</h2>
@@ -565,7 +618,9 @@ function ProviderProfile({ provider }: { provider: Provider }) {
 
             <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
               <p className="font-mono text-xs uppercase tracking-wider text-ink-faint">Contact</p>
-              {provider.phone ? (
+              {provider.isDemo ? (
+                <p className="mt-1 text-sm text-ink-soft">{provider.phone} · Sample phone</p>
+              ) : provider.phone ? (
                 <a
                   className="mt-1 block font-semibold text-primary-ink hover:underline"
                   href={`tel:${provider.phone.replace(/[^+\d]/g, "")}`}
@@ -576,13 +631,18 @@ function ProviderProfile({ provider }: { provider: Provider }) {
                 <p className="mt-1 text-sm text-ink-soft">Phone not provided</p>
               )}
               <p className="mt-4 font-mono text-xs uppercase tracking-wider text-ink-faint">
-                Location
+                {provider.isDemo ? "Map reference" : "Location"}
               </p>
               {details ? (
                 <ExternalLocation provider={provider} location={details.location} />
               ) : (
                 <p className="mt-1 font-semibold">{provider.address || "Address not provided"}</p>
               )}
+              {provider.isDemo ? (
+                <p className="mt-2 text-sm text-ink-soft">
+                  Public landmark used to calculate distance.
+                </p>
+              ) : null}
             </section>
           </aside>
         </div>

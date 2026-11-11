@@ -40,6 +40,8 @@ export type Provider = {
   name: string;
   careType: CareType;
   photo: string | null;
+  profilePhotoPath: string | null;
+  isDemo: boolean;
   gallery: string[];
   blurb: string;
   bio: string;
@@ -62,6 +64,12 @@ export type Provider = {
   pastFamilies: string[];
   reviews: Review[];
 };
+
+export function providerDisplayAddress(provider: Pick<Provider, "isDemo" | "address">) {
+  if (!provider.isDemo) return provider.address;
+  const city = provider.address.split(",")[1]?.trim();
+  return city ? `${city}, UT` : "Utah County, UT";
+}
 
 export type Child = { id: number; name: string; age: number | null };
 

@@ -1,12 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell, LoadingState } from "@/components/NavBar";
+import { ProviderPhoto } from "@/components/ProviderCard";
 import { ScheduleGrid } from "@/components/ScheduleGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
 import { QK, useLanguages, useProvidersQuery } from "@/lib/data";
+import {
+  providerPhotoExtensions,
+  providerPhotoMaxBytes,
+  providerPhotoStorage,
+  providerPhotoUrl,
+} from "@/lib/provider-photo";
 import {
   CARE_TYPES,
   emptySchedule,
@@ -80,10 +87,45 @@ function ListingForm({ existing }: { existing: Provider | null }) {
   const [scheduleSummary, setScheduleSummary] = useState(
     existing && existing.schedule ? existing.scheduleSummary : "",
   );
+  const [listingId, setListingId] = useState(existing?.id);
+  const [savedPhoto, setSavedPhoto] = useState(existing?.profilePhotoPath ?? null);
+  const [newPhoto, setNewPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
+  const photoInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => setConfirmDelete(false), [existing]);
+
+  useEffect(() => {
+    if (!newPhoto) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(newPhoto);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [newPhoto]);
+
+  function choosePhoto(file: File | undefined) {
+    if (!file) return;
+    if (
+      !providerPhotoExtensions.has(file.type) ||
+      file.size > providerPhotoMaxBytes ||
+      !file.size
+    ) {
+      if (photoInput.current) photoInput.current.value = "";
+      toast.error("Choose a JPEG, PNG, or WebP image up to 5 MB.");
+      return;
+    }
+    setNewPhoto(file);
+    setRemovePhoto(false);
+  }
+
+  async function deleteUnusedPhoto(path: string | null) {
+    if (path) await providerPhotoStorage.remove([path]).catch(() => undefined);
+  }
 
   const langOptions = Array.from(
     new Set([...allLanguages.map((l) => l.name), ...languages]),
@@ -91,7 +133,7 @@ function ListingForm({ existing }: { existing: Provider | null }) {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    if (!userId) return;
+    if (!userId || busy) return;
     const dailyRate = rate === "" ? null : Number(rate);
     const dailyRateMax = rateMax === "" ? null : Number(rateMax);
     if (dailyRate !== null && dailyRateMax !== null && dailyRateMax < dailyRate) {
@@ -100,8 +142,18 @@ function ListingForm({ existing }: { existing: Provider | null }) {
     }
     setBusy(true);
     try {
-      const id = existing?.id ?? slugify(name);
+      const id = listingId ?? slugify(name);
+      let uploadedPath: string | null = null;
+      if (newPhoto) {
+        const extension = providerPhotoExtensions.get(newPhoto.type);
+        uploadedPath = `${userId}/${crypto.randomUUID()}.${extension}`;
+        const { error } = await providerPhotoStorage.upload(uploadedPath, newPhoto);
+        if (error) throw error;
+      }
+      const photoChanged = !!uploadedPath || removePhoto;
+      const nextPhoto = uploadedPath ?? (removePhoto ? null : savedPhoto);
       const row = {
+        ...(photoChanged ? { profile_photo_path: nextPhoto } : {}),
         name: name.trim(),
         care_type: careType,
         blurb: blurb.trim() || null,
@@ -114,10 +166,26 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         schedule_available: hasSchedule,
         schedule_summary: hasSchedule ? scheduleSummary.trim() || null : null,
       };
-      const res = existing
-        ? await supabase.from("providers").update(row).eq("id", id)
-        : await supabase.from("providers").insert({ ...row, id, owner_id: userId });
-      if (res.error) throw res.error;
+      const res = listingId
+        ? await supabase.from("providers").update(row).eq("id", id).select("id").single()
+        : await supabase
+            .from("providers")
+            .insert({ ...row, id, owner_id: userId })
+            .select("id")
+            .single();
+      if (res.error) {
+        // A missing HTTP response leaves the outcome uncertain. Keep the file in that case.
+        if (res.status > 0 && res.status < 500) await deleteUnusedPhoto(uploadedPath);
+        throw res.error;
+      }
+      setListingId(id);
+      if (photoChanged) {
+        setSavedPhoto(nextPhoto);
+        setNewPhoto(null);
+        if (photoInput.current) photoInput.current.value = "";
+        setRemovePhoto(false);
+        await deleteUnusedPhoto(savedPhoto);
+      }
 
       // Child rows are updated by diff instead of delete-then-insert, so a
       // failed request can never leave the listing half-empty.
@@ -264,7 +332,9 @@ function ListingForm({ existing }: { existing: Provider | null }) {
       navigate({ to: "/providers/$providerId", params: { providerId: id } });
     } catch (err) {
       console.error(err);
-      toast.error(`Couldn't save your listing. ${err instanceof Error ? err.message : ""}`);
+      toast.error(
+        `Couldn't save all listing changes. ${err && typeof err === "object" && "message" in err ? err.message : ""}`,
+      );
     } finally {
       setBusy(false);
     }
@@ -279,10 +349,14 @@ function ListingForm({ existing }: { existing: Provider | null }) {
       toast.error(error.message);
       return;
     }
+    await deleteUnusedPhoto(savedPhoto);
     toast.success("Listing deleted");
     await qc.invalidateQueries({ queryKey: QK.providers });
     navigate({ to: "/providers" });
   }
+
+  const previewUrl =
+    photoPreview ?? (!removePhoto && savedPhoto ? providerPhotoUrl(savedPhoto) : null);
 
   return (
     <section className="py-8">
@@ -312,6 +386,63 @@ function ListingForm({ existing }: { existing: Provider | null }) {
       <form onSubmit={save} className="mt-6 grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <div className="space-y-4 rounded-3xl bg-surface p-5 ring-1 ring-line sm:p-6">
           <h2 className="font-display text-2xl font-bold">Basics</h2>
+          <div>
+            <label className={label} htmlFor="l-photo">
+              Profile picture
+            </label>
+            <div className="flex flex-wrap items-start gap-4">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt="Listing picture preview"
+                  className="size-24 rounded-2xl object-cover"
+                />
+              ) : existing && !removePhoto ? (
+                <ProviderPhoto provider={existing} className="size-24 rounded-2xl" />
+              ) : null}
+              <div className="min-w-0 flex-1">
+                <input
+                  id="l-photo"
+                  ref={photoInput}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={busy}
+                  onChange={(e) => choosePhoto(e.target.files?.[0])}
+                  aria-describedby="l-photo-help"
+                  className="block w-full text-sm text-ink-soft"
+                />
+                <p id="l-photo-help" className="mt-2 text-xs text-ink-soft">
+                  JPEG, PNG, or WebP up to 5 MB. Your photo becomes public when you save.
+                </p>
+                {newPhoto || (savedPhoto && !removePhoto) ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="mt-2 text-sm font-semibold text-primary-ink hover:underline"
+                    onClick={() => {
+                      if (newPhoto) {
+                        setNewPhoto(null);
+                        if (photoInput.current) photoInput.current.value = "";
+                      } else {
+                        setRemovePhoto(true);
+                      }
+                    }}
+                  >
+                    {newPhoto ? "Discard selected photo" : "Remove uploaded photo"}
+                  </button>
+                ) : removePhoto ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    className="mt-2 text-sm font-semibold text-primary-ink hover:underline"
+                    onClick={() => setRemovePhoto(false)}
+                  >
+                    Keep uploaded photo
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          </div>
           <div>
             <label className={label} htmlFor="l-name">
               Listing name
