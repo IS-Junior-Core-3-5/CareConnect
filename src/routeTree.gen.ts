@@ -10,13 +10,14 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as HomeRouteImport } from './routes/home'
-import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as ListingRouteImport } from './routes/listing'
 import { Route as PreferencesRouteImport } from './routes/preferences'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as ProvidersRouteImport } from './routes/providers'
+import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as ParentsParentIdRouteImport } from './routes/parents.$parentId'
@@ -28,6 +29,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FavoritesRoute = FavoritesRouteImport.update({
   id: '/favorites',
   path: '/favorites',
@@ -36,11 +42,6 @@ const FavoritesRoute = FavoritesRouteImport.update({
 const HomeRoute = HomeRouteImport.update({
   id: '/home',
   path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecommendationsRoute = RecommendationsRouteImport.update({
-  id: '/recommendations',
-  path: '/recommendations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ListingRoute = ListingRouteImport.update({
@@ -61,6 +62,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const ProvidersRoute = ProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RecommendationsRoute = RecommendationsRouteImport.update({
+  id: '/recommendations',
+  path: '/recommendations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScheduleRoute = ScheduleRouteImport.update({
@@ -91,13 +97,14 @@ const ProvidersProviderIdRoute = ProvidersProviderIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
   '/preferences': typeof PreferencesRoute
   '/profile': typeof ProfileRoute
-  '/recommendations': typeof RecommendationsRoute
   '/providers': typeof ProvidersRouteWithChildren
+  '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
@@ -106,6 +113,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
@@ -121,13 +129,14 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRoute
   '/favorites': typeof FavoritesRoute
   '/home': typeof HomeRoute
   '/listing': typeof ListingRoute
   '/preferences': typeof PreferencesRoute
   '/profile': typeof ProfileRoute
-  '/recommendations': typeof RecommendationsRoute
   '/providers': typeof ProvidersRouteWithChildren
+  '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
@@ -138,13 +147,14 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/favorites'
     | '/home'
     | '/listing'
     | '/preferences'
     | '/profile'
-    | '/recommendations'
     | '/providers'
+    | '/recommendations'
     | '/schedule'
     | '/search'
     | '/parents/$parentId'
@@ -153,6 +163,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/favorites'
     | '/home'
     | '/listing'
@@ -167,13 +178,14 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/favorites'
     | '/home'
     | '/listing'
     | '/preferences'
     | '/profile'
-    | '/recommendations'
     | '/providers'
+    | '/recommendations'
     | '/schedule'
     | '/search'
     | '/parents/$parentId'
@@ -183,13 +195,14 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRoute
   FavoritesRoute: typeof FavoritesRoute
   HomeRoute: typeof HomeRoute
   ListingRoute: typeof ListingRoute
   PreferencesRoute: typeof PreferencesRoute
   ProfileRoute: typeof ProfileRoute
-  RecommendationsRoute: typeof RecommendationsRoute
   ProvidersRoute: typeof ProvidersRouteWithChildren
+  RecommendationsRoute: typeof RecommendationsRoute
   ScheduleRoute: typeof ScheduleRoute
   SearchRoute: typeof SearchRoute
   ParentsParentIdRoute: typeof ParentsParentIdRoute
@@ -202,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favorites': {
@@ -239,18 +259,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/recommendations': {
-      id: '/recommendations'
-      path: '/recommendations'
-      fullPath: '/recommendations'
-      preLoaderRoute: typeof RecommendationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/providers': {
       id: '/providers'
       path: '/providers'
       fullPath: '/providers'
       preLoaderRoute: typeof ProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/recommendations': {
+      id: '/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof RecommendationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/schedule': {
@@ -307,13 +327,14 @@ const ProvidersRouteWithChildren = ProvidersRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRoute,
   FavoritesRoute: FavoritesRoute,
   HomeRoute: HomeRoute,
   ListingRoute: ListingRoute,
   PreferencesRoute: PreferencesRoute,
   ProfileRoute: ProfileRoute,
-  RecommendationsRoute: RecommendationsRoute,
   ProvidersRoute: ProvidersRouteWithChildren,
+  RecommendationsRoute: RecommendationsRoute,
   ScheduleRoute: ScheduleRoute,
   SearchRoute: SearchRoute,
   ParentsParentIdRoute: ParentsParentIdRoute,

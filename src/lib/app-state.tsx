@@ -11,6 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { isAdminUser } from "@/lib/admin";
 import { QK } from "@/lib/data";
 import {
   BLOCKS,
@@ -44,6 +45,8 @@ type AppState = {
   authLoading: boolean;
   session: Session | null;
   userId: string | null;
+  /** true when the signed-in account has app_metadata.role = "admin" */
+  isAdmin: boolean;
   me: Me | null;
   meLoading: boolean;
   parentId: string | null;
@@ -133,6 +136,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const userId = session?.user.id ?? null;
   const email = session?.user.email ?? "";
+  const isAdmin = isAdminUser(session?.user);
 
   useEffect(() => {
     if (!userId) return;
@@ -294,6 +298,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       authLoading,
       session,
       userId,
+      isAdmin,
       me,
       meLoading: !!userId && meQuery.isLoading,
       parentId,
@@ -313,6 +318,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     authLoading,
     session,
     userId,
+    isAdmin,
     me,
     meQuery,
     parentId,

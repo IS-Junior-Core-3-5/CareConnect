@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ScheduleGrid } from "@/components/ScheduleGrid";
 import { supabase } from "@/integrations/supabase/client";
+import { isAdminUser } from "@/lib/admin";
 import { useApp } from "@/lib/app-state";
 import { useLanguages } from "@/lib/data";
 import { emptySchedule, scheduleToRows, type Schedule } from "@/lib/model";
@@ -47,7 +48,9 @@ function AuthPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && session) navigate({ to: "/home" });
+    if (!authLoading && session) {
+      navigate({ to: isAdminUser(session.user) ? "/admin" : "/home" });
+    }
   }, [authLoading, session, navigate]);
 
   return (
@@ -140,10 +143,14 @@ function LoginForm() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     setBusy(false);
     if (error) return setError(error.message);
-    navigate({ to: "/home" });
+    // Admins land on the admin page; everyone else goes to their dashboard.
+    navigate({ to: isAdminUser(data.user) ? "/admin" : "/home" });
   }
 
   return (

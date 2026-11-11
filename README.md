@@ -82,6 +82,58 @@ VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 
 (The publishable key is safe to be public; Row Level Security protects the data.)
 
+### Admin access
+
+The `/admin` page is limited to accounts whose Supabase `app_metadata` contains `"role": "admin"`. Unlike `user_metadata`, users cannot edit `app_metadata` themselves, so an account cannot make itself an admin.
+
+#### Create an admin user
+
+1. **Create the account normally.** Sign up through the app (**Create account**), or add the user in the Supabase dashboard under **Authentication → Users → Add user**. The account is a regular parent account until step 2.
+2. **Grant the admin role.** The dashboard's user editor does not always expose `app_metadata`, so the reliable way is the SQL editor. Open **SQL Editor → New query** in the Supabase dashboard for your project ([team project shortcut](https://supabase.com/dashboard/project/lhjzcxvyyvxdywwvjoyv/sql/new)) and run this, replacing the email with the admin account's email:
+
+   ```sql
+   update auth.users
+   set raw_app_meta_data =
+     coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+   where email = 'admin@example.com';
+   ```
+
+   Run it once per admin account. The `||` merges the new key into any metadata that is already there instead of replacing it.
+
+3. **Verify the role.** Run:
+
+   ```sql
+   select email, raw_app_meta_data
+   from auth.users
+   where email = 'admin@example.com';
+   ```
+
+   The result should include `"role": "admin"`, for example:
+
+   ```json
+   { "provider": "email", "providers": ["email"], "role": "admin" }
+   ```
+
+4. **Sign out and back in.** The role is carried in the user's JWT, which is issued at login. An existing session will not see the new role until it refreshes, so sign out of the app and log back in.
+
+After that, the account lands on `/admin` after logging in and sees an **Admin** link in the navigation. Other accounts get an "Admins only" message if they open the page directly.
+
+To **remove** admin access, run the same update with the role removed:
+
+```sql
+update auth.users
+set raw_app_meta_data = raw_app_meta_data - 'role'
+where email = 'admin@example.com';
+```
+
+#### Enforcing admin access in the database
+
+The client check only controls what the UI shows. When the panel starts reading or changing real data, enforce the same role in Row Level Security or an edge function, for example:
+
+```sql
+(auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'
+```
+
 ### Option C — Use your own Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).

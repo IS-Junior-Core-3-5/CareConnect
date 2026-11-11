@@ -15,7 +15,7 @@ const links = [
 
 export function NavBar() {
   const navigate = useNavigate();
-  const { favorites, signOut } = useApp();
+  const { favorites, signOut, isAdmin } = useApp();
   const [open, setOpen] = useState(false);
 
   return (
@@ -43,6 +43,15 @@ export function NavBar() {
               ) : null}
             </Link>
           ))}
+          {isAdmin ? (
+            <Link
+              to="/admin"
+              className="chip rounded-full px-3 py-2 font-semibold text-primary-ink hover:text-ink"
+              activeProps={{ className: "text-ink bg-surface" }}
+            >
+              Admin
+            </Link>
+          ) : null}
         </nav>
 
         <button
@@ -79,6 +88,16 @@ export function NavBar() {
                 {l.label}
               </Link>
             ))}
+            {isAdmin ? (
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-2xl bg-background px-3 py-2 text-sm font-semibold text-primary-ink"
+                activeProps={{ className: "text-ink" }}
+              >
+                Admin
+              </Link>
+            ) : null}
           </div>
         </div>
       ) : null}
