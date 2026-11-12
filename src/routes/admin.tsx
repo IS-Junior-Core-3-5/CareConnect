@@ -19,9 +19,10 @@ export const Route = createFileRoute("/admin")({
 const sections = [
   { to: "/admin", label: "Overview" },
   { to: "/admin/providers", label: "Providers" },
+  { to: "/admin/bookings", label: "Bookings" },
 ] as const;
 
-const upcoming = ["Parents", "Bookings", "AI recommendations"] as const;
+const upcoming = ["Parents", "AI recommendations"] as const;
 
 function AdminLayout() {
   const { isAdmin, me } = useApp();

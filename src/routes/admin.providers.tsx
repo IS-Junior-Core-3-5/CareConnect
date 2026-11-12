@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { AdminSelect } from "@/components/admin/AdminSelect";
 import { ErrorState, LoadingState } from "@/components/NavBar";
 import { Stars } from "@/components/StarRating";
 import {
@@ -33,35 +34,6 @@ const ORIGIN_CLASS: Record<AdminProviderOrigin, string> = {
   external: "bg-sun-soft text-ink-soft",
   sample: "bg-background text-ink-faint",
 };
-
-function Select<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T;
-  options: { value: T; label: string }[];
-  onChange: (value: T) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value as T)}
-        className="rounded-2xl border border-line bg-surface px-3 py-2 text-sm font-medium text-ink"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 function AdminProviders() {
   const { data, isLoading, error } = useAdminProviders();
@@ -151,7 +123,7 @@ function AdminProviders() {
             className="rounded-2xl border border-line bg-background px-3 py-2 text-sm text-ink outline-none focus:ring-2 focus:ring-primary/30"
           />
         </label>
-        <Select
+        <AdminSelect
           label="Origin"
           value={origin}
           onChange={setOrigin}
@@ -162,7 +134,7 @@ function AdminProviders() {
             { value: "sample", label: "Sample" },
           ]}
         />
-        <Select
+        <AdminSelect
           label="Visibility"
           value={visibility}
           onChange={setVisibility}
@@ -172,7 +144,7 @@ function AdminProviders() {
             { value: "archived", label: "Archived" },
           ]}
         />
-        <Select
+        <AdminSelect
           label="Verification"
           value={verification}
           onChange={setVerification}

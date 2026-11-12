@@ -67,9 +67,13 @@ function attentionItems(stats: AdminStats) {
       body: `${number(stats.bookings_pending_over_2d)} booking request${
         stats.bookings_pending_over_2d === 1 ? " has" : "s have"
       } waited more than 2 days.`,
-      to: null,
+      to: "/admin/bookings" as const,
     },
-  ].filter(Boolean) as { label: string; body: string; to: "/admin/providers" | null }[];
+  ].filter(Boolean) as {
+    label: string;
+    body: string;
+    to: "/admin/providers" | "/admin/bookings" | null;
+  }[];
 }
 
 function AdminOverview() {
@@ -232,14 +236,24 @@ function AdminOverview() {
               Search listings, verify providers, and publish or archive them.
             </p>
           </Link>
+          <Link
+            to="/admin/bookings"
+            className="rounded-3xl bg-surface p-5 ring-1 ring-line transition hover:ring-primary/40"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-xl font-bold">Bookings</h3>
+              <span className="rounded-full bg-sun-soft px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+                Available
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-ink-soft">
+              Review the pending queue, resolve stuck requests, and track rebooking.
+            </p>
+          </Link>
           {[
             {
               title: "Parents",
               body: "Support parent accounts, children, preferences, and saved schedules.",
-            },
-            {
-              title: "Bookings",
-              body: "Monitor care requests, resolve problems, and track rebooking.",
             },
             {
               title: "AI recommendations",

@@ -128,14 +128,19 @@ where email = 'admin@example.com';
 
 #### Enforcing admin access in the database
 
-The client check only controls what the UI shows. The admin foundation migration [`supabase/migrations/20261111000000_admin_foundation.sql`](supabase/migrations/20261111000000_admin_foundation.sql) enforces the same role in Postgres and provides the panel's data access:
+The client check only controls what the UI shows. The admin migrations enforce the same role in Postgres and provide the panel's data access:
+
+- [`20261111000000_admin_foundation.sql`](supabase/migrations/20261111000000_admin_foundation.sql) adds `public.is_admin()`, the provider admin view and stats, provider moderation, and the audit log.
+- [`20261112000000_admin_bookings.sql`](supabase/migrations/20261112000000_admin_bookings.sql) adds admin read access to bookings, the booking list view, and the audited status RPC.
+
+Key objects:
 
 - `public.is_admin()` returns true when `(auth.jwt() -> 'app_metadata' ->> 'role') = 'admin'`.
-- `admin_provider_list` and `admin_dashboard_stats()` return rows only to admins.
-- `admin_set_provider_flags(...)` is a security-definer RPC for verify and publish/archive changes.
+- `admin_provider_list`, `admin_booking_list`, and `admin_dashboard_stats()` return rows only to admins.
+- `admin_set_provider_flags(...)` and `admin_set_booking_status(...)` are security-definer RPCs for verify/publish and booking resolution.
 - `admin_audit_log` records every admin write.
 
-Apply that migration in the SQL editor after the earlier migrations, then reload `/admin`. Until it is applied, the Overview and Providers sections show a database error.
+Apply both migrations in the SQL editor after the earlier migrations, then reload `/admin`. Until they are applied, the affected sections show a database error.
 
 The admin panel currently has:
 
@@ -143,14 +148,14 @@ The admin panel currently has:
 | --- | --- | --- |
 | Overview | Available | Provider, family, booking, and AI counts, plus a **Needs attention** list |
 | Providers | Available | Search and filter listings, verify providers, and publish or archive them |
+| Bookings | Available | Review the pending queue, resolve stuck requests, and track rebooking |
 | Parents | Planned | Support parent accounts, children, preferences, and schedules |
-| Bookings | Planned | Monitor care requests, resolve problems, and track rebooking |
 | AI recommendations | Planned | Review recommendation usage and help families when matching goes wrong |
 
 ### Option C — Use your own Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, per-user login counts, privacy hardening (children, parent auth ids, family schedules, favorites and past families are private), provider-favorite discovery timing, and the admin foundation. If you are updating an existing project, only run migrations you have not applied yet — re-running an old one fails because its tables already exist. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
+2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, per-user login counts, privacy hardening (children, parent auth ids, family schedules, favorites and past families are private), provider-favorite discovery timing, the admin foundation, and admin booking moderation. If you are updating an existing project, only run migrations you have not applied yet — re-running an old one fails because its tables already exist. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
 3. In **Project Settings → API**, copy the Project URL and the publishable key into `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. In **Authentication → URL Configuration**, set **Site URL** to where the app runs (e.g. your local URL or your Lovable URL) and add it under **Redirect URLs**. For quick testing, turn off **Confirm email** under **Authentication → Sign In / Providers → User Signups**.
 5. Run `npm run dev`.

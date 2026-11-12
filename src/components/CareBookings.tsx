@@ -13,6 +13,7 @@ type Booking = {
   care_date: string;
   block: Block;
   status: "pending" | "confirmed" | "declined" | "cancelled";
+  resolution_note?: string | null;
   parents?: { name: string | null } | { name: string | null }[] | null;
 };
 
@@ -167,10 +168,20 @@ export function CareBookings() {
     queryKey: bookingKey(userId),
     enabled: !!userId,
     queryFn: async () => {
+      const base = "id, parent_id, provider_id, care_date, block, status, parents(name)";
       const { data, error } = await supabase
         .from("care_bookings")
-        .select("id, parent_id, provider_id, care_date, block, status, parents(name)")
+        .select(`${base}, resolution_note`)
         .order("care_date", { ascending: false });
+      if (error?.code === "42703") {
+        // The admin bookings migration has not been applied yet.
+        const fallback = await supabase
+          .from("care_bookings")
+          .select(base)
+          .order("care_date", { ascending: false });
+        if (fallback.error) throw fallback.error;
+        return (fallback.data ?? []) as unknown as Booking[];
+      }
       if (error) throw error;
       return (data ?? []) as unknown as Booking[];
     },
@@ -235,6 +246,9 @@ export function CareBookings() {
                     {booking.status[0].toUpperCase() + booking.status.slice(1)}
                   </span>
                 </p>
+                {booking.resolution_note ? (
+                  <p className="mt-1 text-xs text-ink-soft">Note: {booking.resolution_note}</p>
+                ) : null}
               </div>
               <div className="flex gap-2">
                 {!mine && booking.status === "pending" ? (

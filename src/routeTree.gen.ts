@@ -21,6 +21,7 @@ import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as ParentsParentIdRouteImport } from './routes/parents.$parentId'
 import { Route as ProvidersIndexRouteImport } from './routes/providers.index'
@@ -86,6 +87,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBookingsRoute = AdminBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminProvidersRoute = AdminProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
@@ -119,6 +125,7 @@ export interface FileRoutesByFullPath {
   '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
+  '/admin/bookings': typeof AdminBookingsRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
+  '/admin/bookings': typeof AdminBookingsRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
+  '/admin/bookings': typeof AdminBookingsRoute
   '/admin/providers': typeof AdminProvidersRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/schedule'
     | '/search'
+    | '/admin/bookings'
     | '/admin/providers'
     | '/parents/$parentId'
     | '/providers/$providerId'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/schedule'
     | '/search'
+    | '/admin/bookings'
     | '/admin/providers'
     | '/parents/$parentId'
     | '/providers/$providerId'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/schedule'
     | '/search'
+    | '/admin/bookings'
     | '/admin/providers'
     | '/parents/$parentId'
     | '/providers/$providerId'
@@ -316,6 +328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/bookings': {
+      id: '/admin/bookings'
+      path: '/bookings'
+      fullPath: '/admin/bookings'
+      preLoaderRoute: typeof AdminBookingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/providers': {
       id: '/admin/providers'
       path: '/providers'
@@ -348,11 +367,13 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBookingsRoute: typeof AdminBookingsRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBookingsRoute: AdminBookingsRoute,
   AdminProvidersRoute: AdminProvidersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

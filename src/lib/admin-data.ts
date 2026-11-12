@@ -59,9 +59,29 @@ export type AdminProvider = {
   verified_credential_count: number;
 };
 
+export type AdminBookingStatus = "pending" | "confirmed" | "declined" | "cancelled";
+
+export type AdminBooking = {
+  id: string;
+  parent_id: string;
+  parent_name: string | null;
+  provider_id: string;
+  provider_name: string | null;
+  care_date: string;
+  block: "Morning" | "Afternoon" | "Evening";
+  status: AdminBookingStatus;
+  resolution_note: string | null;
+  created_at: string;
+  updated_at: string;
+  is_overdue: boolean;
+  parent_provider_confirmed_bookings: number;
+  parent_provider_rebooking: boolean;
+};
+
 export const adminKeys = {
   stats: ["admin", "stats"] as const,
   providers: ["admin", "providers"] as const,
+  bookings: ["admin", "bookings"] as const,
 };
 
 export function useAdminStats() {
@@ -110,6 +130,45 @@ export function useSetProviderFlags() {
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminKeys.providers });
+      void qc.invalidateQueries({ queryKey: adminKeys.stats });
+    },
+  });
+}
+
+export function useAdminBookings() {
+  return useQuery({
+    queryKey: adminKeys.bookings,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_booking_list")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as AdminBooking[];
+    },
+  });
+}
+
+type SetBookingStatusInput = {
+  bookingId: string;
+  status: AdminBookingStatus;
+  reason?: string;
+};
+
+export function useSetBookingStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ bookingId, status, reason }: SetBookingStatusInput) => {
+      const { data, error } = await supabase.rpc("admin_set_booking_status", {
+        p_booking_id: bookingId,
+        p_status: status,
+        p_reason: reason ?? null,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.bookings });
       void qc.invalidateQueries({ queryKey: adminKeys.stats });
     },
   });
