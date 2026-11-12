@@ -133,6 +133,7 @@ The client check only controls what the UI shows. The admin migrations enforce t
 - [`20261111000000_admin_foundation.sql`](supabase/migrations/20261111000000_admin_foundation.sql) adds `public.is_admin()`, the provider admin view and stats, provider moderation, and the audit log.
 - [`20261112000000_admin_bookings.sql`](supabase/migrations/20261112000000_admin_bookings.sql) adds admin read access to bookings, the booking list view, and the audited status RPC.
 - [`20261113000000_admin_parents.sql`](supabase/migrations/20261113000000_admin_parents.sql) adds the admin-only family list and family detail functions.
+- [`20261113000001_fix_admin_parents_ambiguity.sql`](supabase/migrations/20261113000001_fix_admin_parents_ambiguity.sql) fixes an ambiguous-column error in the family list function. Apply it after the first parents migration.
 
 Key objects:
 
@@ -142,7 +143,7 @@ Key objects:
 - `admin_set_provider_flags(...)` and `admin_set_booking_status(...)` are security-definer RPCs for verify/publish and booking resolution.
 - `admin_audit_log` records every admin write.
 
-Apply all three migrations in the SQL editor after the earlier migrations, then reload `/admin`. Until they are applied, the affected sections show a database error.
+Apply the admin migrations in the SQL editor after the earlier migrations, then reload `/admin`. Until they are applied, the affected sections show a database error.
 
 The Parents section is read-only. It exposes parent emails, private addresses, children, schedules, preferences, favorites, and booking history only through the admin-guarded functions. Normal authenticated users still cannot read `parents.email` or the private family tables directly. The **Export CSV** button downloads that private data, so treat exported files as sensitive and delete them when they are no longer needed.
 

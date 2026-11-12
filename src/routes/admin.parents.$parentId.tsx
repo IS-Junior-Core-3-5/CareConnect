@@ -145,9 +145,13 @@ function AdminParentDetailPage() {
       <div>
         <ErrorState error={query.error} />
         <p className="text-sm text-ink-soft">
-          The admin parents migration may not be applied yet. Run{" "}
+          The admin parents migrations may not be applied yet. Run{" "}
           <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">
             supabase/migrations/20261113000000_admin_parents.sql
+          </code>{" "}
+          and then{" "}
+          <code className="rounded bg-surface px-1.5 py-0.5 font-mono text-xs">
+            supabase/migrations/20261113000001_fix_admin_parents_ambiguity.sql
           </code>{" "}
           in the Supabase SQL editor, then reload this page.
         </p>
