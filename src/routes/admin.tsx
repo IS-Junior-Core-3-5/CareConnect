@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { AppShell } from "@/components/NavBar";
 import { useApp } from "@/lib/app-state";
 
@@ -13,29 +13,17 @@ export const Route = createFileRoute("/admin")({
       { name: "robots", content: "noindex" },
     ],
   }),
-  component: AdminPage,
+  component: AdminLayout,
 });
 
 const sections = [
-  {
-    title: "Providers",
-    body: "Review, verify, and manage provider listings and their profile photos.",
-  },
-  {
-    title: "Parents",
-    body: "Support parent accounts, saved schedules, and language preferences.",
-  },
-  {
-    title: "Bookings",
-    body: "Monitor care requests and booking outcomes across the marketplace.",
-  },
-  {
-    title: "AI recommendations",
-    body: "Review matching inputs and the recommendations generated for families.",
-  },
+  { to: "/admin", label: "Overview" },
+  { to: "/admin/providers", label: "Providers" },
 ] as const;
 
-function AdminPage() {
+const upcoming = ["Parents", "Bookings", "AI recommendations"] as const;
+
+function AdminLayout() {
   const { isAdmin, me } = useApp();
 
   return (
@@ -58,25 +46,34 @@ function AdminPage() {
 
         {isAdmin ? (
           <>
-            <p className="mt-6 max-w-[60ch] text-sm text-ink-soft">
-              This is the starting point for admin tools. Sections will be added here as we decide
-              what the panel should manage.
-            </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <nav className="mt-6 flex flex-wrap items-center gap-1.5" aria-label="Admin sections">
               {sections.map((section) => (
-                <article
-                  key={section.title}
-                  className="rounded-3xl bg-surface p-5 ring-1 ring-line"
+                <Link
+                  key={section.to}
+                  to={section.to}
+                  activeOptions={{ exact: section.to === "/admin" }}
+                  className="rounded-full px-3 py-2 text-sm font-medium text-ink-soft hover:text-ink"
+                  activeProps={{ className: "bg-surface text-ink ring-1 ring-line" }}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-display text-xl font-bold">{section.title}</h2>
-                    <span className="rounded-full bg-background px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
-                      Coming soon
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-ink-soft">{section.body}</p>
-                </article>
+                  {section.label}
+                </Link>
               ))}
+              {upcoming.map((label) => (
+                <span
+                  key={label}
+                  className="cursor-not-allowed rounded-full px-3 py-2 text-sm font-medium text-ink-faint"
+                  title="Coming soon"
+                >
+                  {label}
+                  <span className="ml-1.5 font-mono text-[10px] uppercase tracking-wider">
+                    Soon
+                  </span>
+                </span>
+              ))}
+            </nav>
+
+            <div className="mt-6">
+              <Outlet />
             </div>
           </>
         ) : (
