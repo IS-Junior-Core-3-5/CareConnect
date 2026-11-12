@@ -264,22 +264,21 @@ function AdminOverview() {
               Support family accounts, children, preferences, schedules, and booking history.
             </p>
           </Link>
-          {[
-            {
-              title: "AI recommendations",
-              body: "Review recommendation usage and help families when matching goes wrong.",
-            },
-          ].map((section) => (
-            <article key={section.title} className="rounded-3xl bg-surface p-5 ring-1 ring-line">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-display text-xl font-bold">{section.title}</h3>
-                <span className="rounded-full bg-background px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-faint">
-                  Soon
-                </span>
-              </div>
-              <p className="mt-2 text-sm text-ink-soft">{section.body}</p>
-            </article>
-          ))}
+          <Link
+            to="/admin/ai"
+            className="rounded-3xl bg-surface p-5 ring-1 ring-line transition hover:ring-primary/40"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-xl font-bold">AI recommendations</h3>
+              <span className="rounded-full bg-sun-soft px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+                Available
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-ink-soft">
+              Review saved matches and chat usage, see why providers were chosen, and clear stale
+              sets.
+            </p>
+          </Link>
         </div>
       </section>
     </div>

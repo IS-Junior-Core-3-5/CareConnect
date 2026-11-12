@@ -496,6 +496,13 @@ function AdminParentDetailPage() {
           ) : (
             <p className="text-sm text-ink-faint">No saved recommendations yet.</p>
           )}
+          <Link
+            to="/admin/ai/$parentId"
+            params={{ parentId: parent.id }}
+            className="mt-3 inline-block text-sm font-semibold text-primary-ink hover:underline"
+          >
+            Open AI review →
+          </Link>
         </Section>
 
         <Section title="Activity" description="Login and discovery activity for this family.">

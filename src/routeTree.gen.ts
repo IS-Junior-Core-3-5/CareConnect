@@ -26,6 +26,8 @@ import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
 import { Route as ParentsParentIdRouteImport } from './routes/parents.$parentId'
 import { Route as ProvidersIndexRouteImport } from './routes/providers.index'
 import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$providerId'
+import { Route as AdminAiIndexRouteImport } from './routes/admin.ai.index'
+import { Route as AdminAiParentIdRouteImport } from './routes/admin.ai.$parentId'
 import { Route as AdminParentsIndexRouteImport } from './routes/admin.parents.index'
 import { Route as AdminParentsParentIdRouteImport } from './routes/admin.parents.$parentId'
 
@@ -114,6 +116,16 @@ const ProvidersProviderIdRoute = ProvidersProviderIdRouteImport.update({
   path: '/$providerId',
   getParentRoute: () => ProvidersRoute,
 } as any)
+const AdminAiIndexRoute = AdminAiIndexRouteImport.update({
+  id: '/ai/',
+  path: '/ai/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAiParentIdRoute = AdminAiParentIdRouteImport.update({
+  id: '/ai/$parentId',
+  path: '/ai/$parentId',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminParentsIndexRoute = AdminParentsIndexRouteImport.update({
   id: '/parents/',
   path: '/parents/',
@@ -143,7 +155,9 @@ export interface FileRoutesByFullPath {
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/admin/': typeof AdminIndexRoute
   '/providers/': typeof ProvidersIndexRoute
+  '/admin/ai/$parentId': typeof AdminAiParentIdRoute
   '/admin/parents/$parentId': typeof AdminParentsParentIdRoute
+  '/admin/ai/': typeof AdminAiIndexRoute
   '/admin/parents/': typeof AdminParentsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -162,7 +176,9 @@ export interface FileRoutesByTo {
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/admin': typeof AdminIndexRoute
   '/providers': typeof ProvidersIndexRoute
+  '/admin/ai/$parentId': typeof AdminAiParentIdRoute
   '/admin/parents/$parentId': typeof AdminParentsParentIdRoute
+  '/admin/ai': typeof AdminAiIndexRoute
   '/admin/parents': typeof AdminParentsIndexRoute
 }
 export interface FileRoutesById {
@@ -184,7 +200,9 @@ export interface FileRoutesById {
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/admin/': typeof AdminIndexRoute
   '/providers/': typeof ProvidersIndexRoute
+  '/admin/ai/$parentId': typeof AdminAiParentIdRoute
   '/admin/parents/$parentId': typeof AdminParentsParentIdRoute
+  '/admin/ai/': typeof AdminAiIndexRoute
   '/admin/parents/': typeof AdminParentsIndexRoute
 }
 export interface FileRouteTypes {
@@ -207,7 +225,9 @@ export interface FileRouteTypes {
     | '/providers/$providerId'
     | '/admin/'
     | '/providers/'
+    | '/admin/ai/$parentId'
     | '/admin/parents/$parentId'
+    | '/admin/ai/'
     | '/admin/parents/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -226,7 +246,9 @@ export interface FileRouteTypes {
     | '/providers/$providerId'
     | '/admin'
     | '/providers'
+    | '/admin/ai/$parentId'
     | '/admin/parents/$parentId'
+    | '/admin/ai'
     | '/admin/parents'
   id:
     | '__root__'
@@ -247,7 +269,9 @@ export interface FileRouteTypes {
     | '/providers/$providerId'
     | '/admin/'
     | '/providers/'
+    | '/admin/ai/$parentId'
     | '/admin/parents/$parentId'
+    | '/admin/ai/'
     | '/admin/parents/'
   fileRoutesById: FileRoutesById
 }
@@ -387,6 +411,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProvidersProviderIdRouteImport
       parentRoute: typeof ProvidersRoute
     }
+    '/admin/ai/': {
+      id: '/admin/ai/'
+      path: '/ai'
+      fullPath: '/admin/ai/'
+      preLoaderRoute: typeof AdminAiIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ai/$parentId': {
+      id: '/admin/ai/$parentId'
+      path: '/ai/$parentId'
+      fullPath: '/admin/ai/$parentId'
+      preLoaderRoute: typeof AdminAiParentIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/parents/': {
       id: '/admin/parents/'
       path: '/parents'
@@ -408,7 +446,9 @@ interface AdminRouteChildren {
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
   AdminIndexRoute: typeof AdminIndexRoute
+  AdminAiParentIdRoute: typeof AdminAiParentIdRoute
   AdminParentsParentIdRoute: typeof AdminParentsParentIdRoute
+  AdminAiIndexRoute: typeof AdminAiIndexRoute
   AdminParentsIndexRoute: typeof AdminParentsIndexRoute
 }
 
@@ -416,7 +456,9 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBookingsRoute: AdminBookingsRoute,
   AdminProvidersRoute: AdminProvidersRoute,
   AdminIndexRoute: AdminIndexRoute,
+  AdminAiParentIdRoute: AdminAiParentIdRoute,
   AdminParentsParentIdRoute: AdminParentsParentIdRoute,
+  AdminAiIndexRoute: AdminAiIndexRoute,
   AdminParentsIndexRoute: AdminParentsIndexRoute,
 }
 

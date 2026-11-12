@@ -21,9 +21,8 @@ const sections = [
   { to: "/admin/providers", label: "Providers" },
   { to: "/admin/bookings", label: "Bookings" },
   { to: "/admin/parents", label: "Parents" },
+  { to: "/admin/ai", label: "AI recommendations" },
 ] as const;
-
-const upcoming = ["AI recommendations"] as const;
 
 function AdminLayout() {
   const { isAdmin, me } = useApp();
@@ -59,18 +58,6 @@ function AdminLayout() {
                 >
                   {section.label}
                 </Link>
-              ))}
-              {upcoming.map((label) => (
-                <span
-                  key={label}
-                  className="cursor-not-allowed rounded-full px-3 py-2 text-sm font-medium text-ink-faint"
-                  title="Coming soon"
-                >
-                  {label}
-                  <span className="ml-1.5 font-mono text-[10px] uppercase tracking-wider">
-                    Soon
-                  </span>
-                </span>
               ))}
             </nav>
 

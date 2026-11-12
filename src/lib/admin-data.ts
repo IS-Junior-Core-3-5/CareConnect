@@ -210,12 +210,107 @@ export type AdminParentDetail = {
   activity: AdminParentActivity;
 };
 
+export type AdminAiTopProvider = {
+  provider_id: string;
+  name: string;
+  rank: number;
+  match_score: number | null;
+  headline: string;
+};
+
+export type AdminAiSet = {
+  parent_id: string;
+  parent_name: string;
+  parent_email: string | null;
+  neighborhood: string | null;
+  has_preferences: boolean;
+  preferences_updated_at: string | null;
+  recommendation_count: number;
+  summary: string | null;
+  model: string | null;
+  generated_at: string | null;
+  top_providers: AdminAiTopProvider[];
+  chat_messages: number;
+  chat_user_messages: number;
+  chat_assistant_messages: number;
+  last_chat_at: string | null;
+  favorites_count: number;
+  bookings_total: number;
+  bookings_confirmed: number;
+  last_login_at: string | null;
+};
+
+export type AdminAiRecommendationDetails = {
+  why?: string;
+  tradeoffs?: string;
+  schedule?: string;
+  cost?: string;
+  trust?: string;
+};
+
+export type AdminAiRecommendation = {
+  provider_id: string;
+  provider_name: string;
+  care_type: string;
+  is_public: boolean;
+  verified: boolean;
+  rating: number;
+  review_count: number;
+  daily_rate: number | null;
+  daily_rate_max: number | null;
+  address: string | null;
+  rank: number;
+  match_score: number | null;
+  headline: string;
+  details: AdminAiRecommendationDetails;
+  summary: string | null;
+  model: string | null;
+  created_at: string;
+};
+
+export type AdminAiDetail = {
+  parent: {
+    id: string;
+    name: string;
+    email: string | null;
+    neighborhood: string | null;
+    children_count: number;
+    has_preferences: boolean;
+    preferences_updated_at: string | null;
+  };
+  set: {
+    recommendation_count: number;
+    summary: string | null;
+    model: string | null;
+    generated_at: string | null;
+  };
+  recommendations: AdminAiRecommendation[];
+  chat: {
+    messages: number;
+    user_messages: number;
+    assistant_messages: number;
+    first_at: string | null;
+    last_at: string | null;
+    models: (string | null)[];
+  };
+  context: {
+    favorites_count: number;
+    bookings_total: number;
+    bookings_confirmed: number;
+    last_care_date: string | null;
+    providers_booked: number;
+    providers_rebooked: number;
+  };
+};
+
 export const adminKeys = {
   stats: ["admin", "stats"] as const,
   providers: ["admin", "providers"] as const,
   bookings: ["admin", "bookings"] as const,
   parents: ["admin", "parents"] as const,
   parent: (parentId: string) => ["admin", "parent", parentId] as const,
+  ai: ["admin", "ai"] as const,
+  aiDetail: (parentId: string) => ["admin", "ai", parentId] as const,
 };
 
 export function useAdminStats() {
@@ -329,6 +424,51 @@ export function useAdminParent(parentId: string | null) {
       });
       if (error) throw error;
       return data as AdminParentDetail;
+    },
+  });
+}
+
+export function useAdminAiSets() {
+  return useQuery({
+    queryKey: adminKeys.ai,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_ai_list");
+      if (error) throw error;
+      return (data ?? []) as AdminAiSet[];
+    },
+  });
+}
+
+export function useAdminAiDetail(parentId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.aiDetail(parentId ?? ""),
+    enabled: !!parentId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_ai_detail", {
+        p_parent_id: parentId!,
+      });
+      if (error) throw error;
+      return data as AdminAiDetail;
+    },
+  });
+}
+
+export function useClearAdminAiRecommendations() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (parentId: string) => {
+      const { data, error } = await supabase.rpc("admin_clear_ai_recommendations", {
+        p_parent_id: parentId,
+      });
+      if (error) throw error;
+      return data as number;
+    },
+    onSuccess: (_deleted, parentId) => {
+      void qc.invalidateQueries({ queryKey: adminKeys.ai });
+      void qc.invalidateQueries({ queryKey: adminKeys.aiDetail(parentId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.parent(parentId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.parents });
+      void qc.invalidateQueries({ queryKey: adminKeys.stats });
     },
   });
 }
