@@ -250,11 +250,21 @@ function AdminOverview() {
               Review the pending queue, resolve stuck requests, and track rebooking.
             </p>
           </Link>
+          <Link
+            to="/admin/parents"
+            className="rounded-3xl bg-surface p-5 ring-1 ring-line transition hover:ring-primary/40"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-display text-xl font-bold">Parents</h3>
+              <span className="rounded-full bg-sun-soft px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-ink-soft">
+                Available
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-ink-soft">
+              Support family accounts, children, preferences, schedules, and booking history.
+            </p>
+          </Link>
           {[
-            {
-              title: "Parents",
-              body: "Support parent accounts, children, preferences, and saved schedules.",
-            },
             {
               title: "AI recommendations",
               body: "Review recommendation usage and help families when matching goes wrong.",

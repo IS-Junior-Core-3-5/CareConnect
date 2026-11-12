@@ -78,10 +78,144 @@ export type AdminBooking = {
   parent_provider_rebooking: boolean;
 };
 
+export type AdminParent = {
+  parent_id: string;
+  name: string;
+  email: string | null;
+  neighborhood: string | null;
+  address: string | null;
+  created_at: string;
+  children_count: number;
+  languages: string[];
+  need_blocks: number;
+  favorites_count: number;
+  bookings_total: number;
+  bookings_pending: number;
+  bookings_confirmed: number;
+  last_care_date: string | null;
+  providers_booked: number;
+  providers_rebooked: number;
+  ai_recommendations: number;
+  last_ai_at: string | null;
+  chat_messages: number;
+  login_count: number;
+  last_login_at: string | null;
+  search_sessions: number;
+  avg_search_minutes: number | null;
+  has_preferences: boolean;
+  preferences_updated_at: string | null;
+};
+
+export type AdminParentPreferences = {
+  parent_id: string;
+  care_types: string[];
+  care_settings: string[];
+  arrangement: string | null;
+  start_date: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  budget_flexibility: string | null;
+  preferred_cities: string[];
+  max_distance_miles: number | null;
+  needs_transportation: boolean;
+  must_haves: string[];
+  approaches: string[];
+  languages_wanted: string[];
+  child_needs: string | null;
+  diet: string | null;
+  communication: string[];
+  priorities: string[];
+  dealbreakers: string | null;
+  notes_for_ai: string | null;
+  ai_answer_style: "Short" | "Balanced" | "Detailed";
+  updated_at: string;
+};
+
+export type AdminParentChild = {
+  id: number;
+  name: string;
+  age: number | null;
+};
+
+export type AdminParentScheduleBlock = {
+  day_of_week: number;
+  block: "Morning" | "Afternoon" | "Evening";
+};
+
+export type AdminParentFavorite = {
+  provider_id: string;
+  name: string;
+  care_type: string;
+  is_public: boolean;
+  created_at: string;
+};
+
+export type AdminParentBooking = {
+  id: string;
+  provider_id: string;
+  provider_name: string;
+  care_date: string;
+  block: "Morning" | "Afternoon" | "Evening";
+  status: AdminBookingStatus;
+  resolution_note: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminParentRebook = {
+  providers_booked: number;
+  providers_rebooked: number;
+  confirmed_bookings: number;
+  total_rebookings: number;
+  last_care_date: string | null;
+};
+
+export type AdminParentRecommendation = {
+  provider_id: string;
+  provider_name: string;
+  rank: number;
+  match_score: number | null;
+  headline: string;
+  model: string | null;
+  created_at: string;
+};
+
+export type AdminParentActivity = {
+  login_count: number;
+  last_login_at: string | null;
+  search_sessions: number;
+  avg_search_minutes: number | null;
+  last_search_at: string | null;
+  chat_messages: number;
+};
+
+export type AdminParentDetail = {
+  parent: {
+    id: string;
+    name: string;
+    email: string | null;
+    neighborhood: string | null;
+    blurb: string | null;
+    address: string | null;
+    created_at: string;
+  };
+  children: AdminParentChild[];
+  languages: string[];
+  schedule: AdminParentScheduleBlock[];
+  preferences: AdminParentPreferences | null;
+  favorites: AdminParentFavorite[];
+  bookings: AdminParentBooking[];
+  rebook: AdminParentRebook;
+  recommendations: AdminParentRecommendation[];
+  activity: AdminParentActivity;
+};
+
 export const adminKeys = {
   stats: ["admin", "stats"] as const,
   providers: ["admin", "providers"] as const,
   bookings: ["admin", "bookings"] as const,
+  parents: ["admin", "parents"] as const,
+  parent: (parentId: string) => ["admin", "parent", parentId] as const,
 };
 
 export function useAdminStats() {
@@ -170,6 +304,31 @@ export function useSetBookingStatus() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminKeys.bookings });
       void qc.invalidateQueries({ queryKey: adminKeys.stats });
+    },
+  });
+}
+
+export function useAdminParents() {
+  return useQuery({
+    queryKey: adminKeys.parents,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_parent_list");
+      if (error) throw error;
+      return (data ?? []) as AdminParent[];
+    },
+  });
+}
+
+export function useAdminParent(parentId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.parent(parentId ?? ""),
+    enabled: !!parentId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_parent_detail", {
+        p_parent_id: parentId!,
+      });
+      if (error) throw error;
+      return data as AdminParentDetail;
     },
   });
 }

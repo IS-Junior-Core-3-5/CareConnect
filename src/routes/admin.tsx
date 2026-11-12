@@ -20,9 +20,10 @@ const sections = [
   { to: "/admin", label: "Overview" },
   { to: "/admin/providers", label: "Providers" },
   { to: "/admin/bookings", label: "Bookings" },
+  { to: "/admin/parents", label: "Parents" },
 ] as const;
 
-const upcoming = ["Parents", "AI recommendations"] as const;
+const upcoming = ["AI recommendations"] as const;
 
 function AdminLayout() {
   const { isAdmin, me } = useApp();
