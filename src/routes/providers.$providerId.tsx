@@ -25,13 +25,9 @@ import {
   type Review,
   type Scores,
 } from "@/lib/model";
-import {
-  previewSchedule,
-  supportsPracticeRequest,
-  usePreviewFavorites,
-} from "@/lib/provider-preview";
+import { supportsPracticeRequest } from "@/lib/provider-preview";
 import { useApp } from "@/lib/app-state";
-import { QK, useParents, usePreviewProviders, useProvider } from "@/lib/data";
+import { QK, useParents, useProvider } from "@/lib/data";
 
 export const Route = createFileRoute("/providers/$providerId")({
   head: () => ({
@@ -48,13 +44,8 @@ export const Route = createFileRoute("/providers/$providerId")({
 
 function ProviderProfilePage() {
   const { providerId } = Route.useParams();
-  const { preview } = Route.useSearch();
   const { userId } = useApp();
-  const live = useProvider(providerId, !!userId, !preview);
-  const previewQuery = usePreviewProviders(!!preview);
-  const { provider, isLoading, error } = preview
-    ? { ...previewQuery, provider: previewQuery.data?.find((p) => p.id === providerId) }
-    : live;
+  const { provider, isLoading, error } = useProvider(providerId, !!userId);
   return (
     <AppShell publicPage>
       {isLoading ? (
@@ -64,22 +55,21 @@ function ProviderProfilePage() {
       ) : !provider ? (
         <p className="py-16 text-center text-ink-soft">
           That provider isn't listed.{" "}
-          <Link to="/providers" search={{ preview }} className="font-semibold text-primary-ink">
+          <Link to="/providers" className="font-semibold text-primary-ink">
             Back to providers
           </Link>
         </p>
       ) : (
-        <ProviderProfile key={providerId} provider={provider} preview={!!preview} />
+        <ProviderProfile key={providerId} provider={provider} />
       )}
     </AppShell>
   );
 }
 
-function ProviderProfile({ provider, preview }: { provider: Provider; preview: boolean }) {
-  const { schedule: savedSchedule, isFavorite, toggleFavorite, userId, parentId } = useApp();
-  const schedule = preview && !userId ? previewSchedule : savedSchedule;
-  const previewFavorites = usePreviewFavorites(preview);
-  const parents = useParents(!!userId && !preview);
+function ProviderProfile({ provider }: { provider: Provider }) {
+  const { schedule, isFavorite, toggleFavorite, userId, parentId } = useApp();
+  const sample = provider.isDemo;
+  const parents = useParents(!!userId && !sample);
   const qc = useQueryClient();
   const isOwner = !!userId && provider.ownerId === userId;
   const usedThem = !!parentId && provider.pastFamilies.includes(parentId);
@@ -100,8 +90,7 @@ function ProviderProfile({ provider, preview }: { provider: Provider; preview: b
     }
     qc.invalidateQueries({ queryKey: QK.providers });
   }
-  const fav = preview ? previewFavorites.favorites.includes(provider.id) : isFavorite(provider.id);
-  const toggleSaved = preview ? previewFavorites.toggle : toggleFavorite;
+  const fav = isFavorite(provider.id);
   const external = provider.listingOrigin === "external";
   const activity = demoActivityFor(provider);
   const details = provider.externalProfile;
@@ -127,16 +116,12 @@ function ProviderProfile({ provider, preview }: { provider: Provider; preview: b
   return (
     <>
       <div className="py-8">
-        <Link
-          to="/providers"
-          search={preview ? { preview: true } : {}}
-          className="text-sm font-semibold text-primary-ink"
-        >
+        <Link to="/providers" className="text-sm font-semibold text-primary-ink">
           ← Back to providers
         </Link>
 
-        {!preview || supportsPracticeRequest(provider.id) ? (
-          <RequestCare provider={provider} practice={preview} />
+        {!sample || supportsPracticeRequest(provider.id) ? (
+          <RequestCare provider={provider} practice={sample} />
         ) : null}
 
         <div className="mt-4 grid gap-6 lg:grid-cols-12">
@@ -216,7 +201,7 @@ function ProviderProfile({ provider, preview }: { provider: Provider; preview: b
                       </Link>
                     ) : null}
                     <button
-                      onClick={() => toggleSaved(provider.id)}
+                      onClick={() => toggleFavorite(provider.id)}
                       className={`chip flex-1 whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold sm:flex-none ${
                         fav
                           ? "bg-clay-soft text-clay"
@@ -350,16 +335,12 @@ function ProviderProfile({ provider, preview }: { provider: Provider; preview: b
                         ? ` — ${gaps} gap${gaps === 1 ? "" : "s"} to fill.`
                         : " — a full match."}
                     </p>
-                    {preview && !userId ? (
-                      <span className="text-sm text-leaf-ink">Uses an example family schedule</span>
-                    ) : (
-                      <Link
-                        to="/schedule"
-                        className="rounded-full bg-leaf px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-leaf-ink"
-                      >
-                        Open my schedule
-                      </Link>
-                    )}
+                    <Link
+                      to="/schedule"
+                      className="rounded-full bg-leaf px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-leaf-ink"
+                    >
+                      Open my schedule
+                    </Link>
                   </div>
                 </>
               ) : (
@@ -371,7 +352,7 @@ function ProviderProfile({ provider, preview }: { provider: Provider; preview: b
 
             <section
               id="reviews"
-              hidden={preview}
+              hidden={sample}
               className="scroll-mt-24 rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6"
             >
               {details?.reviews ? (
@@ -488,10 +469,10 @@ function ProviderProfile({ provider, preview }: { provider: Provider; preview: b
                   </div>
                 ))}
               </div>
-              {!preview && !isOwner ? <ReviewForm provider={provider} /> : null}
+              {!sample && !isOwner ? <ReviewForm provider={provider} /> : null}
             </section>
 
-            {parentId && !preview ? (
+            {parentId && !sample ? (
               <section className="rounded-3xl bg-surface p-5 ring-1 ring-line sm:rounded-[28px] sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <h2 className="font-display text-2xl font-bold tracking-tight">Past families</h2>
