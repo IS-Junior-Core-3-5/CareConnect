@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AiChat } from "@/components/AiChat";
-import { AiRecommendations } from "@/components/AiRecommendations";
 import { AppShell } from "@/components/NavBar";
 
 export const Route = createFileRoute("/recommendations")({
@@ -20,7 +19,6 @@ function RecommendationsPage() {
   return (
     <AppShell>
       <div className="space-y-8 py-8">
-        <AiRecommendations />
         <AiChat />
       </div>
     </AppShell>

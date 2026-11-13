@@ -159,7 +159,11 @@ export function AppShell({
       )}
       <main className="mx-auto w-full max-w-7xl flex-1 px-5 pb-12">{body}</main>
       <PageFooter />
-      {session && me && pathname !== "/preferences" && !pathname.startsWith("/admin") ? (
+      {session &&
+      me &&
+      pathname !== "/preferences" &&
+      pathname !== "/recommendations" &&
+      !pathname.startsWith("/admin") ? (
         <AskAiLauncher />
       ) : null}
     </div>

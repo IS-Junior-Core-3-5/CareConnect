@@ -329,7 +329,7 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                   Rating
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {[0, 4.5, 4.8].map((r) => (
+                  {[0, 3, 3.5, 4, 4.25, 4.5, 4.75].map((r) => (
                     <button
                       key={r}
                       type="button"
