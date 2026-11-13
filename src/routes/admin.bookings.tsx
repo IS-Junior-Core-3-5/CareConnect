@@ -18,6 +18,7 @@ import {
   type AdminBooking,
   type AdminBookingStatus,
 } from "@/lib/admin-data";
+import { downloadCsv } from "@/lib/csv";
 import { formatDate } from "@/lib/model";
 
 export const Route = createFileRoute("/admin/bookings")({
@@ -51,6 +52,23 @@ const STATUS_ORDER: Record<AdminBookingStatus, number> = {
   declined: 2,
   cancelled: 3,
 };
+
+const BOOKING_COLUMNS: { key: keyof AdminBooking; label: string }[] = [
+  { key: "id", label: "booking_id" },
+  { key: "care_date", label: "care_date" },
+  { key: "block", label: "block" },
+  { key: "status", label: "status" },
+  { key: "parent_id", label: "parent_id" },
+  { key: "parent_name", label: "parent_name" },
+  { key: "provider_id", label: "provider_id" },
+  { key: "provider_name", label: "provider_name" },
+  { key: "is_overdue", label: "overdue" },
+  { key: "parent_provider_confirmed_bookings", label: "parent_provider_confirmed_bookings" },
+  { key: "parent_provider_rebooking", label: "parent_provider_rebooking" },
+  { key: "resolution_note", label: "resolution_note" },
+  { key: "created_at", label: "created_at" },
+  { key: "updated_at", label: "updated_at" },
+];
 
 function ageLabel(iso: string) {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -122,6 +140,21 @@ function AdminBookings() {
       });
   }, [rows, search, status, dateFilter, today]);
 
+  function download() {
+    if (!filtered.length) {
+      toast.error("No bookings match these filters");
+      return;
+    }
+    downloadCsv(
+      `careconnect-bookings-${new Date().toISOString().slice(0, 10)}.csv`,
+      BOOKING_COLUMNS,
+      filtered,
+    );
+    toast.success(
+      `Exported ${filtered.length} booking${filtered.length === 1 ? "" : "s"}. Store the file securely.`,
+    );
+  }
+
   function mutationError(error: unknown) {
     toast.error(error instanceof Error ? error.message : "Couldn't update the booking");
   }
@@ -180,12 +213,21 @@ function AdminBookings() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-display text-xl font-bold">Bookings</h2>
-        <p className="mt-1 max-w-[70ch] text-sm text-ink-soft">
-          Watch care requests across the marketplace, step in when a request is stuck, and track
-          rebooking. Admin status changes are recorded in the audit log with an optional reason.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold">Bookings</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-ink-soft">
+            Watch care requests across the marketplace, step in when a request is stuck, and track
+            rebooking. Admin status changes are recorded in the audit log with an optional reason.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={download}
+          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">

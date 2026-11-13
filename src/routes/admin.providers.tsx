@@ -10,6 +10,7 @@ import {
   type AdminProvider,
   type AdminProviderOrigin,
 } from "@/lib/admin-data";
+import { downloadCsv } from "@/lib/csv";
 import { formatDate } from "@/lib/model";
 
 export const Route = createFileRoute("/admin/providers")({
@@ -34,6 +35,27 @@ const ORIGIN_CLASS: Record<AdminProviderOrigin, string> = {
   external: "bg-sun-soft text-ink-soft",
   sample: "bg-background text-ink-faint",
 };
+
+const PROVIDER_COLUMNS: { key: keyof AdminProvider; label: string }[] = [
+  { key: "id", label: "provider_id" },
+  { key: "name", label: "name" },
+  { key: "care_type", label: "care_type" },
+  { key: "address", label: "address" },
+  { key: "phone", label: "phone" },
+  { key: "verified", label: "verified" },
+  { key: "is_public", label: "is_public" },
+  { key: "listing_origin", label: "listing_origin" },
+  { key: "website_url", label: "website_url" },
+  { key: "contact_url", label: "contact_url" },
+  { key: "source_url", label: "source_url" },
+  { key: "checked_on", label: "checked_on" },
+  { key: "schedule_available", label: "schedule_available" },
+  { key: "created_at", label: "created_at" },
+  { key: "rating", label: "rating" },
+  { key: "review_count", label: "review_count" },
+  { key: "credential_count", label: "credential_count" },
+  { key: "verified_credential_count", label: "verified_credential_count" },
+];
 
 function AdminProviders() {
   const { data, isLoading, error } = useAdminProviders();
@@ -63,6 +85,19 @@ function AdminProviders() {
       );
     });
   }, [providers, search, origin, visibility, verification]);
+
+  function download() {
+    if (!filtered.length) {
+      toast.error("No providers match these filters");
+      return;
+    }
+    downloadCsv(
+      `careconnect-providers-${new Date().toISOString().slice(0, 10)}.csv`,
+      PROVIDER_COLUMNS,
+      filtered,
+    );
+    toast.success(`Exported ${filtered.length} provider${filtered.length === 1 ? "" : "s"}.`);
+  }
 
   function updateFlags(provider: AdminProvider, flags: { verified?: boolean; isPublic?: boolean }) {
     setFlags.mutate(
@@ -103,12 +138,21 @@ function AdminProviders() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="font-display text-xl font-bold">Providers</h2>
-        <p className="mt-1 max-w-[70ch] text-sm text-ink-soft">
-          Verify listings, publish or archive them, and spot directory data that needs a refresh.
-          Changes are recorded in the admin audit log.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold">Providers</h2>
+          <p className="mt-1 max-w-[70ch] text-sm text-ink-soft">
+            Verify listings, publish or archive them, and spot directory data that needs a refresh.
+            Changes are recorded in the admin audit log.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={download}
+          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-3xl bg-surface p-4 ring-1 ring-line">

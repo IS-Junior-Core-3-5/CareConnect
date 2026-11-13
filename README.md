@@ -152,13 +152,15 @@ The Parents section is read-only. It exposes parent emails, private addresses, c
 
 The AI recommendations section is also admin-only. It shows saved matches, the AI's explanations, and chat usage counts, but **not** chat message content. **Clear matches** deletes only the cached recommendation set so the family gets a fresh one on their next visit; chat history is untouched. That action is recorded in `admin_audit_log`.
 
+Providers, bookings, and parents each have an **Export CSV** button that downloads the currently filtered rows. Provider exports include contact and directory fields; booking exports include family names and resolution notes; parent exports include private contact details. Treat exported files as sensitive and delete them when they are no longer needed.
+
 The admin panel currently has:
 
 | Section | Status | What it does |
 | --- | --- | --- |
 | Overview | Available | Provider, family, booking, and AI counts, plus a **Needs attention** list |
-| Providers | Available | Search and filter listings, verify providers, and publish or archive them |
-| Bookings | Available | Review the pending queue, resolve stuck requests, and track rebooking |
+| Providers | Available | Search and filter listings, verify providers, publish or archive them, and export the filtered list |
+| Bookings | Available | Review the pending queue, resolve stuck requests, track rebooking, and export the filtered queue |
 | Parents | Available | Read-only family support view with contact, children, schedule, preferences, bookings, and CSV export |
 | AI recommendations | Available | Review saved matches and chat usage, see why providers were chosen, and clear stale sets |
 

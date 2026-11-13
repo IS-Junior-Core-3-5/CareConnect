@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { AdminSelect } from "@/components/admin/AdminSelect";
 import { ErrorState, LoadingState } from "@/components/NavBar";
 import { useAdminParents, type AdminParent } from "@/lib/admin-data";
+import { downloadCsv } from "@/lib/csv";
 import { formatDate } from "@/lib/model";
 
 export const Route = createFileRoute("/admin/parents/")({
@@ -38,60 +39,33 @@ function Metric({ label, value, hint }: { label: string; value: React.ReactNode;
   );
 }
 
-function csvCell(value: unknown) {
-  const text = value === null || value === undefined ? "" : String(value);
-  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-function exportCsv(rows: AdminParent[]) {
-  const columns: { key: keyof AdminParent; label: string }[] = [
-    { key: "parent_id", label: "parent_id" },
-    { key: "name", label: "name" },
-    { key: "email", label: "email" },
-    { key: "neighborhood", label: "neighborhood" },
-    { key: "address", label: "address" },
-    { key: "created_at", label: "joined_at" },
-    { key: "children_count", label: "children" },
-    { key: "languages", label: "languages" },
-    { key: "need_blocks", label: "needed_blocks" },
-    { key: "favorites_count", label: "favorites" },
-    { key: "bookings_total", label: "bookings_total" },
-    { key: "bookings_pending", label: "bookings_pending" },
-    { key: "bookings_confirmed", label: "bookings_confirmed" },
-    { key: "last_care_date", label: "last_care_date" },
-    { key: "providers_booked", label: "providers_booked" },
-    { key: "providers_rebooked", label: "providers_rebooked" },
-    { key: "ai_recommendations", label: "ai_recommendations" },
-    { key: "last_ai_at", label: "last_ai_at" },
-    { key: "chat_messages", label: "ai_chat_messages" },
-    { key: "login_count", label: "login_count" },
-    { key: "last_login_at", label: "last_login_at" },
-    { key: "search_sessions", label: "search_sessions" },
-    { key: "avg_search_minutes", label: "avg_search_minutes" },
-    { key: "has_preferences", label: "has_preferences" },
-    { key: "preferences_updated_at", label: "preferences_updated_at" },
-  ];
-
-  const lines = [
-    columns.map((column) => csvCell(column.label)).join(","),
-    ...rows.map((row) =>
-      columns
-        .map((column) => {
-          const value = row[column.key];
-          return csvCell(Array.isArray(value) ? value.join("; ") : value);
-        })
-        .join(","),
-    ),
-  ];
-
-  const blob = new Blob([`\uFEFF${lines.join("\r\n")}`], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `careconnect-parents-${new Date().toISOString().slice(0, 10)}.csv`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
+const PARENT_COLUMNS: { key: keyof AdminParent; label: string }[] = [
+  { key: "parent_id", label: "parent_id" },
+  { key: "name", label: "name" },
+  { key: "email", label: "email" },
+  { key: "neighborhood", label: "neighborhood" },
+  { key: "address", label: "address" },
+  { key: "created_at", label: "joined_at" },
+  { key: "children_count", label: "children" },
+  { key: "languages", label: "languages" },
+  { key: "need_blocks", label: "needed_blocks" },
+  { key: "favorites_count", label: "favorites" },
+  { key: "bookings_total", label: "bookings_total" },
+  { key: "bookings_pending", label: "bookings_pending" },
+  { key: "bookings_confirmed", label: "bookings_confirmed" },
+  { key: "last_care_date", label: "last_care_date" },
+  { key: "providers_booked", label: "providers_booked" },
+  { key: "providers_rebooked", label: "providers_rebooked" },
+  { key: "ai_recommendations", label: "ai_recommendations" },
+  { key: "last_ai_at", label: "last_ai_at" },
+  { key: "chat_messages", label: "ai_chat_messages" },
+  { key: "login_count", label: "login_count" },
+  { key: "last_login_at", label: "last_login_at" },
+  { key: "search_sessions", label: "search_sessions" },
+  { key: "avg_search_minutes", label: "avg_search_minutes" },
+  { key: "has_preferences", label: "has_preferences" },
+  { key: "preferences_updated_at", label: "preferences_updated_at" },
+];
 
 function AdminParents() {
   const parentsQuery = useAdminParents();
@@ -154,7 +128,11 @@ function AdminParents() {
       toast.error("No families match these filters");
       return;
     }
-    exportCsv(filtered);
+    downloadCsv(
+      `careconnect-parents-${new Date().toISOString().slice(0, 10)}.csv`,
+      PARENT_COLUMNS,
+      filtered,
+    );
     toast.success(
       `Exported ${filtered.length} famil${filtered.length === 1 ? "y" : "ies"}. Store the file securely.`,
     );
