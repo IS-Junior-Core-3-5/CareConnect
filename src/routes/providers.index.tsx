@@ -325,26 +325,25 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">
-                  Rating
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {[0, 4.5, 4.8].map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      aria-pressed={draft.minRating === r}
-                      onClick={() => setDraft({ ...draft, minRating: r })}
-                      className={`chip rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        draft.minRating === r
-                          ? "bg-primary-soft text-primary-ink"
-                          : "border border-line text-ink-soft hover:border-primary"
-                      }`}
-                    >
-                      {r === 0 ? "Any" : `${r}+`}
-                    </button>
+                <label
+                  htmlFor="provider-rating"
+                  className="mb-2 block text-xs font-semibold uppercase tracking-wider text-ink-faint"
+                >
+                  Minimum rating
+                </label>
+                <select
+                  id="provider-rating"
+                  value={draft.minRating}
+                  onChange={(e) => setDraft({ ...draft, minRating: Number(e.target.value) })}
+                  className="w-full rounded-xl border border-line bg-background px-3 py-2 text-sm"
+                >
+                  <option value={0}>Any rating</option>
+                  {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((r) => (
+                    <option key={r} value={r}>
+                      {r === 5 ? "5 stars only" : `${r}+ stars`}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               <div>
