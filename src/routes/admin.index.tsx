@@ -102,6 +102,33 @@ function AdminOverview() {
 
   return (
     <div className="space-y-8">
+      <section className="grid gap-3 sm:grid-cols-2">
+        <Link
+          to="/admin/users"
+          className="flex flex-col rounded-3xl bg-primary p-5 text-primary-soft ring-1 ring-primary/20 transition hover:bg-primary-ink"
+        >
+          <span className="font-mono text-[10px] uppercase tracking-wider opacity-70">
+            Admin maintenance
+          </span>
+          <span className="mt-1 font-display text-2xl font-bold">Maintain Users</span>
+          <span className="mt-1 text-sm opacity-80">
+            Create, edit, and delete real login accounts and their family profiles.
+          </span>
+        </Link>
+        <Link
+          to="/admin/records"
+          className="flex flex-col rounded-3xl bg-surface p-5 ring-1 ring-line transition hover:ring-primary/40"
+        >
+          <span className="font-mono text-[10px] uppercase tracking-wider text-ink-faint">
+            Admin maintenance
+          </span>
+          <span className="mt-1 font-display text-2xl font-bold">Maintain Records</span>
+          <span className="mt-1 text-sm text-ink-soft">
+            Full create, edit, and delete access to providers, bookings, and families.
+          </span>
+        </Link>
+      </section>
+
       <section>
         <h2 className="font-display text-lg font-bold">Needs attention</h2>
         {items.length ? (

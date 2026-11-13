@@ -81,6 +81,21 @@ function AuthPage() {
           >
             Browse providers
           </Link>
+
+          {/* Landing-page image: a demo provider photo keeps the first screen visual. */}
+          <figure className="mt-8 overflow-hidden rounded-3xl ring-1 ring-line">
+            <img
+              src="/demo-provider-photos/careconnect-demo-1-1.jpg"
+              alt="Children playing and learning together in a bright care setting"
+              width={768}
+              height={512}
+              loading="eager"
+              className="aspect-[3/2] w-full object-cover"
+            />
+            <figcaption className="bg-surface px-4 py-3 text-xs text-ink-soft">
+              Local care that fits real family schedules.
+            </figcaption>
+          </figure>
         </section>
 
         <section className="min-w-0 lg:col-span-7">
@@ -279,9 +294,7 @@ function SignupForm({ onDone }: { onDone: () => void }) {
             className={field}
             placeholder="Street address, city, state, ZIP"
           />
-          <p className="mt-1 text-xs text-ink-faint">
-            Your address is private to your account.
-          </p>
+          <p className="mt-1 text-xs text-ink-faint">Your address is private to your account.</p>
         </div>
         <div>
           <label className={label} htmlFor="signup-email">

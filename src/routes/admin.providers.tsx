@@ -2,10 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { ProviderFormDialog } from "@/components/admin/ProviderFormDialog";
 import { ErrorState, LoadingState } from "@/components/NavBar";
 import { Stars } from "@/components/StarRating";
 import {
   useAdminProviders,
+  useDeleteProvider,
   useSetProviderFlags,
   type AdminProvider,
   type AdminProviderOrigin,
@@ -60,11 +63,15 @@ const PROVIDER_COLUMNS: { key: keyof AdminProvider; label: string }[] = [
 function AdminProviders() {
   const { data, isLoading, error } = useAdminProviders();
   const setFlags = useSetProviderFlags();
+  const remove = useDeleteProvider();
 
   const [search, setSearch] = useState("");
   const [origin, setOrigin] = useState<OriginFilter>("all");
   const [visibility, setVisibility] = useState<VisibilityFilter>("all");
   const [verification, setVerification] = useState<VerifiedFilter>("all");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminProvider | null>(null);
+  const [deleting, setDeleting] = useState<AdminProvider | null>(null);
 
   const providers = useMemo(() => data ?? [], [data]);
 
@@ -146,13 +153,25 @@ function AdminProviders() {
             Changes are recorded in the admin audit log.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={download}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
-        >
-          Export CSV
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
+          >
+            Add provider
+          </button>
+          <button
+            type="button"
+            onClick={download}
+            className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-end gap-3 rounded-3xl bg-surface p-4 ring-1 ring-line">
@@ -345,6 +364,23 @@ function AdminProviders() {
                         >
                           {provider.is_public ? "Archive" : "Publish"}
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(provider);
+                            setFormOpen(true);
+                          }}
+                          className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(provider)}
+                          className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-clay/40 hover:text-clay"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -358,6 +394,37 @@ function AdminProviders() {
           No providers match these filters.
         </p>
       )}
+
+      <ProviderFormDialog open={formOpen} onOpenChange={setFormOpen} provider={editing} />
+
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="Delete this provider?"
+        description={
+          deleting
+            ? `${deleting.name} and its credentials, reviews, availability, favorites, and bookings will be permanently deleted.`
+            : ""
+        }
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (!deleting) return;
+          remove.mutate(deleting.id, {
+            onSuccess: () => {
+              toast.success(`${deleting.name} deleted`);
+              setDeleting(null);
+            },
+            onError: (mutationError) =>
+              toast.error(
+                mutationError instanceof Error
+                  ? mutationError.message
+                  : "Couldn't delete the provider",
+              ),
+          });
+        }}
+      />
     </div>
   );
 }

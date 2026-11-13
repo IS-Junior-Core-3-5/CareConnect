@@ -18,10 +18,13 @@ export const Route = createFileRoute("/admin")({
 
 const sections = [
   { to: "/admin", label: "Overview" },
+  { to: "/admin/records", label: "Maintain records" },
+  { to: "/admin/users", label: "Maintain users" },
   { to: "/admin/providers", label: "Providers" },
   { to: "/admin/bookings", label: "Bookings" },
   { to: "/admin/parents", label: "Parents" },
   { to: "/admin/ai", label: "AI recommendations" },
+  { to: "/admin/audit", label: "Audit log" },
 ] as const;
 
 function AdminLayout() {

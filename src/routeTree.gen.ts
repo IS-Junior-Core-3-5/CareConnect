@@ -21,8 +21,11 @@ import { Route as RecommendationsRouteImport } from './routes/recommendations'
 import { Route as ScheduleRouteImport } from './routes/schedule'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAuditRouteImport } from './routes/admin.audit'
 import { Route as AdminBookingsRouteImport } from './routes/admin.bookings'
 import { Route as AdminProvidersRouteImport } from './routes/admin.providers'
+import { Route as AdminRecordsRouteImport } from './routes/admin.records'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as ParentsParentIdRouteImport } from './routes/parents.$parentId'
 import { Route as ProvidersIndexRouteImport } from './routes/providers.index'
 import { Route as ProvidersProviderIdRouteImport } from './routes/providers.$providerId'
@@ -91,6 +94,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAuditRoute = AdminAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBookingsRoute = AdminBookingsRouteImport.update({
   id: '/bookings',
   path: '/bookings',
@@ -99,6 +107,16 @@ const AdminBookingsRoute = AdminBookingsRouteImport.update({
 const AdminProvidersRoute = AdminProvidersRouteImport.update({
   id: '/providers',
   path: '/providers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminRecordsRoute = AdminRecordsRouteImport.update({
+  id: '/records',
+  path: '/records',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
 const ParentsParentIdRoute = ParentsParentIdRouteImport.update({
@@ -149,8 +167,11 @@ export interface FileRoutesByFullPath {
   '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/records': typeof AdminRecordsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -170,8 +191,11 @@ export interface FileRoutesByTo {
   '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/records': typeof AdminRecordsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/admin': typeof AdminIndexRoute
@@ -194,8 +218,11 @@ export interface FileRoutesById {
   '/recommendations': typeof RecommendationsRoute
   '/schedule': typeof ScheduleRoute
   '/search': typeof SearchRoute
+  '/admin/audit': typeof AdminAuditRoute
   '/admin/bookings': typeof AdminBookingsRoute
   '/admin/providers': typeof AdminProvidersRoute
+  '/admin/records': typeof AdminRecordsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/parents/$parentId': typeof ParentsParentIdRoute
   '/providers/$providerId': typeof ProvidersProviderIdRoute
   '/admin/': typeof AdminIndexRoute
@@ -219,8 +246,11 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/schedule'
     | '/search'
+    | '/admin/audit'
     | '/admin/bookings'
     | '/admin/providers'
+    | '/admin/records'
+    | '/admin/users'
     | '/parents/$parentId'
     | '/providers/$providerId'
     | '/admin/'
@@ -240,8 +270,11 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/schedule'
     | '/search'
+    | '/admin/audit'
     | '/admin/bookings'
     | '/admin/providers'
+    | '/admin/records'
+    | '/admin/users'
     | '/parents/$parentId'
     | '/providers/$providerId'
     | '/admin'
@@ -263,8 +296,11 @@ export interface FileRouteTypes {
     | '/recommendations'
     | '/schedule'
     | '/search'
+    | '/admin/audit'
     | '/admin/bookings'
     | '/admin/providers'
+    | '/admin/records'
+    | '/admin/users'
     | '/parents/$parentId'
     | '/providers/$providerId'
     | '/admin/'
@@ -376,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/audit': {
+      id: '/admin/audit'
+      path: '/audit'
+      fullPath: '/admin/audit'
+      preLoaderRoute: typeof AdminAuditRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/bookings': {
       id: '/admin/bookings'
       path: '/bookings'
@@ -388,6 +431,20 @@ declare module '@tanstack/react-router' {
       path: '/providers'
       fullPath: '/admin/providers'
       preLoaderRoute: typeof AdminProvidersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/records': {
+      id: '/admin/records'
+      path: '/records'
+      fullPath: '/admin/records'
+      preLoaderRoute: typeof AdminRecordsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/parents/$parentId': {
@@ -443,8 +500,11 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAuditRoute: typeof AdminAuditRoute
   AdminBookingsRoute: typeof AdminBookingsRoute
   AdminProvidersRoute: typeof AdminProvidersRoute
+  AdminRecordsRoute: typeof AdminRecordsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminAiParentIdRoute: typeof AdminAiParentIdRoute
   AdminParentsParentIdRoute: typeof AdminParentsParentIdRoute
@@ -453,8 +513,11 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAuditRoute: AdminAuditRoute,
   AdminBookingsRoute: AdminBookingsRoute,
   AdminProvidersRoute: AdminProvidersRoute,
+  AdminRecordsRoute: AdminRecordsRoute,
+  AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminAiParentIdRoute: AdminAiParentIdRoute,
   AdminParentsParentIdRoute: AdminParentsParentIdRoute,

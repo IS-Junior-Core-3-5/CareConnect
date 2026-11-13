@@ -2,8 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
+import { ParentFormDialog } from "@/components/admin/ParentFormDialog";
 import { ErrorState, LoadingState } from "@/components/NavBar";
-import { useAdminParents, type AdminParent } from "@/lib/admin-data";
+import { useAdminParents, useDeleteParent, type AdminParent } from "@/lib/admin-data";
 import { downloadCsv } from "@/lib/csv";
 import { formatDate } from "@/lib/model";
 
@@ -69,11 +71,15 @@ const PARENT_COLUMNS: { key: keyof AdminParent; label: string }[] = [
 
 function AdminParents() {
   const parentsQuery = useAdminParents();
+  const remove = useDeleteParent();
 
   const [search, setSearch] = useState("");
   const [activity, setActivity] = useState<ActivityFilter>("all");
   const [bookingFilter, setBookingFilter] = useState<BookingFilter>("all");
   const [sort, setSort] = useState<SortKey>("recent");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminParent | null>(null);
+  const [deleting, setDeleting] = useState<AdminParent | null>(null);
 
   const rows = useMemo(() => parentsQuery.data ?? [], [parentsQuery.data]);
   const now = Date.now();
@@ -170,13 +176,25 @@ function AdminParents() {
             contain that private data, so store them securely.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={download}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
-        >
-          Export CSV
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
+          >
+            Add family
+          </button>
+          <button
+            type="button"
+            onClick={download}
+            className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -265,7 +283,7 @@ function AdminParents() {
                 <th className="px-4 py-3 font-medium">Bookings</th>
                 <th className="px-4 py-3 font-medium">Activity</th>
                 <th className="px-4 py-3 font-medium">AI</th>
-                <th className="px-4 py-3 text-right font-medium">Open</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -352,13 +370,32 @@ function AdminParents() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link
-                      to="/admin/parents/$parentId"
-                      params={{ parentId: parent.parent_id }}
-                      className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
-                    >
-                      View
-                    </Link>
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <Link
+                        to="/admin/parents/$parentId"
+                        params={{ parentId: parent.parent_id }}
+                        className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+                      >
+                        View
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditing(parent);
+                          setFormOpen(true);
+                        }}
+                        className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeleting(parent)}
+                        className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-clay/40 hover:text-clay"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -370,6 +407,37 @@ function AdminParents() {
           No families match these filters.
         </p>
       )}
+
+      <ParentFormDialog open={formOpen} onOpenChange={setFormOpen} parent={editing} />
+
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="Delete this family?"
+        description={
+          deleting
+            ? `${deleting.name} and their children, schedule, preferences, favorites, bookings, and AI history will be permanently deleted.`
+            : ""
+        }
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (!deleting) return;
+          remove.mutate(deleting.parent_id, {
+            onSuccess: () => {
+              toast.success(`${deleting.name} deleted`);
+              setDeleting(null);
+            },
+            onError: (mutationError) =>
+              toast.error(
+                mutationError instanceof Error
+                  ? mutationError.message
+                  : "Couldn't delete the family",
+              ),
+          });
+        }}
+      />
     </div>
   );
 }

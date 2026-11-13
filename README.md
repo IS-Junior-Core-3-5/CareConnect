@@ -135,6 +135,9 @@ The client check only controls what the UI shows. The admin migrations enforce t
 - [`20261113000000_admin_parents.sql`](supabase/migrations/20261113000000_admin_parents.sql) adds the admin-only family list and family detail functions.
 - [`20261113000001_fix_admin_parents_ambiguity.sql`](supabase/migrations/20261113000001_fix_admin_parents_ambiguity.sql) fixes an ambiguous-column error in the family list function. Apply it after the first parents migration.
 - [`20261114000000_admin_ai.sql`](supabase/migrations/20261114000000_admin_ai.sql) adds the admin AI recommendation overview, detail, and clear-set functions.
+- [`20261115000000_admin_crud.sql`](supabase/migrations/20261115000000_admin_crud.sql) adds the audited create/edit/delete functions for providers, bookings, and families, extends the provider admin view with the fields the edit form needs, and lets admins write directory and booking fields through those functions only.
+
+The **Maintain Users** screen also needs the [`admin-users`](supabase/functions/admin-users/index.ts) edge function. It verifies the caller's admin role before using the service-role key to manage real Supabase Auth accounts, and it keeps the linked `parents` profile in sync.
 
 Key objects:
 
@@ -143,12 +146,19 @@ Key objects:
 - `admin_parent_list()` and `admin_parent_detail(...)` are security-definer functions that return private family data only to admins.
 - `admin_ai_list()` and `admin_ai_detail(...)` return saved recommendation sets and AI usage counts only to admins.
 - `admin_set_provider_flags(...)` and `admin_set_booking_status(...)` are security-definer RPCs for verify/publish and booking resolution.
+- `admin_create_provider(...)`, `admin_update_provider(...)`, and `admin_delete_provider(...)` are audited CRUD RPCs for the providers table.
+- `admin_create_booking(...)`, `admin_update_booking(...)`, and `admin_delete_booking(...)` are audited CRUD RPCs for bookings. They bypass the family/provider guard only for admins.
+- `admin_create_parent(...)`, `admin_update_parent(...)`, and `admin_delete_parent(...)` are audited CRUD RPCs for family records. Creating a family here does not create a login; use Maintain Users for that.
 - `admin_clear_ai_recommendations(...)` clears a family's cached matches so they regenerate on the next visit.
-- `admin_audit_log` records every admin write.
+- `admin_audit_log` records every admin write, and `/admin/audit` is the read-only viewer.
 
 Apply the admin migrations in the SQL editor after the earlier migrations, then reload `/admin`. Until they are applied, the affected sections show a database error.
 
-The Parents section is read-only. It exposes parent emails, private addresses, children, schedules, preferences, favorites, and booking history only through the admin-guarded functions. Normal authenticated users still cannot read `parents.email` or the private family tables directly. The **Export CSV** button downloads that private data, so treat exported files as sensitive and delete them when they are no longer needed.
+The Parents section now supports full family-record CRUD: **Add family**, **Edit**, and **Delete** on the list, plus the read-only support detail view for children, schedules, preferences, favorites, and booking history. Deleting a family cascades to all of that private data, so the delete dialog asks for confirmation and the action is audited. The section exposes parent emails and private addresses only through admin-guarded functions; normal authenticated users still cannot read `parents.email` or the private family tables directly. The **Export CSV** button downloads that private data, so treat exported files as sensitive and delete them when they are no longer needed.
+
+Providers and bookings also support full create/edit/delete from their sections. The **Maintain Records** hub links to all three. Every delete is a real database delete behind a confirmation dialog, and every create, edit, and delete is written to `admin_audit_log`.
+
+**Maintain Users** manages real Supabase Auth accounts: create an account with a password, change its email, password, name, neighborhood, or role, and delete the account and its linked family profile. The `admin-users` edge function performs those writes with the service-role key after verifying the caller's admin role. Admin accounts still need a `parents` profile because the app shell loads it, so the function keeps that profile in sync.
 
 The AI recommendations section is also admin-only. It shows saved matches, the AI's explanations, and chat usage counts, but **not** chat message content. **Clear matches** deletes only the cached recommendation set so the family gets a fresh one on their next visit; chat history is untouched. That action is recorded in `admin_audit_log`.
 
@@ -158,29 +168,37 @@ The admin panel currently has:
 
 | Section | Status | What it does |
 | --- | --- | --- |
-| Overview | Available | Provider, family, booking, and AI counts, plus a **Needs attention** list |
-| Providers | Available | Search and filter listings, verify providers, publish or archive them, and export the filtered list |
-| Bookings | Available | Review the pending queue, resolve stuck requests, track rebooking, and export the filtered queue |
-| Parents | Available | Read-only family support view with contact, children, schedule, preferences, bookings, and CSV export |
+| Overview | Available | Provider, family, booking, and AI counts, a **Needs attention** list, and the **Maintain Users** / **Maintain Records** buttons |
+| Maintain users | Available | Create, edit, and delete real Auth accounts and keep the linked family profile in sync |
+| Maintain records | Available | Hub for the full provider, booking, and family CRUD screens |
+| Providers | Available | Search and filter listings, verify, publish or archive, create, edit, delete, and export the filtered list |
+| Bookings | Available | Review the pending queue, resolve stuck requests, track rebooking, create, edit, delete, and export |
+| Parents | Available | Family support view with contact, children, schedule, preferences, bookings, create, edit, delete, and CSV export |
 | AI recommendations | Available | Review saved matches and chat usage, see why providers were chosen, and clear stale sets |
+| Audit log | Available | Read-only, searchable history of every admin write with expandable details |
 
 #### Admin routes
 
 | Route | Section | Migration it needs |
 | --- | --- | --- |
 | `/admin` | Overview | `20261111000000_admin_foundation.sql` |
-| `/admin/providers` | Providers | `20261111000000_admin_foundation.sql` |
-| `/admin/bookings` | Bookings | `20261112000000_admin_bookings.sql` |
-| `/admin/parents` | Parents | `20261113000000_admin_parents.sql` and `20261113000001_fix_admin_parents_ambiguity.sql` |
+| `/admin/records` | Maintain records hub | `20261115000000_admin_crud.sql` |
+| `/admin/users` | Maintain users | `admin-users` edge function (no migration) |
+| `/admin/providers` | Providers | `20261111000000_admin_foundation.sql` and `20261115000000_admin_crud.sql` |
+| `/admin/bookings` | Bookings | `20261112000000_admin_bookings.sql` and `20261115000000_admin_crud.sql` |
+| `/admin/parents` | Parents | `20261113000000_admin_parents.sql`, `20261113000001_fix_admin_parents_ambiguity.sql`, and `20261115000000_admin_crud.sql` |
 | `/admin/parents/$parentId` | Family support detail | same as Parents |
 | `/admin/ai` | AI recommendations | `20261114000000_admin_ai.sql` |
 | `/admin/ai/$parentId` | AI recommendation detail | same as AI recommendations |
+| `/admin/audit` | Audit log | `20261111000000_admin_foundation.sql` |
 
 If a section reports a database error, its error message names the migration it needs. Apply that file, plus any earlier admin migrations you have not run yet, in the SQL editor, then reload the page.
 
 #### Audit log
 
-Every admin write (provider flags, booking status, clearing AI matches) inserts a row into `public.admin_audit_log` with the admin's user id and email, the action, the target, any details, and a timestamp. There is no audit-log screen in the panel yet. Admins can read the table through the API because it has an admin select policy, or inspect it in the SQL editor:
+Every admin write inserts a row into `public.admin_audit_log` with the admin's user id and email, the action, the target, any details, and a timestamp. The actions include provider create/update/delete and verify/publish, booking create/update/delete and status changes, family create/update/delete, user create/update/delete, and clearing AI matches.
+
+Open **Admin → Audit log** (`/admin/audit`) to read the newest 500 entries. You can search across the action, admin email, target id, and details, filter by target type or action, and expand a row to see its full JSON details. The page is read-only. You can still inspect the table directly in the SQL editor:
 
 ```sql
 select created_at, admin_email, action, target_type, target_id, details
@@ -194,14 +212,14 @@ Admin booking changes update the request status and optional resolution note in 
 ### Option C — Use your own Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, per-user login counts, privacy hardening (children, parent auth ids, family schedules, favorites and past families are private), provider-favorite discovery timing, the admin foundation, admin booking moderation, the admin family support view, and the admin AI recommendation review. If you are updating an existing project, only run migrations you have not applied yet — re-running an old one fails because its tables already exist. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
+2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, per-user login counts, privacy hardening (children, parent auth ids, family schedules, favorites and past families are private), provider-favorite discovery timing, the admin foundation, admin booking moderation, the admin family support view, the admin AI recommendation review, and the audited admin CRUD functions. If you are updating an existing project, only run migrations you have not applied yet — re-running an old one fails because its tables already exist. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
 3. In **Project Settings → API**, copy the Project URL and the publishable key into `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. In **Authentication → URL Configuration**, set **Site URL** to where the app runs (e.g. your local URL or your Lovable URL) and add it under **Redirect URLs**. For quick testing, turn off **Confirm email** under **Authentication → Sign In / Providers → User Signups**.
 5. Run `npm run dev`.
 
 ## Updating a Live Project
 
-`main` is the source of truth, but three things deploy separately:
+`main` is the source of truth, but four things deploy separately:
 
 1. **Publish the app in Lovable** — open the [Lovable project](https://lovable.dev/projects/552dad75-fe91-4c90-bc61-ccab099dda72) and click **Publish → Update**. Lovable builds from `main`.
 2. **Redeploy the `recommend-providers` edge function** — Lovable and GitHub do not deploy Supabase Edge Functions. Either paste [`supabase/functions/recommend-providers/index.ts`](supabase/functions/recommend-providers/index.ts) into **Edge Functions → recommend-providers** in the Supabase dashboard, or run:
@@ -212,7 +230,14 @@ Admin booking changes update the request status and optional resolution note in 
    ```
 
    A redeploy keeps the existing `GEMINI_API_KEY` secret.
-3. **Run only the migrations you have not applied yet**, in filename order, in the Supabase SQL Editor. Re-running an old migration fails because its tables already exist.
+3. **Deploy the `admin-users` edge function** — this powers **Maintain Users**. Either paste [`supabase/functions/admin-users/index.ts`](supabase/functions/admin-users/index.ts) into **Edge Functions → admin-users**, or run:
+
+   ```sh
+   npx supabase functions deploy admin-users --project-ref lhjzcxvyyvxdywwvjoyv
+   ```
+
+   Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to edge functions automatically. Do not put the service-role key in `.env` or in the browser bundle.
+4. **Run only the migrations you have not applied yet**, in filename order, in the Supabase SQL Editor. Re-running an old migration fails because its tables already exist. Apply `20261115000000_admin_crud.sql` before using the new Maintain Records screens.
 
 **Order matters for privacy migrations.** `20261103030000_hide_parent_auth_ids.sql` removes a column that the old frontend and edge function still read, so publish the app and redeploy the function *before* running it. `20261103040000_private_family_activity.sql` only removes anonymous read access and is safe to run once the app is published.
 

@@ -57,6 +57,40 @@ export type AdminProvider = {
   review_count: number;
   credential_count: number;
   verified_credential_count: number;
+  blurb: string | null;
+  bio: string | null;
+  daily_rate: number | null;
+  daily_rate_max: number | null;
+  distance_miles: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  schedule_summary: string | null;
+  profile_photo_path: string | null;
+};
+
+export type AdminProviderWrite = {
+  id: string;
+  name: string;
+  care_type: string;
+  listing_origin: AdminProviderOrigin;
+  is_public: boolean;
+  verified: boolean;
+  blurb: string | null;
+  bio: string | null;
+  address: string | null;
+  phone: string | null;
+  daily_rate: number | null;
+  daily_rate_max: number | null;
+  distance_miles: number | null;
+  schedule_available: boolean;
+  schedule_summary: string | null;
+  photo_key: string | null;
+  website_url: string | null;
+  contact_url: string | null;
+  source_url: string | null;
+  checked_on: string | null;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 export type AdminBookingStatus = "pending" | "confirmed" | "declined" | "cancelled";
@@ -76,6 +110,16 @@ export type AdminBooking = {
   is_overdue: boolean;
   parent_provider_confirmed_bookings: number;
   parent_provider_rebooking: boolean;
+};
+
+/** Fields an admin can write when creating or editing a booking. */
+export type AdminBookingWrite = {
+  parent_id: string;
+  provider_id: string;
+  care_date: string;
+  block: "Morning" | "Afternoon" | "Evening";
+  status: AdminBookingStatus;
+  resolution_note: string | null;
 };
 
 export type AdminParent = {
@@ -104,6 +148,27 @@ export type AdminParent = {
   avg_search_minutes: number | null;
   has_preferences: boolean;
   preferences_updated_at: string | null;
+};
+
+/** Fields an admin can write when creating or editing a family record. */
+export type AdminParentWrite = {
+  id: string;
+  name: string;
+  email: string | null;
+  neighborhood: string | null;
+  blurb: string | null;
+  address: string | null;
+};
+
+export type AdminAuditEntry = {
+  id: number;
+  admin_user_id: string | null;
+  admin_email: string | null;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  details: Record<string, unknown>;
+  created_at: string;
 };
 
 export type AdminParentPreferences = {
@@ -311,6 +376,7 @@ export const adminKeys = {
   parent: (parentId: string) => ["admin", "parent", parentId] as const,
   ai: ["admin", "ai"] as const,
   aiDetail: (parentId: string) => ["admin", "ai", parentId] as const,
+  audit: ["admin", "audit"] as const,
 };
 
 export function useAdminStats() {
@@ -469,6 +535,211 @@ export function useClearAdminAiRecommendations() {
       void qc.invalidateQueries({ queryKey: adminKeys.parent(parentId) });
       void qc.invalidateQueries({ queryKey: adminKeys.parents });
       void qc.invalidateQueries({ queryKey: adminKeys.stats });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Maintain Records: create, edit, and delete providers, bookings, and families.
+// Each mutation calls an audited security-definer RPC. The database rejects the
+// call for non-admins, so hiding the buttons in the UI is a convenience, not the
+// security boundary.
+// ---------------------------------------------------------------------------
+
+/** Invalidate every admin read that a record write can change. */
+function invalidateRecords(qc: ReturnType<typeof useQueryClient>) {
+  void qc.invalidateQueries({ queryKey: adminKeys.providers });
+  void qc.invalidateQueries({ queryKey: adminKeys.bookings });
+  void qc.invalidateQueries({ queryKey: adminKeys.parents });
+  void qc.invalidateQueries({ queryKey: adminKeys.stats });
+  void qc.invalidateQueries({ queryKey: adminKeys.audit });
+}
+
+function providerArgs(input: AdminProviderWrite) {
+  return {
+    p_id: input.id,
+    p_name: input.name,
+    p_care_type: input.care_type,
+    p_listing_origin: input.listing_origin,
+    p_is_public: input.is_public,
+    p_verified: input.verified,
+    p_blurb: input.blurb,
+    p_bio: input.bio,
+    p_address: input.address,
+    p_phone: input.phone,
+    p_daily_rate: input.daily_rate,
+    p_daily_rate_max: input.daily_rate_max,
+    p_distance_miles: input.distance_miles,
+    p_schedule_available: input.schedule_available,
+    p_schedule_summary: input.schedule_summary,
+    p_photo_key: input.photo_key,
+    p_website_url: input.website_url,
+    p_contact_url: input.contact_url,
+    p_source_url: input.source_url,
+    p_checked_on: input.checked_on,
+    p_latitude: input.latitude,
+    p_longitude: input.longitude,
+  };
+}
+
+export function useCreateProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminProviderWrite) => {
+      const { data, error } = await supabase.rpc("admin_create_provider", providerArgs(input));
+      if (error) throw error;
+      return data as AdminProvider;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useUpdateProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminProviderWrite) => {
+      const { data, error } = await supabase.rpc("admin_update_provider", providerArgs(input));
+      if (error) throw error;
+      return data as AdminProvider;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useDeleteProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (providerId: string) => {
+      const { data, error } = await supabase.rpc("admin_delete_provider", { p_id: providerId });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useCreateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminBookingWrite) => {
+      const { data, error } = await supabase.rpc("admin_create_booking", {
+        p_parent_id: input.parent_id,
+        p_provider_id: input.provider_id,
+        p_care_date: input.care_date,
+        p_block: input.block,
+        p_status: input.status,
+        p_resolution_note: input.resolution_note,
+      });
+      if (error) throw error;
+      return data as AdminBooking;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useUpdateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminBookingWrite & { id: string }) => {
+      const { data, error } = await supabase.rpc("admin_update_booking", {
+        p_booking_id: input.id,
+        p_parent_id: input.parent_id,
+        p_provider_id: input.provider_id,
+        p_care_date: input.care_date,
+        p_block: input.block,
+        p_status: input.status,
+        p_resolution_note: input.resolution_note,
+      });
+      if (error) throw error;
+      return data as AdminBooking;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useDeleteBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (bookingId: string) => {
+      const { data, error } = await supabase.rpc("admin_delete_booking", {
+        p_booking_id: bookingId,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useCreateParent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminParentWrite) => {
+      const { data, error } = await supabase.rpc("admin_create_parent", {
+        p_id: input.id,
+        p_name: input.name,
+        p_email: input.email,
+        p_neighborhood: input.neighborhood,
+        p_blurb: input.blurb,
+        p_address: input.address,
+      });
+      if (error) throw error;
+      return data as AdminParent;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+export function useUpdateParent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: AdminParentWrite) => {
+      const { data, error } = await supabase.rpc("admin_update_parent", {
+        p_id: input.id,
+        p_name: input.name,
+        p_email: input.email,
+        p_neighborhood: input.neighborhood,
+        p_blurb: input.blurb,
+        p_address: input.address,
+      });
+      if (error) throw error;
+      return data as AdminParent;
+    },
+    onSuccess: (_data, input) => {
+      invalidateRecords(qc);
+      void qc.invalidateQueries({ queryKey: adminKeys.parent(input.id) });
+    },
+  });
+}
+
+export function useDeleteParent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (parentId: string) => {
+      const { data, error } = await supabase.rpc("admin_delete_parent", { p_id: parentId });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: () => invalidateRecords(qc),
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Audit log viewer. Read-only; the select policy and grant already exist in
+// 20261111000000_admin_foundation.sql.
+// ---------------------------------------------------------------------------
+
+export function useAdminAuditLog(limit = 500) {
+  return useQuery({
+    queryKey: adminKeys.audit,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_audit_log")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as AdminAuditEntry[];
     },
   });
 }

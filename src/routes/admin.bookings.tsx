@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AdminSelect } from "@/components/admin/AdminSelect";
+import { BookingFormDialog } from "@/components/admin/BookingFormDialog";
+import { ConfirmDeleteDialog } from "@/components/admin/ConfirmDeleteDialog";
 import { ErrorState, LoadingState } from "@/components/NavBar";
 import {
   Dialog,
@@ -14,6 +16,7 @@ import {
 import {
   useAdminBookings,
   useAdminStats,
+  useDeleteBooking,
   useSetBookingStatus,
   type AdminBooking,
   type AdminBookingStatus,
@@ -105,12 +108,16 @@ function AdminBookings() {
   const bookings = useAdminBookings();
   const stats = useAdminStats();
   const statusMutation = useSetBookingStatus();
+  const remove = useDeleteBooking();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [reasonFor, setReasonFor] = useState<ReasonTarget | null>(null);
   const [reason, setReason] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<AdminBooking | null>(null);
+  const [deleting, setDeleting] = useState<AdminBooking | null>(null);
 
   const today = new Date().toLocaleDateString("en-CA");
   const rows = useMemo(() => bookings.data ?? [], [bookings.data]);
@@ -221,13 +228,25 @@ function AdminBookings() {
             rebooking. Admin status changes are recorded in the audit log with an optional reason.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={download}
-          className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
-        >
-          Export CSV
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+            className="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-soft transition hover:bg-primary-ink"
+          >
+            Add booking
+          </button>
+          <button
+            type="button"
+            onClick={download}
+            className="rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+          >
+            Export CSV
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
@@ -438,6 +457,23 @@ function AdminBookings() {
                         {resolved ? (
                           <span className="py-1.5 text-xs text-ink-faint">Resolved</span>
                         ) : null}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(booking);
+                            setFormOpen(true);
+                          }}
+                          className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-primary/40 hover:text-ink"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleting(booking)}
+                          className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-ink-soft transition hover:border-clay/40 hover:text-clay"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -510,6 +546,39 @@ function AdminBookings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <BookingFormDialog open={formOpen} onOpenChange={setFormOpen} booking={editing} />
+
+      <ConfirmDeleteDialog
+        open={!!deleting}
+        onOpenChange={(open) => {
+          if (!open) setDeleting(null);
+        }}
+        title="Delete this booking?"
+        description={
+          deleting
+            ? `${deleting.parent_name ?? deleting.parent_id} · ${formatDate(
+                deleting.care_date,
+              )} · ${deleting.block} will be permanently deleted.`
+            : ""
+        }
+        pending={remove.isPending}
+        onConfirm={() => {
+          if (!deleting) return;
+          remove.mutate(deleting.id, {
+            onSuccess: () => {
+              toast.success("Booking deleted");
+              setDeleting(null);
+            },
+            onError: (mutationError) =>
+              toast.error(
+                mutationError instanceof Error
+                  ? mutationError.message
+                  : "Couldn't delete the booking",
+              ),
+          });
+        }}
+      />
     </div>
   );
 }
