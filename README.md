@@ -88,7 +88,7 @@ The `/admin` page is limited to accounts whose Supabase `app_metadata` contains 
 
 #### Create an admin user
 
-1. **Create the account normally.** Sign up through the app (**Create account**), or add the user in the Supabase dashboard under **Authentication → Users → Add user**. The account is a regular parent account until step 2.
+1. **Create the account normally.** Sign up through the app (**Create account**), or add the user in the Supabase dashboard under **Authentication → Users → Add user**. The account is a regular parent account until step 2. The sign-up trigger also creates the matching `parents` profile that the app shell needs, so avoid inserting into `auth.users` by hand.
 2. **Grant the admin role.** The dashboard's user editor does not always expose `app_metadata`, so the reliable way is the SQL editor. Open **SQL Editor → New query** in the Supabase dashboard for your project ([team project shortcut](https://supabase.com/dashboard/project/lhjzcxvyyvxdywwvjoyv/sql/new)) and run this, replacing the email with the admin account's email:
 
    ```sql
@@ -163,6 +163,33 @@ The admin panel currently has:
 | Bookings | Available | Review the pending queue, resolve stuck requests, track rebooking, and export the filtered queue |
 | Parents | Available | Read-only family support view with contact, children, schedule, preferences, bookings, and CSV export |
 | AI recommendations | Available | Review saved matches and chat usage, see why providers were chosen, and clear stale sets |
+
+#### Admin routes
+
+| Route | Section | Migration it needs |
+| --- | --- | --- |
+| `/admin` | Overview | `20261111000000_admin_foundation.sql` |
+| `/admin/providers` | Providers | `20261111000000_admin_foundation.sql` |
+| `/admin/bookings` | Bookings | `20261112000000_admin_bookings.sql` |
+| `/admin/parents` | Parents | `20261113000000_admin_parents.sql` and `20261113000001_fix_admin_parents_ambiguity.sql` |
+| `/admin/parents/$parentId` | Family support detail | same as Parents |
+| `/admin/ai` | AI recommendations | `20261114000000_admin_ai.sql` |
+| `/admin/ai/$parentId` | AI recommendation detail | same as AI recommendations |
+
+If a section reports a database error, its error message names the migration it needs. Apply that file, plus any earlier admin migrations you have not run yet, in the SQL editor, then reload the page.
+
+#### Audit log
+
+Every admin write (provider flags, booking status, clearing AI matches) inserts a row into `public.admin_audit_log` with the admin's user id and email, the action, the target, any details, and a timestamp. There is no audit-log screen in the panel yet. Admins can read the table through the API because it has an admin select policy, or inspect it in the SQL editor:
+
+```sql
+select created_at, admin_email, action, target_type, target_id, details
+from public.admin_audit_log
+order by created_at desc
+limit 50;
+```
+
+Admin booking changes update the request status and optional resolution note in the app. CareConnect does not send email or push notifications, so the family and provider see the change the next time they open the booking.
 
 ### Option C — Use your own Supabase database
 
