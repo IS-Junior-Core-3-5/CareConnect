@@ -26,6 +26,7 @@ const STARTERS = [
   "Which provider fits my schedule best?",
   "Best full-day daycare for my kids' ages?",
   "Compare my favorites",
+  "Add your top pick to my favorites",
   "What should I ask before booking a sitter?",
   "How does CareConnect work?",
 ];
@@ -41,12 +42,21 @@ export function AiChat({
   variant?: "section" | "page" | "panel";
 }) {
   const panel = variant === "panel";
-  const { parentId, isFavorite, toggleFavorite } = useApp();
+  const { parentId, isFavorite, toggleFavorite, refreshMe } = useApp();
   const providers = useProviders();
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [optimistic, setOptimistic] = useState<Msg | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow the text box with its content (up to about half the screen), then scroll inside it.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [text]);
 
   const { data: msgs = [], isLoading } = useQuery({
     queryKey: chatKey(parentId),
@@ -75,12 +85,18 @@ export function AiChat({
         throw new Error(body?.error ?? error.message);
       }
       if (data?.error) throw new Error(data.error);
-      return data as { reply: string };
+      if (!data?.reply) throw new Error("The AI didn't answer. Please try again.");
+      return data as { reply: string; actions?: { type: string; provider_id: string }[] };
     },
     onMutate: (message) => setOptimistic({ id: "pending", role: "user", content: message }),
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await qc.invalidateQueries({ queryKey: chatKey(parentId) });
       setOptimistic(null);
+      const n = data.actions?.length ?? 0;
+      if (n) {
+        await refreshMe(); // favorites changed by the AI
+        toast.success(`Favorites updated (${n} change${n === 1 ? "" : "s"})`);
+      }
     },
     onError: (e: Error, message) => {
       setOptimistic(null);
@@ -101,7 +117,9 @@ export function AiChat({
   const shown: Msg[] = [
     ...msgs,
     ...(optimistic ? [optimistic] : []),
-    ...(send.isPending ? [{ id: "typing", role: "assistant" as const, content: "Thinking…", pending: true }] : []),
+    ...(send.isPending
+      ? [{ id: "typing", role: "assistant" as const, content: "Thinking…", pending: true }]
+      : []),
   ];
 
   useEffect(() => {
@@ -132,17 +150,26 @@ export function AiChat({
       >
         <div className={`flex flex-wrap items-end justify-between gap-3 ${panel ? "hidden" : ""}`}>
           <div>
-            <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">AI assistant</span>
+            <span className="font-mono text-xs uppercase tracking-wider text-primary-ink">
+              AI assistant
+            </span>
             {variant === "page" ? (
-              <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">Chat with CareConnect AI</h1>
+              <h1 className="mt-1 font-display text-4xl font-bold tracking-tight">
+                Chat with CareConnect AI
+              </h1>
             ) : (
-              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">Chat with CareConnect AI</h2>
+              <h2 className="mt-1 font-display text-3xl font-bold tracking-tight">
+                Chat with CareConnect AI
+              </h2>
             )}
             <p className="mt-1 max-w-[56ch] text-sm text-ink-soft text-pretty">
               Ask anything: questions about providers, costs, schedules or parenting, or ask for a
               specific recommendation. The AI knows your schedule, kids' ages, languages and every
               provider, and remembers the conversation.{" "}
-              <Link to="/preferences" className="font-semibold text-primary-ink underline-offset-2 hover:underline">
+              <Link
+                to="/preferences"
+                className="font-semibold text-primary-ink underline-offset-2 hover:underline"
+              >
                 Set your AI preferences
               </Link>{" "}
               for better answers.
@@ -170,7 +197,10 @@ export function AiChat({
               {panel ? (
                 <p className="mt-1 text-xs text-ink-faint">
                   Tip:{" "}
-                  <Link to="/preferences" className="font-semibold text-primary-ink hover:underline">
+                  <Link
+                    to="/preferences"
+                    className="font-semibold text-primary-ink hover:underline"
+                  >
                     set your AI preferences
                   </Link>{" "}
                   for better picks.
@@ -194,7 +224,10 @@ export function AiChat({
               .map((id) => providers.find((p) => p.id === id))
               .filter((p): p is Provider => !!p);
             return (
-              <div key={m.id} className={`flex flex-col gap-2 ${m.role === "user" ? "items-end" : "items-start"}`}>
+              <div
+                key={m.id}
+                className={`flex flex-col gap-2 ${m.role === "user" ? "items-end" : "items-start"}`}
+              >
                 <p
                   className={`max-w-[92%] ${panel ? "" : "sm:max-w-[85%]"} whitespace-pre-wrap break-words rounded-2xl px-4 py-2.5 text-sm text-pretty ${
                     m.role === "user"
@@ -205,7 +238,9 @@ export function AiChat({
                   {m.role === "assistant" ? renderBold(m.content) : m.content}
                 </p>
                 {picks.length ? (
-                  <div className={`grid w-full gap-2 ${panel ? "" : "sm:max-w-[85%] sm:grid-cols-2 xl:grid-cols-3"}`}>
+                  <div
+                    className={`grid w-full gap-2 ${panel ? "" : "sm:max-w-[85%] sm:grid-cols-2 xl:grid-cols-3"}`}
+                  >
                     {picks.map((p, i) => (
                       <PickCard
                         key={p.id}
@@ -230,6 +265,7 @@ export function AiChat({
           className="mt-3 flex items-end gap-2 rounded-3xl bg-background p-2 ring-1 ring-line"
         >
           <textarea
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -241,7 +277,7 @@ export function AiChat({
             rows={1}
             maxLength={2000}
             placeholder="Ask a question…"
-            className="max-h-32 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-ink-faint"
+            className="max-h-[45vh] min-h-[44px] flex-1 resize-none overflow-y-auto bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-ink-faint"
           />
           <button
             type="submit"
@@ -252,7 +288,9 @@ export function AiChat({
           </button>
         </form>
         <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-xs text-ink-faint">AI answers can be wrong. Check each provider's profile.</p>
+          <p className="text-xs text-ink-faint">
+            AI answers can be wrong. Check each provider's profile.
+          </p>
           {panel && msgs.length ? (
             <button
               onClick={() => clear.mutate()}
@@ -281,7 +319,17 @@ function renderBold(text: string) {
   );
 }
 
-function PickCard({ p, rank, saved, onSave }: { p: Provider; rank: number; saved: boolean; onSave: () => void }) {
+function PickCard({
+  p,
+  rank,
+  saved,
+  onSave,
+}: {
+  p: Provider;
+  rank: number;
+  saved: boolean;
+  onSave: () => void;
+}) {
   return (
     <div className="flex flex-col rounded-2xl bg-surface p-4 ring-1 ring-line">
       <div className="flex items-start justify-between gap-2">

@@ -104,7 +104,10 @@ async function callGemini(
 
 function aiError(r: { error: string; status: number }) {
   if (r.error === "key")
-    return json({ error: "The Gemini API key was rejected. Check GEMINI_API_KEY in Supabase." }, 502);
+    return json(
+      { error: "The Gemini API key was rejected. Check GEMINI_API_KEY in Supabase." },
+      502,
+    );
   if (RETRYABLE.has(r.status) || r.error === "timeout")
     return json({ error: "Google's free AI is busy right now. Try again in a minute." }, 503);
   return json({ error: `AI request failed (${r.status}).` }, 502);
@@ -180,9 +183,14 @@ approaches, languages, child_needs and diet, and follow notes_for_ai. Say which 
 or misses. If they have no preferences saved and ask for recommendations, you may suggest filling in
 AI preferences (Profile > AI preferences) for better picks. Plain text; you may use "- " bullet lines and
 **bold** names. Politely decline topics unrelated to kids, families, childcare or CareConnect.
-Respond with JSON only: {"reply": string, "provider_ids": string[]}
+You can also change the parent's favorites (their saved shortlist). Each provider has is_favorite.
+When the parent asks you to save, favorite, add, remove or unsave providers (e.g. "add the top 2 to my
+favorites", "remove Pebble Path from favorites", "save the cheapest one"), include an action for each
+one and confirm in your reply what you changed. Only act when the parent clearly asks; never on your own.
+Respond with JSON only: {"reply": string, "provider_ids": string[], "actions": [{"type": "add_favorite" | "remove_favorite", "provider_id": string}]}
 provider_ids = the provider_id of every CareConnect provider you recommend or discuss by name in
-this reply, most relevant first (max 3); use [] when you name no provider.`;
+this reply, most relevant first (max 3); use [] when you name no provider.
+actions = [] unless the parent asked you to change favorites.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -230,7 +238,11 @@ Deno.serve(async (req) => {
     // 2. Provider facts relative to this parent
     const { data: providers, error: fErr } = await supabase.rpc("provider_match_features");
     if (fErr) return json({ error: fErr.message }, 500);
-    if (!providers?.length) return json({ summary: "", recommendations: [] });
+    if (!providers?.length) {
+      if (mode === "chat")
+        return json({ error: "No providers are available for the AI to look at right now." }, 503);
+      return json({ summary: "", recommendations: [] });
+    }
 
     // In-depth preferences the parent saved on /preferences (private, may be missing)
     const { data: prefRow } = await supabase
@@ -307,7 +319,11 @@ Deno.serve(async (req) => {
       const contents: GeminiContent[] = [
         {
           role: "user",
-          parts: [{ text: `${context}\n\nANSWER STYLE: ${answerStyle}\n\n(Context only. The chat starts next.)` }],
+          parts: [
+            {
+              text: `${context}\n\nANSWER STYLE: ${answerStyle}\n\n(Context only. The chat starts next.)`,
+            },
+          ],
         },
         { role: "model", parts: [{ text: "Got it. How can I help with childcare today?" }] },
         ...past,
@@ -321,22 +337,64 @@ Deno.serve(async (req) => {
       if ("error" in r) return aiError(r);
       let reply = "";
       let ids: string[] = [];
+      let actions: { type: string; provider_id: string }[] = [];
+      const valid = new Set(providers.map((p: any) => p.provider_id));
       try {
         const out = JSON.parse(r.text.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
         reply = String(out.reply ?? "").trim();
-        const valid = new Set(providers.map((p: any) => p.provider_id));
-        ids = [...new Set<string>((out.provider_ids ?? []).map(String))].filter((id) => valid.has(id)).slice(0, 3);
+        ids = [...new Set<string>((out.provider_ids ?? []).map(String))]
+          .filter((id) => valid.has(id))
+          .slice(0, 3);
+        actions = (Array.isArray(out.actions) ? out.actions : [])
+          .map((a: any) => ({
+            type: String(a?.type ?? ""),
+            provider_id: String(a?.provider_id ?? ""),
+          }))
+          .filter(
+            (a: any) =>
+              ["add_favorite", "remove_favorite"].includes(a.type) && valid.has(a.provider_id),
+          )
+          .slice(0, 10);
       } catch {
         reply = r.text.trim();
       }
       if (!reply) return json({ error: "AI returned an unreadable answer. Try again." }, 502);
       reply = reply.slice(0, 4000);
+
+      // Apply favorite changes as the logged-in parent (RLS applies)
+      const done: { type: string; provider_id: string }[] = [];
+      for (const a of actions) {
+        const { error } =
+          a.type === "add_favorite"
+            ? await supabase
+                .from("favorites")
+                .upsert(
+                  { parent_id: parent.id, provider_id: a.provider_id },
+                  { onConflict: "parent_id,provider_id", ignoreDuplicates: true },
+                )
+            : await supabase
+                .from("favorites")
+                .delete()
+                .match({ parent_id: parent.id, provider_id: a.provider_id });
+        if (error) console.error("favorite action failed", a, error.message);
+        else done.push(a);
+      }
+      if (actions.length && done.length < actions.length)
+        reply += "\n\n(Some favorite changes couldn't be saved. Please try again.)";
+      // Show cards for changed providers too
+      ids = [...new Set([...ids, ...done.map((a) => a.provider_id)])].slice(0, 6);
       const { error: iErr } = await supabase.from("ai_chat_messages").insert([
         { parent_id: parent.id, role: "user", content: message, provider_ids: [] },
-        { parent_id: parent.id, role: "assistant", content: reply, model: r.model, provider_ids: ids },
+        {
+          parent_id: parent.id,
+          role: "assistant",
+          content: reply,
+          model: r.model,
+          provider_ids: ids,
+        },
       ]);
       if (iErr) return json({ error: iErr.message }, 500);
-      return json({ reply, provider_ids: ids, model: r.model });
+      return json({ reply, provider_ids: ids, actions: done, model: r.model });
     }
 
     // 3b. Recommend mode: top 3 picks as JSON
