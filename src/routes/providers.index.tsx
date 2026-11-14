@@ -61,10 +61,17 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     () =>
       providers
         .filter((p) => !p.externalProfile || "address" in p.externalProfile.location)
-        .map((p) => ({ id: p.id, address: p.address })),
+        .map((p) => ({
+          id: p.id,
+          address: p.address,
+          latitude: p.latitude,
+          longitude: p.longitude,
+        })),
     [providers],
   );
-  const providerAddressKey = distanceProviders.map((p) => `${p.id}:${p.address}`).join("|");
+  const providerAddressKey = distanceProviders
+    .map((p) => `${p.id}:${p.address}:${p.latitude ?? ""}:${p.longitude ?? ""}`)
+    .join("|");
   const distanceQuery = useQuery({
     queryKey: ["provider-distances", me?.parentId, me?.address, providerAddressKey],
     enabled: maxDistance !== "any" && !!me?.address && distanceProviders.length > 0,
@@ -81,7 +88,13 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
         throw new Error(responseBody?.error ?? error.message);
       }
       if (data?.error) throw new Error(data.error);
-      return data.distances as Record<string, number | null>;
+      return {
+        distances: (data.distances ?? {}) as Record<string, number | null>,
+        // Providers whose address could not be located. They are excluded from a
+        // distance filter, so the page tells the user instead of dropping them
+        // silently.
+        unmatched: Array.isArray(data.unmatched) ? (data.unmatched as string[]) : [],
+      };
     },
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -111,7 +124,7 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
       if (p.dailyRate !== null && maxPrice < 250 && p.dailyRate > maxPrice) return false;
       if (p.rating < minRating) return false;
       if (maxDistance !== "any") {
-        const miles = distanceQuery.data?.[p.id];
+        const miles = distanceQuery.data?.distances?.[p.id];
         if (miles === null || miles === undefined || miles > Number(maxDistance)) return false;
       }
       if (matchesSchedule) {
@@ -417,8 +430,18 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
             {providersQuery.isLoading ? <LoadingState label="Loading providers…" /> : null}
             {providersQuery.error ? <ErrorState error={providersQuery.error} /> : null}
             {distanceError ? (
-              <p role="alert" className="rounded-3xl bg-clay-soft px-5 py-4 text-sm text-clay">
-                {distanceError.message}
+              <div role="alert" className="rounded-3xl bg-clay-soft px-5 py-4 text-sm text-clay">
+                <p>{distanceError.message}</p>
+                <Link to="/profile" className="mt-1 inline-block font-semibold underline">
+                  Check your saved address
+                </Link>
+              </div>
+            ) : null}
+            {distanceQuery.data?.unmatched.length ? (
+              <p className="rounded-3xl bg-clay-soft px-5 py-4 text-sm text-clay">
+                {distanceQuery.data.unmatched.length === 1
+                  ? "1 provider can't be located from the address on file, so it's hidden while a distance filter is active."
+                  : `${distanceQuery.data.unmatched.length} providers can't be located from the address on file, so they're hidden while a distance filter is active.`}
               </p>
             ) : null}
             {empty && providers.length && !distancePending && !distanceError ? (
@@ -434,7 +457,9 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
                 provider={p}
                 preview={preview ? { favorite: favorites.includes(p.id), toggle } : undefined}
                 distanceMiles={
-                  maxDistance === "any" ? undefined : (distanceQuery.data?.[p.id] ?? undefined)
+                  maxDistance === "any"
+                    ? undefined
+                    : (distanceQuery.data?.distances?.[p.id] ?? undefined)
                 }
               />
             ))}

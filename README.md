@@ -136,6 +136,7 @@ The client check only controls what the UI shows. The admin migrations enforce t
 - [`20261113000001_fix_admin_parents_ambiguity.sql`](supabase/migrations/20261113000001_fix_admin_parents_ambiguity.sql) fixes an ambiguous-column error in the family list function. Apply it after the first parents migration.
 - [`20261114000000_admin_ai.sql`](supabase/migrations/20261114000000_admin_ai.sql) adds the admin AI recommendation overview, detail, and clear-set functions.
 - [`20261115000000_admin_crud.sql`](supabase/migrations/20261115000000_admin_crud.sql) adds the audited create/edit/delete functions for providers, bookings, and families, extends the provider admin view with the fields the edit form needs, and lets admins write directory and booking fields through those functions only.
+- [`20261116000000_address_geocoding.sql`](supabase/migrations/20261116000000_address_geocoding.sql) keeps provider and family coordinates in sync with their addresses, validates the coordinates sent by sign-up, and rejects out-of-range points.
 
 The **Maintain Users** screen also needs the [`admin-users`](supabase/functions/admin-users/index.ts) edge function. It verifies the caller's admin role before using the service-role key to manage real Supabase Auth accounts, and it keeps the linked `parents` profile in sync.
 
@@ -212,14 +213,14 @@ Admin booking changes update the request status and optional resolution note in 
 ### Option C — Use your own Supabase database
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, per-user login counts, privacy hardening (children, parent auth ids, family schedules, favorites and past families are private), provider-favorite discovery timing, the admin foundation, admin booking moderation, the admin family support view, the admin AI recommendation review, and the audited admin CRUD functions. If you are updating an existing project, only run migrations you have not applied yet — re-running an old one fails because its tables already exist. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
+2. In the Supabase dashboard, open **SQL Editor → New query**, paste all of [`supabase/setup.sql`](supabase/setup.sql), and click **Run**. This creates the tables, demo data, the sign-up trigger, and the security rules. Then run each file in [`supabase/migrations/`](supabase/migrations) the same way, in filename order. The migrations add care bookings, rebooking and AI recommendation tracking, per-user login counts, privacy hardening (children, parent auth ids, family schedules, favorites and past families are private), provider-favorite discovery timing, the admin foundation, admin booking moderation, the admin family support view, the admin AI recommendation review, the audited admin CRUD functions, and address validation with stored coordinates. If you are updating an existing project, only run migrations you have not applied yet — re-running an old one fails because its tables already exist. Never run `setup.sql` on a database with real users: it deletes and rebuilds the tables.
 3. In **Project Settings → API**, copy the Project URL and the publishable key into `.env` as `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`.
 4. In **Authentication → URL Configuration**, set **Site URL** to where the app runs (e.g. your local URL or your Lovable URL) and add it under **Redirect URLs**. For quick testing, turn off **Confirm email** under **Authentication → Sign In / Providers → User Signups**.
 5. Run `npm run dev`.
 
 ## Updating a Live Project
 
-`main` is the source of truth, but four things deploy separately:
+`main` is the source of truth, but these pieces deploy separately:
 
 1. **Publish the app in Lovable** — open the [Lovable project](https://lovable.dev/projects/552dad75-fe91-4c90-bc61-ccab099dda72) and click **Publish → Update**. Lovable builds from `main`.
 2. **Redeploy the `recommend-providers` edge function** — Lovable and GitHub do not deploy Supabase Edge Functions. Either paste [`supabase/functions/recommend-providers/index.ts`](supabase/functions/recommend-providers/index.ts) into **Edge Functions → recommend-providers** in the Supabase dashboard, or run:
@@ -237,7 +238,15 @@ Admin booking changes update the request status and optional resolution note in 
    ```
 
    Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` to edge functions automatically. Do not put the service-role key in `.env` or in the browser bundle.
-4. **Run only the migrations you have not applied yet**, in filename order, in the Supabase SQL Editor. Re-running an old migration fails because its tables already exist. Apply `20261115000000_admin_crud.sql` before using the new Maintain Records screens.
+4. **Deploy the address functions** — `geocode-address` validates addresses on save, and `provider-distances` now uses stored coordinates. Deploy both whenever either file changes:
+
+   ```sh
+   npx supabase functions deploy geocode-address --project-ref lhjzcxvyyvxdywwvjoyv
+   npx supabase functions deploy provider-distances --project-ref lhjzcxvyyvxdywwvjoyv
+   ```
+
+   `geocode-address` needs no secrets or database access; it only forwards the address to the public Census service. It is callable before sign-in because the sign-up form checks the address before the account exists.
+5. **Run only the migrations you have not applied yet**, in filename order, in the Supabase SQL Editor. Re-running an old migration fails because its tables already exist. Apply `20261115000000_admin_crud.sql` before using the Maintain Records screens, and `20261116000000_address_geocoding.sql` before using the validated address forms.
 
 **Order matters for privacy migrations.** `20261103030000_hide_parent_auth_ids.sql` removes a column that the old frontend and edge function still read, so publish the app and redeploy the function *before* running it. `20261103040000_private_family_activity.sql` only removes anonymous read access and is safe to run once the app is published.
 
@@ -259,6 +268,23 @@ The vertical slice is the **Add to favorites** button: UI → Supabase `favorite
 7. Click the heart again to remove it, then refresh. The heart stays empty and the row is gone from the table.
 
 Other actions that also save and survive a refresh: editing your schedule (**Schedule** page), editing your profile and children (**Profile** page), writing a review on a provider's profile, and creating a provider listing on **My listing**.
+
+## Address Validation and Distance Filtering
+
+Parent and provider addresses are free text, so the app checks them against the [U.S. Census Geocoder](https://geocoding.geo.census.gov/) before saving:
+
+- **Sign-up** checks the address and passes the validated coordinates to the sign-up trigger, which stores them in the new account's private `parent_private_addresses` row.
+- **Profile** checks a changed address and stores the coordinates with it. An address the geocoder cannot place blocks the save with a message that says what to fix.
+- **My listing** checks a changed address and stores `providers.latitude` and `providers.longitude`.
+- **Admin dialogs** check addresses too. The provider form fills missing coordinates from the address on save, and the family form warns when the geocoder cannot place the address.
+
+The checks run through the `geocode-address` edge function. It is callable before sign-in because the sign-up form needs it before the account exists, and it stores nothing. The distance filter (`provider-distances`) uses stored coordinates first and only calls the geocoder for rows that do not have a point. Providers that still cannot be located appear in a warning above the results instead of disappearing silently.
+
+Notes:
+
+- The Census geocoder only covers U.S. addresses. P.O. boxes and rural routes often fail, so the error message asks for a street address.
+- If the geocoder itself is down, saves are allowed through without coordinates; the next profile or listing save fills them in.
+- Changing an address clears the old coordinates with a database trigger, so a stale point can never be used for distance.
 
 ## AI Assistant and AI Preferences
 

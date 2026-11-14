@@ -50,6 +50,9 @@ export type Provider = {
   dailyRateMax: number | null;
   pricingNotes: string[];
   address: string;
+  /** Stored geocoded point; null until the address has been checked. */
+  latitude: number | null;
+  longitude: number | null;
   phone: string;
   /** null = distance unknown */
   distance: number | null;

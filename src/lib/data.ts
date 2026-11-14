@@ -27,6 +27,7 @@ type Row = Record<string, any>;
 const PROVIDER_SELECT = `
   id, owner_id, listing_origin, website_url, contact_url, source_url, checked_on,
   name, care_type, blurb, bio, daily_rate, daily_rate_max, address, phone,
+  latitude, longitude,
   distance_miles, verified, schedule_available, schedule_summary, photo_key, profile_photo_path,
   provider_pricing_notes(note, sort_order),
   provider_photos(photo_key, sort_order),
@@ -100,6 +101,9 @@ function mapProvider(r: Row, preview = false): Provider {
         ? location.address
         : location.serviceArea
       : (r.address ?? ""),
+    // External profiles use their own address, so their stored point is unused.
+    latitude: external ? null : num(r.latitude),
+    longitude: external ? null : num(r.longitude),
     phone: r.phone ?? "",
     distance: num(r.distance_miles),
     rating: Math.round(avg * 10) / 10,

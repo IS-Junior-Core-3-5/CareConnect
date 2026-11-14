@@ -15,6 +15,7 @@ import {
   type AdminParent,
   type AdminParentWrite,
 } from "@/lib/admin-data";
+import { validateAddress } from "@/lib/geocode";
 
 type Draft = {
   id: string;
@@ -69,11 +70,26 @@ export function ParentFormDialog({
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!draft.name.trim()) {
       toast.error("Family name is required");
       return;
+    }
+
+    const address = draft.address.trim() || null;
+    // Warn about an address the Census geocoder cannot place. This does not
+    // block the save: the family can correct it from their profile page.
+    if (address && address !== (parent?.address ?? null)) {
+      try {
+        await validateAddress(address);
+      } catch (error) {
+        toast.warning(
+          error instanceof Error
+            ? `${error.message} The family can fix it from their profile.`
+            : "Address couldn't be verified. The family can fix it from their profile.",
+        );
+      }
     }
 
     const input: AdminParentWrite = {
@@ -82,7 +98,7 @@ export function ParentFormDialog({
       email: draft.email.trim() || null,
       neighborhood: draft.neighborhood.trim() || null,
       blurb: draft.blurb.trim() || null,
-      address: draft.address.trim() || null,
+      address,
     };
 
     const mutation = editing ? update : create;
@@ -150,7 +166,7 @@ export function ParentFormDialog({
             label="Private address"
             value={draft.address}
             onChange={(e) => set("address", e.target.value)}
-            hint="Stored in parent_private_addresses; only admins and the family can read it."
+            hint="Stored in parent_private_addresses; only admins and the family can read it. Checked against the U.S. Census address database when changed."
           />
 
           <AdminTextArea

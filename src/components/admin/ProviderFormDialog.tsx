@@ -22,6 +22,7 @@ import {
   type AdminProviderOrigin,
   type AdminProviderWrite,
 } from "@/lib/admin-data";
+import { validateAddress } from "@/lib/geocode";
 
 const CARE_TYPES = ["Daycare", "Preschool", "Sitter", "Family Friend"] as const;
 const ORIGINS: AdminProviderOrigin[] = ["owned", "external", "sample"];
@@ -134,6 +135,7 @@ export function ProviderFormDialog({
   const create = useCreateProvider();
   const update = useUpdateProvider();
   const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [locating, setLocating] = useState(false);
 
   // Reset the form whenever the dialog opens for a different record.
   useEffect(() => {
@@ -148,11 +150,66 @@ export function ProviderFormDialog({
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
-  function submit(event: React.FormEvent) {
+  /**
+   * Editing the address invalidates the stored point. Clearing the latitude and
+   * longitude fields makes that visible, and `submit` fills them again.
+   */
+  function setAddress(value: string) {
+    setDraft((prev) => ({
+      ...prev,
+      address: value,
+      ...(value.trim() === (provider?.address ?? "").trim() ? {} : { latitude: "", longitude: "" }),
+    }));
+  }
+
+  async function locate() {
+    const address = draft.address.trim();
+    if (!address) {
+      toast.error("Enter an address first");
+      return;
+    }
+    setLocating(true);
+    try {
+      const match = await validateAddress(address);
+      setDraft((prev) => ({
+        ...prev,
+        latitude: String(match.latitude),
+        longitude: String(match.longitude),
+      }));
+      toast.success(`Found ${match.matchedAddress}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't look up that address");
+    } finally {
+      setLocating(false);
+    }
+  }
+
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
     if (!draft.name.trim()) {
       toast.error("Provider name is required");
       return;
+    }
+
+    const address = textOrNull(draft.address);
+    let latitude = numberOrNull(draft.latitude);
+    let longitude = numberOrNull(draft.longitude);
+
+    // Fill missing coordinates from the address. An admin save is not blocked
+    // when the Census service cannot match the address, so unusual or brand-new
+    // addresses stay editable; the record simply saves without a point.
+    if (address && (latitude === null || longitude === null)) {
+      try {
+        const match = await validateAddress(address);
+        latitude = match.latitude;
+        longitude = match.longitude;
+      } catch (error) {
+        toast.warning(
+          error instanceof Error
+            ? `${error.message} Saving without coordinates.`
+            : "Address couldn't be verified. Saving without coordinates.",
+        );
+      }
     }
 
     const input: AdminProviderWrite = {
@@ -164,7 +221,7 @@ export function ProviderFormDialog({
       verified: draft.verified,
       blurb: textOrNull(draft.blurb),
       bio: textOrNull(draft.bio),
-      address: textOrNull(draft.address),
+      address,
       phone: textOrNull(draft.phone),
       daily_rate: numberOrNull(draft.dailyRate),
       daily_rate_max: numberOrNull(draft.dailyRateMax),
@@ -176,8 +233,8 @@ export function ProviderFormDialog({
       contact_url: textOrNull(draft.contactUrl),
       source_url: textOrNull(draft.sourceUrl),
       checked_on: draft.checkedOn || null,
-      latitude: numberOrNull(draft.latitude),
-      longitude: numberOrNull(draft.longitude),
+      latitude,
+      longitude,
     };
 
     const mutation = editing ? update : create;
@@ -288,7 +345,8 @@ export function ProviderFormDialog({
             <AdminTextInput
               label="Address"
               value={draft.address}
-              onChange={(e) => set("address", e.target.value)}
+              onChange={(e) => setAddress(e.target.value)}
+              hint="Saving fills missing latitude and longitude from this address."
             />
             <AdminTextInput
               label="Phone"
@@ -339,6 +397,19 @@ export function ProviderFormDialog({
               value={draft.longitude}
               onChange={(e) => set("longitude", e.target.value)}
             />
+            <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+              <button
+                type="button"
+                onClick={locate}
+                disabled={locating || !draft.address.trim()}
+                className="rounded-full border border-line px-3 py-1.5 text-xs font-semibold text-primary-ink transition-colors hover:bg-primary-soft disabled:opacity-60"
+              >
+                {locating ? "Looking up…" : "Find coordinates from address"}
+              </button>
+              <span className="text-xs text-ink-faint">
+                Uses the U.S. Census geocoder. Blank fields are filled on save.
+              </span>
+            </div>
           </div>
 
           <AdminTextArea

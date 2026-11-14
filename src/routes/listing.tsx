@@ -9,6 +9,7 @@ import { ScheduleGrid } from "@/components/ScheduleGrid";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/lib/app-state";
 import { QK, useLanguages, useProvidersQuery } from "@/lib/data";
+import { addressNeedsFixing, validateAddress } from "@/lib/geocode";
 import {
   providerPhotoExtensions,
   providerPhotoMaxBytes,
@@ -151,6 +152,36 @@ function ListingForm({ existing }: { existing: Provider | null }) {
     }
     setBusy(true);
     try {
+      // Check the address before writing anything. A Census match also gives us
+      // the coordinates, so the distance filter can locate this listing without
+      // geocoding it later. An address the geocoder rejects blocks the save; a
+      // geocoder outage does not, but we drop a stale point in that case.
+      const nextAddress = address.trim();
+      const addressChanged = !existing || nextAddress !== (existing.address ?? "").trim();
+      let point: { latitude: number | null; longitude: number | null } = {
+        latitude: existing?.latitude ?? null,
+        longitude: existing?.longitude ?? null,
+      };
+      if (addressChanged || point.latitude === null || point.longitude === null) {
+        try {
+          const match = await validateAddress(nextAddress);
+          point = { latitude: match.latitude, longitude: match.longitude };
+        } catch (lookupError) {
+          if (addressNeedsFixing(lookupError)) {
+            toast.error(
+              lookupError instanceof Error
+                ? lookupError.message
+                : "Check the address and try again.",
+            );
+            return;
+          }
+          point = { latitude: null, longitude: null };
+          toast.warning(
+            "We couldn't verify the address right now. The listing was saved and the address will be checked again next time.",
+          );
+        }
+      }
+
       const id = listingId ?? slugify(name);
       let uploadedPath: string | null = null;
       if (newPhoto) {
@@ -170,6 +201,8 @@ function ListingForm({ existing }: { existing: Provider | null }) {
         daily_rate: dailyRate,
         daily_rate_max: dailyRateMax,
         address: address.trim() || null,
+        latitude: point.latitude,
+        longitude: point.longitude,
         phone: phone.trim() || null,
         distance_miles: distance === "" ? null : Number(distance),
         schedule_available: hasSchedule,
@@ -543,6 +576,10 @@ function ListingForm({ existing }: { existing: Provider | null }) {
                 className={field}
                 placeholder="Street address, city, state, ZIP"
               />
+              <p className="mt-1 text-xs text-ink-faint">
+                Checked against the U.S. Census address database when you save, so parents can
+                filter by distance. P.O. boxes can't be located.
+              </p>
             </div>
           </div>
           <div>

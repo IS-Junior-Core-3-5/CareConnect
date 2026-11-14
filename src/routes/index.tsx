@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isAdminUser } from "@/lib/admin";
 import { useApp } from "@/lib/app-state";
 import { useLanguages } from "@/lib/data";
+import { addressNeedsFixing, validateAddress } from "@/lib/geocode";
 import { emptySchedule, scheduleToRows, type Schedule } from "@/lib/model";
 
 export const Route = createFileRoute("/")({
@@ -233,6 +234,27 @@ function SignupForm({ onDone }: { onDone: () => void }) {
     if (password.length < 6) return setError("Password must be at least 6 characters.");
     setBusy(true);
     setError(null);
+
+    // Check the address before creating the account. A match also gives us the
+    // coordinates, which the sign-up trigger stores so distance filtering works
+    // on the first try. An address the geocoder rejects blocks sign-up; a
+    // geocoder outage does not, because the profile page checks it again.
+    const trimmedAddress = address.trim();
+    let coordinates: { latitude?: number; longitude?: number } = {};
+    if (trimmedAddress) {
+      try {
+        const match = await validateAddress(trimmedAddress);
+        coordinates = { latitude: match.latitude, longitude: match.longitude };
+      } catch (lookupError) {
+        if (addressNeedsFixing(lookupError)) {
+          setBusy(false);
+          return setError(
+            lookupError instanceof Error ? lookupError.message : "Check the address and try again.",
+          );
+        }
+      }
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -241,7 +263,8 @@ function SignupForm({ onDone }: { onDone: () => void }) {
         // The database turns this into your parent profile, children and schedule.
         data: {
           name: name.trim(),
-          address: address.trim(),
+          address: trimmedAddress,
+          ...coordinates,
           language: lang,
           children: kids.map((k, i) => ({ name: k.name.trim() || `Child ${i + 1}`, age: k.age })),
           schedule: scheduleToRows(draft).map((r) => [r.day_of_week, r.block]),
@@ -294,7 +317,10 @@ function SignupForm({ onDone }: { onDone: () => void }) {
             className={field}
             placeholder="Street address, city, state, ZIP"
           />
-          <p className="mt-1 text-xs text-ink-faint">Your address is private to your account.</p>
+          <p className="mt-1 text-xs text-ink-faint">
+            Your address is private to your account and is checked against the U.S. Census address
+            database so distance filtering can find it.
+          </p>
         </div>
         <div>
           <label className={label} htmlFor="signup-email">
