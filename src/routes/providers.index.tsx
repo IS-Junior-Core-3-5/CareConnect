@@ -5,8 +5,7 @@ import { AppShell } from "@/components/NavBar";
 import { ProviderCard } from "@/components/ProviderCard";
 import { CARE_TYPES, overlapCount, type CareType } from "@/lib/model";
 import { useApp } from "@/lib/app-state";
-import { usePreviewProviders, useProvidersQuery } from "@/lib/data";
-import { previewSchedule, usePreviewFavorites } from "@/lib/provider-preview";
+import { useProvidersQuery } from "@/lib/data";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorState, LoadingState } from "@/components/NavBar";
 
@@ -29,11 +28,6 @@ export const Route = createFileRoute("/providers/")({
   component: ProvidersPage,
 });
 
-function ProvidersPage() {
-  const { preview } = Route.useSearch();
-  return <ProviderDirectory key={preview ? "preview" : "directory"} preview={!!preview} />;
-}
-
 const defaultFilters = {
   types: [] as CareType[],
   maxPrice: 250,
@@ -42,14 +36,9 @@ const defaultFilters = {
   maxDistance: "any",
 };
 
-function ProviderDirectory({ preview }: { preview: boolean }) {
-  const { schedule: savedSchedule, userId, me } = useApp();
-  const directoryQuery = useProvidersQuery(!!userId, !preview);
-  const previewQuery = usePreviewProviders(preview);
-  const providersQuery = preview ? previewQuery : directoryQuery;
-  const schedule = preview && !userId ? previewSchedule : savedSchedule;
-  const { favorites, toggle } = usePreviewFavorites(preview);
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+function ProvidersPage() {
+  const { schedule, userId, me } = useApp();
+  const providersQuery = useProvidersQuery(!!userId);
   const providers = useMemo(() => providersQuery.data ?? [], [providersQuery.data]);
   const [filters, setFilters] = useState(defaultFilters);
   const [draft, setDraft] = useState(defaultFilters);
@@ -78,23 +67,26 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     staleTime: 60 * 60 * 1000,
     retry: false,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("provider-distances", {
-        body: { providers: distanceProviders },
-      });
-      if (error) {
-        const responseBody = await (error as { context?: Response }).context
-          ?.json?.()
-          .catch(() => null);
-        throw new Error(responseBody?.error ?? error.message);
-      }
-      if (data?.error) throw new Error(data.error);
-      return {
-        distances: (data.distances ?? {}) as Record<string, number | null>,
+      const distances: Record<string, number | null> = {};
+      const unmatched: string[] = [];
+      for (let offset = 0; offset < distanceProviders.length; offset += 100) {
+        const { data, error } = await supabase.functions.invoke("provider-distances", {
+          body: { providers: distanceProviders.slice(offset, offset + 100) },
+        });
+        if (error) {
+          const responseBody = await (error as { context?: Response }).context
+            ?.json?.()
+            .catch(() => null);
+          throw new Error(responseBody?.error ?? error.message);
+        }
+        if (data?.error) throw new Error(data.error);
+        Object.assign(distances, data.distances ?? {});
         // Providers whose address could not be located. They are excluded from a
         // distance filter, so the page tells the user instead of dropping them
         // silently.
-        unmatched: Array.isArray(data.unmatched) ? (data.unmatched as string[]) : [],
-      };
+        if (Array.isArray(data.unmatched)) unmatched.push(...(data.unmatched as string[]));
+      }
+      return { distances, unmatched };
     },
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -104,13 +96,11 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     (maxPrice < 250 ? 1 : 0) +
     (minRating > 0 ? 1 : 0) +
     (matchesSchedule ? 1 : 0) +
-    (maxDistance !== "any" ? 1 : 0) +
-    (favoritesOnly ? 1 : 0);
+    (maxDistance !== "any" ? 1 : 0);
 
   const results = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
     const filtered = providers.filter((p) => {
-      if (favoritesOnly && !favorites.includes(p.id)) return false;
       if (
         query &&
         ![p.name, p.careType, p.address, p.phone, p.blurb, p.bio, ...p.languages]
@@ -147,8 +137,6 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     return sorted;
   }, [
     providers,
-    favorites,
-    favoritesOnly,
     searchTerm,
     types,
     maxPrice,
@@ -168,12 +156,12 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
     setFilters(defaultFilters);
     setDraft(defaultFilters);
     setSearchTerm("");
-    setFavoritesOnly(false);
   }
 
   function applyFilters(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setFilters(me?.address ? draft : { ...draft, maxDistance: "any" });
+    if (draft.maxDistance === maxDistance && distanceQuery.isError) void distanceQuery.refetch();
     setFiltersOpen(false);
     if (filtersOpen) filterToggle.current?.focus();
   }
@@ -184,18 +172,16 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-              {preview ? "Provider directory preview" : "Providers in Utah County"}
+              Providers in Utah County
             </h1>
             <p className="mt-1 text-sm text-ink-soft" role="status">
               {distancePending
                 ? "Calculating provider distances…"
                 : `${results.length} ${results.length === 1 ? "result" : "results"}`}
             </p>
-            {preview || import.meta.env.VITE_CARECONNECT_DEMO === "true" ? (
+            {providers.some((provider) => provider.isDemo) ? (
               <p className="mt-1 text-xs text-ink-soft">
-                {preview
-                  ? "Explore fictional providers, schedules, and practice care requests."
-                  : "Preview includes fictional profiles alongside external listings."}
+                Fictional listings use public landmarks for distance and are for practice.
               </p>
             ) : null}
           </div>
@@ -209,26 +195,6 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
             <option value="rating">Top rated</option>
             <option value="price">Lowest price</option>
           </select>
-        </div>
-
-        <div className="mb-4 flex flex-wrap items-center gap-4 text-sm">
-          <Link
-            to="/providers"
-            search={preview ? {} : { preview: true }}
-            className="font-semibold text-primary-ink hover:underline"
-          >
-            {preview ? "Back to the provider directory" : "Try the directory preview"}
-          </Link>
-          {preview ? (
-            <label className="flex items-center gap-2 text-ink-soft">
-              <input
-                type="checkbox"
-                checked={favoritesOnly}
-                onChange={(e) => setFavoritesOnly(e.target.checked)}
-              />
-              Saved for this preview
-            </label>
-          ) : null}
         </div>
 
         <label className="mb-6 flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 ring-1 ring-line">
@@ -455,7 +421,6 @@ function ProviderDirectory({ preview }: { preview: boolean }) {
               <ProviderCard
                 key={p.id}
                 provider={p}
-                preview={preview ? { favorite: favorites.includes(p.id), toggle } : undefined}
                 distanceMiles={
                   maxDistance === "any"
                     ? undefined

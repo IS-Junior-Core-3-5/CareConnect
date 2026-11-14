@@ -136,7 +136,8 @@ The client check only controls what the UI shows. The admin migrations enforce t
 - [`20261113000001_fix_admin_parents_ambiguity.sql`](supabase/migrations/20261113000001_fix_admin_parents_ambiguity.sql) fixes an ambiguous-column error in the family list function. Apply it after the first parents migration.
 - [`20261114000000_admin_ai.sql`](supabase/migrations/20261114000000_admin_ai.sql) adds the admin AI recommendation overview, detail, and clear-set functions.
 - [`20261115000000_admin_crud.sql`](supabase/migrations/20261115000000_admin_crud.sql) adds the audited create/edit/delete functions for providers, bookings, and families, extends the provider admin view with the fields the edit form needs, and lets admins write directory and booking fields through those functions only.
-- [`20261116000000_address_geocoding.sql`](supabase/migrations/20261116000000_address_geocoding.sql) keeps provider and family coordinates in sync with their addresses, validates the coordinates sent by sign-up, and rejects out-of-range points.
+- [`20261116000000_unified_provider_directory.sql`](supabase/migrations/20261116000000_unified_provider_directory.sql) adds the 56 fictional directory profiles to the shared provider tables, gives each one a public landmark coordinate, and keeps fictional listings out of live recommendations.
+- [`20261116000001_address_geocoding.sql`](supabase/migrations/20261116000001_address_geocoding.sql) keeps provider and family coordinates in sync with their addresses, validates the coordinates sent by sign-up, and rejects out-of-range points.
 
 The **Maintain Users** screen also needs the [`admin-users`](supabase/functions/admin-users/index.ts) edge function. It verifies the caller's admin role before using the service-role key to manage real Supabase Auth accounts, and it keeps the linked `parents` profile in sync.
 
@@ -246,7 +247,7 @@ Admin booking changes update the request status and optional resolution note in 
    ```
 
    `geocode-address` needs no secrets or database access; it only forwards the address to the public Census service. It is callable before sign-in because the sign-up form checks the address before the account exists.
-5. **Run only the migrations you have not applied yet**, in filename order, in the Supabase SQL Editor. Re-running an old migration fails because its tables already exist. Apply `20261115000000_admin_crud.sql` before using the Maintain Records screens, and `20261116000000_address_geocoding.sql` before using the validated address forms.
+5. **Run only the migrations you have not applied yet**, in filename order, in the Supabase SQL Editor. Re-running an old migration fails because its tables already exist. Apply `20261115000000_admin_crud.sql` before using the Maintain Records screens, `20261116000000_unified_provider_directory.sql` to add the fictional directory profiles, and `20261116000001_address_geocoding.sql` before using the validated address forms.
 
 **Order matters for privacy migrations.** `20261103030000_hide_parent_auth_ids.sql` removes a column that the old frontend and edge function still read, so publish the app and redeploy the function *before* running it. `20261103040000_private_family_activity.sql` only removes anonymous read access and is safe to run once the app is published.
 

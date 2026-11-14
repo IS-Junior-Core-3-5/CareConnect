@@ -19,7 +19,13 @@ export function VerifiedBadge({ verified }: { verified: boolean }) {
 }
 
 export function ProviderListingBadge({ provider }: { provider: Provider }) {
-  if (provider.isDemo) return null;
+  if (provider.isDemo) {
+    return (
+      <span className="rounded-full bg-surface px-2 py-1 text-xs font-semibold text-ink-soft">
+        Fictional listing
+      </span>
+    );
+  }
   return provider.listingOrigin === "external" ? (
     <span className="rounded-full bg-sun-soft px-2 py-1 text-xs font-semibold text-ink-soft">
       External listing
@@ -99,15 +105,12 @@ export function ProviderPhoto({
 export function ProviderCard({
   provider,
   distanceMiles,
-  preview,
 }: {
   provider: Provider;
   distanceMiles?: number;
-  preview?: { favorite: boolean; toggle: (id: string) => void };
 }) {
   const { isFavorite, toggleFavorite } = useApp();
-  const fav = preview?.favorite ?? isFavorite(provider.id);
-  const search = preview ? { preview: true as const } : undefined;
+  const fav = isFavorite(provider.id);
 
   return (
     <article className="card-lift grid gap-4 rounded-3xl bg-surface p-4 ring-1 ring-line sm:grid-cols-[168px_minmax(0,1fr)]">
@@ -116,11 +119,9 @@ export function ProviderCard({
           provider={provider}
           className={`w-full rounded-2xl sm:aspect-square ${provider.isDemo ? "aspect-[4/3]" : "aspect-[16/10]"}`}
         />
-        {provider.isDemo ? null : (
-          <span className="absolute left-2 top-2">
-            <ProviderListingBadge provider={provider} />
-          </span>
-        )}
+        <span className="absolute left-2 top-2">
+          <ProviderListingBadge provider={provider} />
+        </span>
       </div>
       <div className="flex min-w-0 flex-col">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
@@ -169,7 +170,6 @@ export function ProviderCard({
           <Link
             to="/providers/$providerId"
             params={{ providerId: provider.id }}
-            search={search}
             className="whitespace-nowrap rounded-full bg-primary px-3.5 py-2 text-sm font-semibold text-primary-soft transition-colors hover:bg-primary-ink sm:px-4"
           >
             View profile
@@ -178,7 +178,6 @@ export function ProviderCard({
             <Link
               to="/providers/$providerId"
               params={{ providerId: provider.id }}
-              search={search}
               hash="compare"
               className="whitespace-nowrap rounded-full border border-line px-3.5 py-2 text-sm font-semibold text-ink-soft transition-colors hover:border-primary hover:text-primary-ink sm:px-4"
             >
@@ -187,7 +186,7 @@ export function ProviderCard({
             </Link>
           ) : null}
           <button
-            onClick={() => (preview?.toggle ?? toggleFavorite)(provider.id)}
+            onClick={() => toggleFavorite(provider.id)}
             aria-label={
               fav ? `Remove ${provider.name} from favorites` : `Add ${provider.name} to favorites`
             }

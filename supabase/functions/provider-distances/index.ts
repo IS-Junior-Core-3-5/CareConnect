@@ -58,7 +58,8 @@ async function geocodeProviderAddress(address: string): Promise<Coordinate | nul
   const key = address.trim().toLowerCase();
   const cached = providerGeocodeCache.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.point;
-  const point = await geocodeAddress(address).catch(() => null);
+  // A temporary geocoder failure should be retried on a later request.
+  const point = await geocodeAddress(address);
   providerGeocodeCache.set(key, {
     point,
     expiresAt: Date.now() + (point ? 7 : 0.1) * 24 * 60 * 60 * 1000,
@@ -167,29 +168,57 @@ Deno.serve(async (req) => {
           longitude: parentPoint.longitude,
           geocoded_at: new Date().toISOString(),
         })
-        .eq("parent_id", parentId);
+        .eq("parent_id", parentId)
+        .eq("address", parentLocation.address);
       if (saveError)
         return json({ error: "Your private coordinates couldn't be saved. Try again." }, 500);
     }
 
+    // Prefer the coordinates already stored on the provider row. The client
+    // reads them from the public provider table, so the distance filter usually
+    // needs no Census calls at all. Only rows without a point fall back to the
+    // API. Deduplicating addresses keeps repeated landmarks to one lookup.
+    const coordinatesById = new Map<string, Coordinate>();
+    for (const provider of providers) {
+      const stored = coordinate(provider.latitude, provider.longitude);
+      if (stored) coordinatesById.set(provider.id, stored);
+    }
+
+    const addresses = [
+      ...new Set(
+        providers.flatMap(({ id, address }) =>
+          address && !coordinatesById.has(id) ? [address.toLowerCase()] : [],
+        ),
+      ),
+    ];
+    let failedLookups = 0;
+    const points = await mapWithLimit(addresses, 4, async (address) => {
+      try {
+        return await geocodeProviderAddress(address);
+      } catch {
+        failedLookups++;
+        return null;
+      }
+    });
+    if (!coordinatesById.size && addresses.length > 0 && failedLookups === addresses.length) {
+      return json(
+        {
+          error:
+            "The address lookup service is temporarily unavailable. Try applying the distance filter again.",
+        },
+        503,
+      );
+    }
+
+    const pointByAddress = new Map(addresses.map((address, index) => [address, points[index]]));
     const distances: Record<string, number | null> = {};
     const unmatched: string[] = [];
-    // Prefer the coordinates already stored on the provider row. That keeps the
-    // distance filter fast and avoids re-geocoding the whole directory on every
-    // cold start. Only rows without a point fall back to the Census API.
-    const results = await mapWithLimit(providers, 4, async (provider) => {
-      const stored = coordinate(provider.latitude, provider.longitude);
-      if (stored) return stored;
-      if (!provider.address?.trim()) return null;
-      return geocodeProviderAddress(provider.address);
-    });
-    providers.forEach((provider, index) => {
-      const point = results[index];
-      if (!point) unmatched.push(provider.id);
-      distances[provider.id] = point
-        ? Math.round(milesBetween(parentPoint!, point) * 10) / 10
-        : null;
-    });
+    for (const { id, address } of providers) {
+      const point =
+        coordinatesById.get(id) ?? (address ? pointByAddress.get(address.toLowerCase()) : null);
+      if (!point) unmatched.push(id);
+      distances[id] = point ? Math.round(milesBetween(parentPoint!, point) * 10) / 10 : null;
+    }
 
     return json({ distances, unmatched });
   } catch {
